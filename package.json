@@ -1,0 +1,47 @@
+{
+  "name": "lintlens",
+  "displayName": "LintLens \u2014 ESLint rules made easier",
+  "description": "Augment your ESLint rules in Visual Studio Code \u2014 Adds descriptions above each ESLint rule via code lenses.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Gabriel McAdams",
+    "email": "ghmcadams@yahoo.com"
+  },
+  "publisher": "ghmcadams",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "galleryBanner": {
+    "color": "#3423B2",
+    "theme": "dark"
+  },
+  "keywords": [
+    "lintlens",
+    "eslint",
+    "rules",
+    "metadata",
+    "annotation",
+    "multi-root ready"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/.eslintrc*",
+    "workspaceContains:**/package.json"
+  ],
+  "main": "./extension",
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "vscode": "^1.1.6"
+  },
+  "dependencies": {
+    "acorn": "^5.7.1",
+    "eslint": "^5.1.0",
+    "open": "0.0.5",
+    "yaml-ast-parser": "0.0.40"
+  }
+}
