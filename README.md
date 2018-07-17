@@ -2,6 +2,8 @@
 
 Augment your ESLint rules in Visual Studio Code - Adds descriptions above each ESLint rule via code lenses.
 
+<img src="images/lintlens-screenshot-rules.png" width="300px"/>
+
 ## Features
 
 Adds details and a documentation link above each [ESLint rule](https://eslint.org/docs/rules/) (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) in your configuration file located anywhere in your workspace (supports multiple config files).
@@ -18,12 +20,12 @@ If you are new to ESLint check the [documentation](http://eslint.org/).
 
 Auto-updates as you type:
 
-![Main](images/lintlens-preview-main.gif)
+<img src="images/lintlens-preview-main.gif" width="600px"/>
 
 
 Click for more information on each rule:
 
-![Main](images/lintlens-preview-links.gif)
+<img src="images/lintlens-preview-links.gif" width="600px"/>
 
 
 ## Requirements
