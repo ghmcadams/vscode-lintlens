@@ -2,7 +2,11 @@
 
 Augment your ESLint rules in Visual Studio Code - Adds descriptions above each ESLint rule via code lenses.
 
-<img src="images/lintlens-screenshot-rules.png" width="300px"/>
+<p align="left">
+  <br />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-screenshot-rules.png" alt="LintLens Screenshot" width="300px" />
+  <br />
+</p>
 
 ## Features
 
@@ -20,12 +24,20 @@ If you are new to ESLint check the [documentation](http://eslint.org/).
 
 Auto-updates as you type:
 
-<img src="images/lintlens-preview-main.gif" width="600px"/>
+<p align="center">
+  <br />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-main.gif" alt="LintLens Preview Main" width="600px" />
+  <br />
+</p>
 
 
 Click for more information on each rule:
 
-<img src="images/lintlens-preview-links.gif" width="600px"/>
+<p align="center">
+  <br />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-links.gif" alt="LintLens Preview Links" width="600px" />
+  <br />
+</p>
 
 
 ## Requirements
