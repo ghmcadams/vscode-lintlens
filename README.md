@@ -1,4 +1,4 @@
-# ESLint Rules Metadata
+# LintLens - VSCode extension
 
 Augment your ESLint rules in Visual Studio Code - Adds descriptions above each ESLint rule via code lenses.
 
