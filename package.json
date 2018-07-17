@@ -3,11 +3,19 @@
   "displayName": "LintLens \u2014 ESLint rules made easier",
   "description": "Augment your ESLint rules in Visual Studio Code \u2014 Adds descriptions above each ESLint rule via code lenses.",
   "version": "1.0.0",
+  "publisher": "ghmcadams",
   "author": {
     "name": "Gabriel McAdams",
     "email": "ghmcadams@yahoo.com"
   },
-  "publisher": "ghmcadams",
+  "homepage": "https://github.com/ghmcadams/vscode-lintlens/blob/master/README.md",
+  "bugs": {
+      "url": "https://github.com/ghmcadams/vscode-lintlens/issues"
+  },
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/ghmcadams/vscode-lintlens.git"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.25.0"
