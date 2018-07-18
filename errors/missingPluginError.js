@@ -1,6 +1,6 @@
-const RuleError = require('./ruleError');
+const LintLensError = require('./lintlensError');
 
-module.exports = class MissingPluginError extends RuleError {
+module.exports = class MissingPluginError extends LintLensError {
     constructor(plugin, ...rest) {
         super(...rest);
         this.plugin = plugin;

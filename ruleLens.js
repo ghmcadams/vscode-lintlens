@@ -2,8 +2,8 @@ const vscode = require('vscode');
 const eslintManager = require('./eslintManager');
 
 const recommendedIcon = '\u2605';
-const warningFoundIcon = '\u2757';
-
+const warningIcon = '\u2757';
+const MISSING_URL_URL = 'https://github.com/ghmcadams/vscode-lintlens/wiki/Missing-Rule-Docs-URL';
 
 module.exports = class RuleLens extends vscode.CodeLens {
     constructor(rule) {
@@ -21,52 +21,48 @@ module.exports = class RuleLens extends vscode.CodeLens {
         let importer = Promise.resolve();
 
         // If the rule is a plugin rule, import plugin first
-        if (this.plugin && !eslintManager.isPluginImported(this.plugin)) {
+        if (this.plugin) {
             importer = eslintManager.importPlugin(this.plugin);
         }
 
         return importer
             .then(() => {
-                if (eslintManager.hasRule(this.rule.name)) {
-                    let ruleData = eslintManager.getRuleData(this.rule.name);
+                let ruleInfo = eslintManager.getRule(this.rule.name);
+
+                if (!ruleInfo) {
+                    this.command = {
+                        title: `${warningIcon}Rule not found`,
+                        command: 'extension.openEslintRule',
+                        arguments: [ (this.plugin ? `${eslintManager.npmPackageBaseUrl}${eslintManager.eslintPluginPrefix}${this.plugin}` : eslintManager.eslintRulesUrl) ]
+                    };
+                } else {
+                    let ruleDocs = (ruleInfo.meta && ruleInfo.meta.docs) ? ruleInfo.meta.docs : {};
 
                     let title = '';
-                    if (ruleData.recommended === true) {
+                    if (ruleDocs.recommended === true) {
                         title += `${recommendedIcon}  `;
                     }
 
-                    if (ruleData.category) {
-                        title += `[${ruleData.category}]:  `;
+                    if (ruleDocs.category) {
+                        title += `[${ruleDocs.category}]:  `;
                     }
 
-                    if (ruleData.description) {
-                        title += ruleData.description;
+                    if (ruleDocs.description) {
+                        title += ruleDocs.description;
                     } else {
                         title += `eslint rule: ${this.rule.name}`;
                     }
 
-                    if (ruleData.url) {
-                        this.command = {
-                            title,
-                            command: 'extension.openEslintRule',
-                            arguments: [ ruleData.url ]
-                        };
-                    } else {
-                        this.command = {
-                            title
-                        };
-                    }
-                } else {
                     this.command = {
-                        title: `${warningFoundIcon}Rule not found`,
+                        title,
                         command: 'extension.openEslintRule',
-                        arguments: [ (this.plugin ? `${eslintManager.npmPackageBaseUrl}${eslintManager.eslintPluginPrefix}${this.plugin}` : eslintManager.eslintRulesUrl) ]
+                        arguments: [ ruleDocs.url || (this.plugin ? MISSING_URL_URL : eslintManager.eslintRulesUrl) ]
                     };
                 }
             }, err => {
                 if (err.name === 'MissingPluginError') {
                     this.command = {
-                        title: `${warningFoundIcon}Missing: ${eslintManager.eslintPluginPrefix}${err.plugin}`,
+                        title: `${warningIcon}Missing: ${eslintManager.eslintPluginPrefix}${err.plugin}`,
                         command: 'extension.openEslintRule',
                         arguments: [ `${eslintManager.npmPackageBaseUrl}${eslintManager.eslintPluginPrefix}${err.plugin}` ]
                     };

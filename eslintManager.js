@@ -1,52 +1,18 @@
 const path = require('path');
 const vscode = require('vscode');
+const eslint = require('eslint');
 const MissingPluginError = require('./errors/missingPluginError');
 
 const npmPackageBaseUrl = 'https://www.npmjs.com/package/';
 const eslintPluginPrefix = 'eslint-plugin-';
 const eslintRulesUrl = 'https://eslint.org/docs/rules/';
 
-let eslintPath;
-let linter;
-let rulesList;
+const linter = new eslint.Linter();
+let rules = linter.rules.getAllLoadedRules();
 const pluginsImported = [];
 
-getESLint().then(eslint => {
-    if (eslint) {
-        linter = new eslint.Linter();
-        rulesList = linter.rules.getAllLoadedRules();
-    }
-});
-
-function getESLint() {
-    if (eslintPath) {
-        return Promise.resolve(require(eslintPath));
-    }
-
-    return vscode.workspace.findFiles('**/node_modules/eslint/package.json', null, 1)
-        .then(packagePaths => {
-            if (packagePaths.length === 0) {
-                try {
-                    eslintPath = 'eslint';
-                    return require('eslint');
-                } catch(e) {
-                    return null;
-                }
-            } else {
-                let dirname = path.dirname(packagePaths[0].path);
-                eslintPath = dirname;
-                return require(dirname);
-            }
-        }, err => {
-        });
-}
-
-function isPluginImported(pluginName) {
-    return (pluginsImported.indexOf(pluginName) > -1);
-}
-
 function importPlugin(pluginName) {
-    if (isPluginImported(pluginName)) {
+    if (pluginsImported.indexOf(pluginName) > -1) {
         return Promise.resolve();
     }
 
@@ -62,26 +28,22 @@ function importPlugin(pluginName) {
                 pluginsImported.push(pluginName);
 
                 //reload rules (including the newly imported rules)
-                rulesList = linter.rules.getAllLoadedRules();
+                rules = linter.rules.getAllLoadedRules();
             }
         });
 }
 
-function hasRule(ruleName) {
-    return rulesList.has(ruleName);
-}
+function getRule(ruleName) {
+    if (!rules.has(ruleName)) {
+        return null;
+    }
 
-function getRuleData(ruleName) {
-    let foundRule = rulesList.get(ruleName);
-    return (foundRule && foundRule.meta && foundRule.meta.docs) ? foundRule.meta.docs : {};
+    return rules.get(ruleName);
 }
 
 module.exports = {
-    getESLint,
-    isPluginImported,
     importPlugin,
-    hasRule,
-    getRuleData,
+    getRule,
     eslintPluginPrefix,
     npmPackageBaseUrl,
     eslintRulesUrl
