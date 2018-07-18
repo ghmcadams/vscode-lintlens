@@ -42,7 +42,7 @@ module.exports = class RuleLens extends vscode.CodeLens {
                     if (ruleData.description) {
                         title += ruleData.description;
                     } else {
-                        title += `eslint rule: ${rule.name}`;
+                        title += `eslint rule: ${this.rule.name}`;
                     }
 
                     if (ruleData.url) {
