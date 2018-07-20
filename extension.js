@@ -1,9 +1,9 @@
 const vscode = require('vscode');
-const open = require('open');
 const JSCodeLensProvider = require('./codeLensProvider/javascript');
 const JSONCodeLensProvider = require('./codeLensProvider/json');
 const PkgCodeLensProvider = require('./codeLensProvider/pkg');
 const YAMLCodeLensProvider = require('./codeLensProvider/yaml');
+const showWebPanel = require('./webPanel');
 
 exports.activate = function activate(context) {
     context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc.js', scheme: 'file' }, new JSCodeLensProvider()));
@@ -14,8 +14,8 @@ exports.activate = function activate(context) {
     context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, new YAMLCodeLensProvider()));
     context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/package.json', scheme: 'file' }, new PkgCodeLensProvider()));
 
-    context.subscriptions.push(vscode.commands.registerCommand('extension.openEslintRule', function openEslintRule(url) {
-        open(url);
+    context.subscriptions.push(vscode.commands.registerCommand('lintlens.openWebView', function openWebPanel(url, title) {
+        showWebPanel(url, title);
     }));
 }
 

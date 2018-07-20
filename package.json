@@ -1,7 +1,7 @@
 {
   "name": "lintlens",
   "displayName": "LintLens — ESLint rules made easier",
-  "description": "Augment your ESLint rules in Visual Studio Code — Adds descriptions above each ESLint rule via code lenses.",
+  "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata above each ESLint rule via code lenses.",
   "version": "1.0.3",
   "publisher": "ghmcadams",
   "author": {
@@ -49,7 +49,7 @@
   "dependencies": {
     "acorn": "^5.7.1",
     "eslint": "^5.1.0",
-    "open": "0.0.5",
+    "node-fetch": "^2.1.2",
     "yaml-ast-parser": "0.0.40"
   }
 }

@@ -5,6 +5,14 @@ const recommendedIcon = '\u2605';
 const warningIcon = '\u2757';
 const MISSING_URL_URL = 'https://github.com/ghmcadams/vscode-lintlens/wiki/Missing-Rule-Docs-URL';
 
+function getCommand(lensText, url, pageTitle) {
+    return {
+        title: lensText,
+        command: 'lintlens.openWebView',
+        arguments: [ url, pageTitle ]
+    };
+}
+
 module.exports = class RuleLens extends vscode.CodeLens {
     constructor(rule) {
         super(new vscode.Range(rule.start, rule.end));
@@ -25,16 +33,19 @@ module.exports = class RuleLens extends vscode.CodeLens {
             importer = eslintManager.importPlugin(this.plugin);
         }
 
+        let pluginPackageName = `${eslintManager.eslintPluginPrefix}${this.plugin}`;
+        const pluginUrl = `${eslintManager.npmPackageBaseUrl}${pluginPackageName}`;
+
         return importer
             .then(() => {
                 let ruleInfo = eslintManager.getRule(this.rule.name);
 
                 if (!ruleInfo) {
-                    this.command = {
-                        title: `${warningIcon}Rule not found`,
-                        command: 'extension.openEslintRule',
-                        arguments: [ (this.plugin ? `${eslintManager.npmPackageBaseUrl}${eslintManager.eslintPluginPrefix}${this.plugin}` : eslintManager.eslintRulesUrl) ]
-                    };
+                    this.command = getCommand(
+                        'Rule not found',
+                        (this.plugin ? pluginUrl : eslintManager.eslintRulesUrl),
+                        `${(this.plugin ? pluginPackageName : 'eslint rules')} - LintLens`
+                    );
                 } else {
                     let ruleDocs = (ruleInfo.meta && ruleInfo.meta.docs) ? ruleInfo.meta.docs : {};
 
@@ -53,19 +64,19 @@ module.exports = class RuleLens extends vscode.CodeLens {
                         title += `eslint rule: ${this.rule.name}`;
                     }
 
-                    this.command = {
+                    this.command = getCommand(
                         title,
-                        command: 'extension.openEslintRule',
-                        arguments: [ ruleDocs.url || (this.plugin ? MISSING_URL_URL : eslintManager.eslintRulesUrl) ]
-                    };
+                        ruleDocs.url || (this.plugin ? MISSING_URL_URL : eslintManager.eslintRulesUrl),
+                        `${this.rule.name} - LintLens`
+                    );
                 }
             }, err => {
                 if (err.name === 'MissingPluginError') {
-                    this.command = {
-                        title: `${warningIcon}Missing: ${eslintManager.eslintPluginPrefix}${err.plugin}`,
-                        command: 'extension.openEslintRule',
-                        arguments: [ `${eslintManager.npmPackageBaseUrl}${eslintManager.eslintPluginPrefix}${err.plugin}` ]
-                    };
+                    this.command = getCommand(
+                        `${warningIcon}Missing: ${pluginPackageName}`,
+                        pluginUrl,
+                        `${pluginPackageName} - LintLens`
+                    );
                 }
             });
     }

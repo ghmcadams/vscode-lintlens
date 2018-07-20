@@ -1,6 +1,6 @@
 # LintLens - VSCode extension
 
-Augment your ESLint rules in Visual Studio Code - Adds descriptions above each ESLint rule via code lenses.
+Augment your ESLint rules in Visual Studio Code — Adds metadata above each ESLint rule via code lenses.
 
 <p align="left">
   <br />
@@ -10,14 +10,14 @@ Augment your ESLint rules in Visual Studio Code - Adds descriptions above each E
 
 ## Features
 
-Adds details and a documentation link above each [ESLint rule](https://eslint.org/docs/rules/) (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) in your configuration file located anywhere in your workspace (supports multiple config files).
+Adds details and a documentation link above each [ESLint rule](https://eslint.org/docs/rules/) (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) in your configuration file located anywhere in your workspace folders (supports multiple config files).
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
 - JavaScript - use `.eslintrc.js` and export an object containing your configuration.
 - YAML - use `.eslintrc.yaml` or `.eslintrc.yml` to define the configuration structure.
 - JSON - use `.eslintrc.json` to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
-- Deprecated - use `.eslintrc`, which can be either JSON or YAML.
+- **Deprecated** - use `.eslintrc`, which can be either JSON or YAML.
 - package.json - create an `eslintConfig` property in your `package.json` file and define your configuration there.
 
 If you are new to ESLint check the [documentation](http://eslint.org/).  
