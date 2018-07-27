@@ -1,12 +1,8 @@
 const vscode = require('vscode');
 const eslintManager = require('./eslintManager');
+const constants = require('./constants');
 
-const starIcon = '\uD83D\uDC4D'; // recommended
-const arrowIcon = '\u2197'; // link
-const wrenchIcon = '\uD83D\uDD27'; // fixable
-const NoEntryIcon = '\uD83D\uDEAB'; //deprecated
-const emptyIcon = '\u2205'; // missing
-const magnifyIcon = '\uD83D\uDD0E'; // not found
+const glyphs = constants.glyphs;
 
 const annotationDecoration = vscode.window.createTextEditorDecorationType({
     after: {
@@ -57,21 +53,21 @@ function addAnnotations(editor, parser) {
 function getContentText(ruleInfo) {
     let contentText;
     if (ruleInfo.isPluginMissing) {
-        contentText = `${emptyIcon} Missing: \`${ruleInfo.pluginPackageName}\``;
+        contentText = `${glyphs.emptyIcon} Missing: \`${ruleInfo.pluginPackageName}\``;
     } else if (!ruleInfo.isRuleFound) {
-        contentText = `${magnifyIcon} Rule not found`;
+        contentText = `${glyphs.magnifyIcon} Rule not found`;
     } else {
         contentText = '';
         if (ruleInfo.isRecommended === true) {
-            contentText += `${starIcon} `;
+            contentText += `${glyphs.starIcon} `;
         }
 
         if (ruleInfo.isDeprecated === true) {
-            contentText += `${NoEntryIcon} `;
+            contentText += `${glyphs.NoEntryIcon} `;
         }
 
         if (ruleInfo.isFixable === true) {
-            contentText += `${wrenchIcon} `;
+            contentText += `${glyphs.wrenchIcon} `;
         }
 
         if (ruleInfo.category) {
@@ -90,22 +86,21 @@ function getContentText(ruleInfo) {
 
 function getHoverMessage(ruleInfo) {
     let hoverMessage;
-    //TODO: pull out the app name
-    let commandString = getCommandString(`Click for more information \[${arrowIcon}\]`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - LintLens`, 'Click for more information');
+    let commandString = getCommandString(`Click for more information \[${glyphs.arrowIcon}\]`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`, 'Click for more information');
     if (ruleInfo.isPluginMissing) {
         /*
         Missing plugin: `{{ pluginName }}`
 
         [Click for more information `↗`](infoUrl)
         */
-        hoverMessage = `${emptyIcon} Missing plugin: \`${ruleInfo.pluginName}\`\n\n${commandString}`;
+        hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n\n${commandString}`;
     } else if (!ruleInfo.isRuleFound) {
         /*
         `{{ ruleName }}` not found
 
         [Click for more information `↗`](infoUrl)
         */
-        hoverMessage = `${magnifyIcon} \`${ruleInfo.ruleName}\` not found\n\n${commandString}`;
+        hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n\n${commandString}`;
     } else {
         /*
         [ {{ category }} ] {{ ruleName }}
@@ -123,22 +118,22 @@ function getHoverMessage(ruleInfo) {
         if (ruleInfo.category) {
             hoverMessage += `&nbsp;&nbsp;&nbsp;\\[\`${ruleInfo.category}\`\\]`;
         }
-        hoverMessage += '\n\n';
+        hoverMessage += '\n';
 
         if (ruleInfo.isRecommended === true) {
-            hoverMessage += `- ${starIcon}&nbsp;&nbsp;recommended\n\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.starIcon}&nbsp;&nbsp;recommended\n`;
         }
 
         if (ruleInfo.isFixable === true) {
-            hoverMessage += `- ${wrenchIcon}&nbsp;&nbsp;fixable\n\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.wrenchIcon}&nbsp;&nbsp;fixable\n`;
         }
 
         if (ruleInfo.isDeprecated === true) {
-            hoverMessage += `- ${NoEntryIcon}&nbsp;&nbsp;deprecated\n\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.NoEntryIcon}&nbsp;&nbsp;deprecated\n`;
         }
 
         if (ruleInfo.replacedBy) {
-            hoverMessage += `- replaced by \`${ruleInfo.replacedBy}\`\n\n`;
+            hoverMessage += `&nbsp;&nbsp;replaced by \`${ruleInfo.replacedBy}\`\n`;
         }
 
         if (ruleInfo.description) {
@@ -151,6 +146,8 @@ function getHoverMessage(ruleInfo) {
         }
 
         hoverMessage += `\n${commandString}`;
+
+        hoverMessage = hoverMessage.replace(/\n/g, '  \n');
     }
 
     let markdown = new vscode.MarkdownString(hoverMessage);
@@ -173,7 +170,7 @@ function getCommandString(text, url, pageTitle, tooltip = '') {
         pageTitle
     };
 
-    return `[${text}](command:lintlens.openWebView?${encodeURIComponent(JSON.stringify(args))} "${tooltip || text}")`;
+    return `[${text}](command:${constants.openWebViewPanelCommand}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Click here'}")`;
 }
 
 function getDecorationObject(contentText, hoverMessage) {

@@ -5,6 +5,7 @@ const yamlParser = require('./parsers/yamlParser');
 const pkgParser = require('./parsers/pkgParser');
 const showWebPanel = require('./webPanel');
 const lineAnnotationsController = require('./lineAnnotationsController');
+const constants = require('./constants');
 
 
 function setupAnnotations(editor) {
@@ -32,7 +33,7 @@ function setupAnnotations(editor) {
 }
 
 exports.activate = function activate(context) {
-    context.subscriptions.push(vscode.commands.registerCommand('lintlens.openWebView', function openWebPanel({url, pageTitle}) {
+    context.subscriptions.push(vscode.commands.registerCommand(constants.openWebViewPanelCommand, function openWebPanel({url, pageTitle}) {
         showWebPanel(url, pageTitle);
     }));
 

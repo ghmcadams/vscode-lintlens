@@ -2,11 +2,7 @@ const path = require('path');
 const vscode = require('vscode');
 const eslint = require('eslint');
 const MissingPluginError = require('./errors/missingPluginError');
-
-const npmPackageBaseUrl = 'https://www.npmjs.com/package/';
-const eslintPluginPrefix = 'eslint-plugin-';
-const eslintRulesUrl = 'https://eslint.org/docs/rules/';
-const MISSING_URL_URL = 'https://github.com/ghmcadams/vscode-lintlens/wiki/Missing-Rule-Docs-URL';
+const constants = require('./constants');
 
 const linter = new eslint.Linter();
 let rules = linter.rules.getAllLoadedRules();
@@ -17,7 +13,7 @@ function importPlugin(pluginName) {
         return Promise.resolve(pluginName);
     }
 
-    return vscode.workspace.findFiles(`**/node_modules/${eslintPluginPrefix}${pluginName}/package.json`, null, 1)
+    return vscode.workspace.findFiles(`**/node_modules/${constants.eslintPluginPrefix}${pluginName}/package.json`, null, 1)
         .then(packagePaths => {
             if (packagePaths.length === 0) {
                 throw new MissingPluginError(pluginName);
@@ -46,8 +42,8 @@ function getRuleDetails(ruleName) {
         pluginName = ruleNameParts[0];
     }
 
-    const pluginPackageName = `${eslintPluginPrefix}${pluginName}`;
-    const pluginUrl = `${npmPackageBaseUrl}${pluginPackageName}`;
+    const pluginPackageName = `${constants.eslintPluginPrefix}${pluginName}`;
+    const pluginUrl = `${constants.npmPackageBaseUrl}${pluginPackageName}`;
 
     return importPlugin(pluginName)
         .then((pluginName) => {
@@ -57,7 +53,7 @@ function getRuleDetails(ruleName) {
                     pluginName,
                     isRuleFound: false,
                     isPluginMissing: false,
-                    infoUrl: pluginName ? pluginUrl : eslintRulesUrl,
+                    infoUrl: pluginName ? pluginUrl : constants.eslintRulesUrl,
                     infoPageTitle: pluginName ? pluginPackageName : 'eslint rules'
                 };
             }
@@ -71,7 +67,7 @@ function getRuleDetails(ruleName) {
                 pluginName,
                 isRuleFound: true,
                 isPluginMissing: false,
-                infoUrl: ruleDocs.url || (pluginName ? MISSING_URL_URL : eslintRulesUrl),
+                infoUrl: ruleDocs.url || (pluginName ? constants.MISSING_URL_URL : constants.eslintRulesUrl),
                 infoPageTitle: ruleName,
                 category: ruleDocs.category,
                 isRecommended: ruleDocs.recommended,
