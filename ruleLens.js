@@ -9,13 +9,13 @@ function getCommand(lensText, url, pageTitle) {
     return {
         title: lensText,
         command: 'lintlens.openWebView',
-        arguments: [ url, pageTitle ]
+        arguments: [ {url, pageTitle} ]
     };
 }
 
 module.exports = class RuleLens extends vscode.CodeLens {
     constructor(rule) {
-        super(new vscode.Range(rule.start, rule.end));
+        super(rule.keyRange);
 
         this.rule = rule;
 

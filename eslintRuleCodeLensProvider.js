@@ -1,13 +1,14 @@
-const RuleLens = require('../ruleLens');
+const vscode = require('vscode');
+const RuleLens = require('./ruleLens');
 
 module.exports = class ESLintRuleCodeLensProvider {
-    getRules() {
-        return [];
+    constructor(parser) {
+        this.parser = parser;
     }
 
     provideCodeLenses(document) {
         let codeLenses = [];
-        let rules = this.getRules(document);
+        let rules = this.parser(document);
 
         rules.forEach(rule => {
             codeLenses.push(new RuleLens(rule));
