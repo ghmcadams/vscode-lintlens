@@ -1,6 +1,6 @@
 # LintLens - VSCode extension
 
-Augment your ESLint rules in Visual Studio Code — Adds metadata above each ESLint rule via code lenses.
+Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.
 
 <p align="left">
   <br />
@@ -10,7 +10,7 @@ Augment your ESLint rules in Visual Studio Code — Adds metadata above each ESL
 
 ## Features
 
-Adds details and a documentation link above each [ESLint rule](https://eslint.org/docs/rules/) (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) in your configuration file located anywhere in your workspace folders (supports multiple config files).
+Adds details and a documentation link beside each [ESLint rule](https://eslint.org/docs/rules/) in your configuration file (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) located anywhere in your workspace folders (supports multiple config files).
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
@@ -46,6 +46,6 @@ In an effort to support all possible plugins and to keep size small, this extens
 
 ## Known Issues
 
-- Does not support globally installed eslint or eslint plugin packages
+- Does not support globally installed eslint plugin packages
 - ESLint v4.15.0 added an official location for rules to store a URL to their documentation in the rule metadata in [eslint/eslint#9788](https://github.com/eslint/eslint/pull/9788). This adds the URL to all the existing rules so anything consuming them can know where their documentation is without having to resort to external packages to guess.  If your plugin hasn't included this metadata, its possible you have an older version that needs to be updated.
 - When using the JS configuration file format, this extension currently only supports rules existing in a single exports object at the root (`module.exports.rules`).
