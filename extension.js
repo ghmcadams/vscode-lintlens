@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const ESLintRuleCodeLensProvider = require('./eslintRuleCodeLensProvider');
 const jsonParser = require('./parsers/jsonParser');
 const jsParser = require('./parsers/jsParser');
 const yamlParser = require('./parsers/yamlParser');
@@ -33,18 +32,9 @@ function setupAnnotations(editor) {
 }
 
 exports.activate = function activate(context) {
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc.js', scheme: 'file' }, new ESLintRuleCodeLensProvider(jsParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc.json', scheme: 'file' }, new ESLintRuleCodeLensProvider(jsonParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc.yaml', scheme: 'file' }, new ESLintRuleCodeLensProvider(yamlParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc.yml', scheme: 'file' }, new ESLintRuleCodeLensProvider(yamlParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, new ESLintRuleCodeLensProvider(jsonParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, new ESLintRuleCodeLensProvider(yamlParser)));
-    // context.subscriptions.push(vscode.languages.registerCodeLensProvider({ pattern: '**/package.json', scheme: 'file' }, new ESLintRuleCodeLensProvider(pkgParser)));
-
     context.subscriptions.push(vscode.commands.registerCommand('lintlens.openWebView', function openWebPanel({url, pageTitle}) {
         showWebPanel(url, pageTitle);
     }));
-
 
     // generate on start
     let activeEditor = vscode.window.activeTextEditor;
