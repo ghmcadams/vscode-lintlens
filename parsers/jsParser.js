@@ -10,7 +10,7 @@ module.exports = function getRules(document) {
             if (stmt.expression.left.type === 'MemberExpression') {
                 if (stmt.expression.left.object.name === 'module' && stmt.expression.left.property.name === 'exports') {
                     stmt.expression.right.properties.forEach(prop => {
-                        if (prop.key.value === 'rules') {
+                        if ((prop.key.type === 'Literal' && prop.key.value === 'rules') || (prop.key.type === 'Identifier' && prop.key.name === 'rules')) {
                             prop.value.properties.forEach(rule => {
                                 let keyStartPosition = new vscode.Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
                                 let keyEndPosition = new vscode.Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
