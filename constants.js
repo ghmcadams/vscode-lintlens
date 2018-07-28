@@ -9,7 +9,8 @@ module.exports = {
         wrenchIcon: '\uD83D\uDD27',
         NoEntryIcon: '\uD83D\uDEAB',
         emptyIcon: '\u2205',
-        magnifyIcon: '\uD83D\uDD0E'
+        magnifyIcon: '\uD83D\uDD0E',
+        dot: '\u22C5'
     },
 
     npmPackageBaseUrl: 'https://www.npmjs.com/package/',

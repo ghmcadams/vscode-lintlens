@@ -2,7 +2,7 @@
   "name": "lintlens",
   "displayName": "LintLens — ESLint rules made easier",
   "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "publisher": "ghmcadams",
   "author": {
     "name": "Gabriel McAdams",
@@ -39,6 +39,19 @@
     "workspaceContains:**/.eslintrc*",
     "workspaceContains:**/package.json"
   ],
+  "contributes": {
+    "colors": [
+      {
+        "id": "lintlens.annotationColor",
+        "description": "text color of line annotations",
+        "defaults": {
+          "dark": "#99999950",
+          "light": "#999999A6",
+          "highContrast": "#99999999"
+        }
+      }
+    ]
+  },
   "main": "./extension",
   "scripts": {
     "postinstall": "node ./node_modules/vscode/bin/install"

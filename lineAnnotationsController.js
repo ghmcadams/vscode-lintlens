@@ -6,8 +6,7 @@ const glyphs = constants.glyphs;
 
 const annotationDecoration = vscode.window.createTextEditorDecorationType({
     after: {
-        margin: '0 0 0 1em',
-        color: '#999999',
+        color: new vscode.ThemeColor('lintlens.annotationColor'),
         fontWeight: 'normal',
         fontStyle: 'normal',
         textDecoration: 'none'
@@ -81,7 +80,7 @@ function getContentText(ruleInfo) {
         }
     }
 
-    return contentText;
+    return ` ${glyphs.dot} ${glyphs.dot} ${glyphs.dot} ${contentText}`;
 }
 
 function getHoverMessage(ruleInfo) {
