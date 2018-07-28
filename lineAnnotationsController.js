@@ -59,7 +59,7 @@ function getContentText(ruleInfo) {
     } else {
         contentText = '';
         if (ruleInfo.isRecommended === true) {
-            contentText += `${glyphs.starIcon} `;
+            contentText += `${glyphs.thumbsUpIcon} `;
         }
 
         if (ruleInfo.isDeprecated === true) {
@@ -121,7 +121,7 @@ function getHoverMessage(ruleInfo) {
         hoverMessage += '\n';
 
         if (ruleInfo.isRecommended === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.starIcon}&nbsp;&nbsp;recommended\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.thumbsUpIcon}&nbsp;&nbsp;recommended\n`;
         }
 
         if (ruleInfo.isFixable === true) {

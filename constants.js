@@ -4,7 +4,7 @@ module.exports = {
     extensionName: 'LintLens',
 
     glyphs: {
-        starIcon: '\uD83D\uDC4D',
+        thumbsUpIcon: '\uD83D\uDC4D',
         arrowIcon: '\u2197',
         wrenchIcon: '\uD83D\uDD27',
         NoEntryIcon: '\uD83D\uDEAB',
