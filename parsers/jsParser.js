@@ -17,8 +17,17 @@ module.exports = function getRules(document) {
                                 let keyRange = document.validateRange(new vscode.Range(keyStartPosition, keyEndPosition));
                                 let lineEndingRange = document.validateRange(new vscode.Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
 
+                                let name;
+                                if (rule.key.type === 'Literal') {
+                                    name = rule.key.value;
+                                } else if (rule.key.type === 'Identifier') {
+                                    name = rule.key.name;
+                                } else {
+                                    return;
+                                }
+
                                 rules.push({
-                                    name: rule.key.value,
+                                    name,
                                     keyRange,
                                     lineEndingRange
                                 });
