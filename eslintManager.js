@@ -6,7 +6,7 @@ const MissingPluginError = require('./errors/missingPluginError');
 const constants = require('./constants');
 
 const linter = new eslint.Linter();
-let rules = linter.rules.getAllLoadedRules();
+let rules;
 let ruleKeys = {};
 const pluginsImported = [];
 const pluginsBeingImported = new Map();
@@ -49,11 +49,10 @@ function loadAllRules() {
 
             return ret;
         }, {});
-
 }
 
 function searchRules({plugin, key}) {
-    const list = ruleKeys[plugin || 'base'];
+    const list = ruleKeys[plugin || 'base'] || [];
     const fuse = new Fuse(list, fuseOptions);
     let suggestedRules = fuse.search(key);
 
