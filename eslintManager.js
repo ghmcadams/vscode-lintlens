@@ -9,6 +9,7 @@ const linter = new eslint.Linter();
 let rules = linter.rules.getAllLoadedRules();
 let ruleKeys = {};
 const pluginsImported = [];
+const pluginsBeingImported = new Map();
 
 const fuseOptions = {
     shouldSort: true,
@@ -66,7 +67,11 @@ function importPlugin(pluginName) {
         return Promise.resolve(pluginName);
     }
 
-    return vscode.workspace.findFiles(`**/node_modules/${constants.eslintPluginPrefix}${pluginName}/package.json`, null, 1)
+    if (pluginsBeingImported.has(pluginName)) {
+        return pluginsBeingImported.get(pluginName);
+    }
+
+    let pluginLoader = vscode.workspace.findFiles(`**/node_modules/${constants.eslintPluginPrefix}${pluginName}/package.json`, null, 1)
         .then(packagePaths => {
             if (packagePaths.length === 0) {
                 throw new MissingPluginError(pluginName);
@@ -83,7 +88,15 @@ function importPlugin(pluginName) {
             return pluginName;
         }, err => {
             throw err;
+        })
+        .then(pluginName => {
+            pluginsBeingImported.delete(pluginName);
+            return pluginName;
         });
+
+    pluginsBeingImported.set(pluginName, pluginLoader);
+
+    return pluginLoader;
 }
 
 function getRuleDetails(ruleName) {
