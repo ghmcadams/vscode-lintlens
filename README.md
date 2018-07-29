@@ -1,5 +1,11 @@
 # LintLens - VSCode extension
 
+[![Visual Studio Marketplace](https://img.shields.io/vscode-marketplace/v/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
+[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/ghmcadams.lintlens.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
+[![David](https://img.shields.io/david/dev/ghmcadams/vscode-lintlens.svg?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens)
+[![David](https://img.shields.io/david/dev/ghmcadams/vscode-lintlens.svg?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens?type=dev)
+[![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?style=flat-square)](http://opensource.org/licenses/MIT)
+
 Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.
 
 <p align="left">
