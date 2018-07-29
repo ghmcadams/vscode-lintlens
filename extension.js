@@ -38,9 +38,7 @@ function replaceRange(editor, edit, ...args) {
     ] = args;
 
     range = editor.document.getWordRangeAtPosition(new vscode.Position(rangeStartLine, rangeStartCharacter + 1), /[^\s\:\"\']+/);
-
-    edit.delete(range);
-    edit.insert(range.start, newText);
+    edit.replace(range, newText);
 }
 
 function openWebPanel({url, pageTitle}) {
