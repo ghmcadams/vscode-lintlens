@@ -33,7 +33,7 @@ module.exports = function showWebPanel(url, title) {
     .then(res => res.text())
     .then(body => {
         // strip the href attribute off of hyperlinks
-        let modBody = body.replace(/<a(.*)href="[^"]*"([^>]*)>(.*?)<\/a>/gi, '<a$1$2>$3</a>');
+        let modBody = body.replace(/<a(.*?)href="[^"]*"([^>]*?)>(.*?)<\/a>/gi, '<a$1$2>$3</a>');
 
         const panel = getPanel();
         panel.title = title;

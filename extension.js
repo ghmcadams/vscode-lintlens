@@ -7,9 +7,6 @@ const constants = require('./constants');
 function setupAnnotations(context) {
     // generate on start
     let activeEditor = vscode.window.activeTextEditor;
-	if (activeEditor) {
-		lineAnnotationsController.addAnnotations(activeEditor);
-	}
 
     // generate when document is made active
     vscode.window.onDidChangeActiveTextEditor(editor => {
@@ -25,6 +22,10 @@ function setupAnnotations(context) {
             lineAnnotationsController.addAnnotations(activeEditor);
 		}
 	}, null, context.subscriptions);
+
+	if (activeEditor) {
+		lineAnnotationsController.addAnnotations(activeEditor);
+	}
 }
 
 function replaceRange(editor, edit, ...args) {
