@@ -1,4 +1,8 @@
 const vscode = require('vscode');
+const jsonParser = require('./parsers/jsonParser');
+const jsParser = require('./parsers/jsParser');
+const yamlParser = require('./parsers/yamlParser');
+const pkgParser = require('./parsers/pkgParser');
 const eslintManager = require('./eslintManager');
 const constants = require('./constants');
 
@@ -21,8 +25,28 @@ function clearAnnotations(editor) {
     editor.setDecorations(annotationDecoration, []);
 }
 
-function addAnnotations(editor, parser) {
+function addAnnotations(editor) {
     if (editor === undefined || editor._disposed === true || editor.document === undefined) {
+        return;
+    }
+
+    let parser;
+
+    if (vscode.languages.match({ pattern: '**/.eslintrc.js', scheme: 'file', language: 'javascript' }, editor.document) > 0) {
+        parser = jsParser;
+    } else if (vscode.languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
+        parser = jsonParser;
+    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yaml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
+        parser = yamlParser;
+    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
+        parser = yamlParser;
+    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, editor.document) > 0) {
+        parser = jsonParser;
+    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
+        parser = yamlParser;
+    } else if (vscode.languages.match({ pattern: '**/package.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
+        parser = pkgParser;
+    } else {
         return;
     }
 
@@ -34,8 +58,8 @@ function addAnnotations(editor, parser) {
     Promise.all(rules.map(rule => {
         return eslintManager.getRuleDetails(rule.name)
             .then(ruleInfo => {
-                const contentText = getContentText(ruleInfo);
-                const hoverMessage = getHoverMessage(ruleInfo);
+                const contentText = getContentText(rule, ruleInfo);
+                const hoverMessage = getHoverMessage(rule, ruleInfo);
                 let decoration = getDecorationObject(contentText, hoverMessage);
                 decoration.range = rule.lineEndingRange;
                 return decoration;
@@ -49,7 +73,7 @@ function addAnnotations(editor, parser) {
         });
 }
 
-function getContentText(ruleInfo) {
+function getContentText(rule, ruleInfo) {
     let contentText;
     if (ruleInfo.isPluginMissing) {
         contentText = `${glyphs.emptyIcon} Missing: \`${ruleInfo.pluginPackageName}\``;
@@ -83,23 +107,31 @@ function getContentText(ruleInfo) {
     return ` ${glyphs.dot} ${glyphs.dot} ${glyphs.dot} ${contentText}`;
 }
 
-function getHoverMessage(ruleInfo) {
+function getHoverMessage(rule, ruleInfo) {
     let hoverMessage;
-    let commandString = getCommandString(`Click for more information \[${glyphs.arrowIcon}\]`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`, 'Click for more information');
     if (ruleInfo.isPluginMissing) {
         /*
         Missing plugin: `{{ pluginName }}`
 
         [Click for more information `↗`](infoUrl)
         */
-        hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n\n${commandString}`;
+        hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n`;
     } else if (!ruleInfo.isRuleFound) {
         /*
         `{{ ruleName }}` not found
+        [[ "did you mean" {{ suggestion(s) }} ]]
 
         [Click for more information `↗`](infoUrl)
         */
-        hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n\n${commandString}`;
+        // ruleInfo.suggestedRules
+        hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n`;
+
+        if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
+            ruleInfo.suggestedRules.slice(0, 3).forEach(item => {
+                let cmd = createReplaceTextCommand(item, rule.keyRange, item, `Click to replace rule with ${item}`);
+                hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;did you mean ${cmd}\n`;
+            });
+        }
     } else {
         /*
         [ {{ category }} ] {{ ruleName }}
@@ -131,23 +163,23 @@ function getHoverMessage(ruleInfo) {
             hoverMessage += `&nbsp;&nbsp;${glyphs.NoEntryIcon}&nbsp;&nbsp;deprecated\n`;
         }
 
-        if (ruleInfo.replacedBy) {
-            hoverMessage += `&nbsp;&nbsp;replaced by \`${ruleInfo.replacedBy}\`\n`;
+        if (ruleInfo.replacedBy && ruleInfo.replacedBy.length > 0) {
+            let replacedByRules = ruleInfo.replacedBy.map(item => {
+                return createReplaceTextCommand(item, rule.keyRange, item, `Click to replace rule with ${item}`);
+            });
+            hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;replaced by ${replacedByRules.join(', ')}\n`;
         }
 
         if (ruleInfo.description) {
             hoverMessage += `\n---\n`;
 
             hoverMessage += `> ${ruleInfo.description}\n`;
-            hoverMessage += `> ${nonBreakingPad('', 70)}\n`;
-
-            hoverMessage += `\n---\n`;
         }
-
-        hoverMessage += `\n${commandString}`;
-
-        hoverMessage = hoverMessage.replace(/\n/g, '  \n');
     }
+
+    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information \[${glyphs.arrowIcon}\]`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`, 'Click for more information');
+    hoverMessage += `${nonBreakingPad('', 70)}\n\n---\n\n${openWebViewPanelCommandString}`;
+    hoverMessage = hoverMessage.replace(/\n/g, '  \n');
 
     let markdown = new vscode.MarkdownString(hoverMessage);
     markdown.isTrusted = true;
@@ -163,7 +195,19 @@ function nonBreakingPad(text, length) {
     return ret;
 }
 
-function getCommandString(text, url, pageTitle, tooltip = '') {
+function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
+    let args = [
+        range.start.line,
+        range.start.character,
+        range.end.line,
+        range.end.character,
+        newText
+    ];
+
+    return `[${commandText}](command:${constants.replaceTextCommand}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
+}
+
+function createOpenWebViewPanelCommand(text, url, pageTitle, tooltip = '') {
     let args = {
         url,
         pageTitle

@@ -1,5 +1,6 @@
 module.exports = {
     openWebViewPanelCommand: 'lintlens.openWebView',
+    replaceTextCommand: 'lintlens.replaceText',
     extensionId: 'lintlens',
     extensionName: 'LintLens',
 
@@ -8,6 +9,7 @@ module.exports = {
         arrowIcon: '\u2197',
         wrenchIcon: '\uD83D\uDD27',
         NoEntryIcon: '\uD83D\uDEAB',
+        lightbulbIcon: '\uD83D\uDCA1',
         emptyIcon: '\u2205',
         magnifyIcon: '\uD83D\uDD0E',
         dot: '\u22C5'

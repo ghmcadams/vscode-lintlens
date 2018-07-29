@@ -1,62 +1,57 @@
 const vscode = require('vscode');
-const jsonParser = require('./parsers/jsonParser');
-const jsParser = require('./parsers/jsParser');
-const yamlParser = require('./parsers/yamlParser');
-const pkgParser = require('./parsers/pkgParser');
 const showWebPanel = require('./webPanel');
 const lineAnnotationsController = require('./lineAnnotationsController');
 const constants = require('./constants');
 
 
-function setupAnnotations(editor) {
-    let parser;
-
-    if (vscode.languages.match({ pattern: '**/.eslintrc.js', scheme: 'file', language: 'javascript' }, editor.document) > 0) {
-        parser = jsParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = jsonParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yaml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = jsonParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/package.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = pkgParser;
-    } else {
-        return;
-    }
-
-    lineAnnotationsController.addAnnotations(editor, parser);
-}
-
-exports.activate = function activate(context) {
-    context.subscriptions.push(vscode.commands.registerCommand(constants.openWebViewPanelCommand, function openWebPanel({url, pageTitle}) {
-        showWebPanel(url, pageTitle);
-    }));
-
+function setupAnnotations(context) {
     // generate on start
     let activeEditor = vscode.window.activeTextEditor;
 	if (activeEditor) {
-		setupAnnotations(activeEditor);
+		lineAnnotationsController.addAnnotations(activeEditor);
 	}
 
     // generate when document is made active
     vscode.window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
-            setupAnnotations(editor);
+            lineAnnotationsController.addAnnotations(editor);
         }
 	}, null, context.subscriptions);
 
     // generate when the document is edited
     vscode.workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document) {
-            setupAnnotations(activeEditor);
+            lineAnnotationsController.addAnnotations(activeEditor);
 		}
 	}, null, context.subscriptions);
+}
+
+function replaceRange(editor, edit, ...args) {
+    const [
+        rangeStartLine,
+        rangeStartCharacter,
+        rangeEndLine,
+        rangeEndCharacter,
+        newText
+    ] = args;
+
+    range = editor.document.getWordRangeAtPosition(new vscode.Position(rangeStartLine, rangeStartCharacter + 1), /[^\s\:\"\']+/);
+
+    edit.delete(range);
+    edit.insert(range.start, newText);
+}
+
+function openWebPanel({url, pageTitle}) {
+    showWebPanel(url, pageTitle);
+}
+
+exports.activate = function activate(context) {
+    context.subscriptions.push(vscode.commands.registerCommand(constants.openWebViewPanelCommand, openWebPanel));
+
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand(constants.replaceTextCommand, replaceRange));
+
+    setupAnnotations(context);
 }
 
 exports.deactivate = function deactivate() {
