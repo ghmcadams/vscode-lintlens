@@ -12,7 +12,8 @@ module.exports = {
         lightbulbIcon: '\uD83D\uDCA1',
         emptyIcon: '\u2205',
         magnifyIcon: '\uD83D\uDD0E',
-        dot: '\u22C5'
+        dot: '\u22C5',
+        plusInCircle: '\u2A2E'
     },
 
     npmPackageBaseUrl: 'https://www.npmjs.com/package/',

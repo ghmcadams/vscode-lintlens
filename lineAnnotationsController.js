@@ -74,13 +74,17 @@ function addAnnotations(editor) {
 }
 
 function getContentText(rule, ruleInfo) {
-    let contentText;
+    let contentText = '';
+
+    if (rule.duplicate === true) {
+        contentText += `${glyphs.plusInCircle} `;
+    }
+
     if (ruleInfo.isPluginMissing) {
-        contentText = `${glyphs.emptyIcon} Missing: \`${ruleInfo.pluginPackageName}\``;
+        contentText += `${glyphs.emptyIcon} Missing: \`${ruleInfo.pluginPackageName}\``;
     } else if (!ruleInfo.isRuleFound) {
-        contentText = `${glyphs.magnifyIcon} Rule not found`;
+        contentText += `${glyphs.magnifyIcon} Rule not found`;
     } else {
-        contentText = '';
         if (ruleInfo.isRecommended === true) {
             contentText += `${glyphs.thumbsUpIcon} `;
         }
@@ -110,21 +114,17 @@ function getContentText(rule, ruleInfo) {
 function getHoverMessage(rule, ruleInfo) {
     let hoverMessage;
     if (ruleInfo.isPluginMissing) {
-        /*
-        Missing plugin: `{{ pluginName }}`
-
-        [Click for more information `↗`](infoUrl)
-        */
         hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n`;
-    } else if (!ruleInfo.isRuleFound) {
-        /*
-        `{{ ruleName }}` not found
-        [[ "did you mean" {{ suggestion(s) }} ]]
 
-        [Click for more information `↗`](infoUrl)
-        */
-        // ruleInfo.suggestedRules
+        if (rule.duplicate === true) {
+            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+        }
+    } else if (!ruleInfo.isRuleFound) {
         hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n`;
+
+        if (rule.duplicate === true) {
+            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+        }
 
         if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
             ruleInfo.suggestedRules.slice(0, 3).forEach(item => {
@@ -133,23 +133,15 @@ function getHoverMessage(rule, ruleInfo) {
             });
         }
     } else {
-        /*
-        [ {{ category }} ] {{ ruleName }}
-        [[ {{ star }} "recommended" ]]
-        [[ {{ wrench }} "fixable" ]]
-        [[ {{ skull }} "deprecated" ]]
-        [[ "replaced by" {{ double arrow }} {{ replacedBy }} ]]
-
-        > {{ description }}
-
-        [Click for more information `↗`](infoUrl)
-        */
-
         hoverMessage = `**${ruleInfo.ruleName}**`;
         if (ruleInfo.category) {
             hoverMessage += `&nbsp;&nbsp;&nbsp;\\[\`${ruleInfo.category}\`\\]`;
         }
         hoverMessage += '\n';
+
+        if (rule.duplicate === true) {
+            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+        }
 
         if (ruleInfo.isRecommended === true) {
             hoverMessage += `&nbsp;&nbsp;${glyphs.thumbsUpIcon}&nbsp;&nbsp;recommended\n`;

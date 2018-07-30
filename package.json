@@ -2,7 +2,7 @@
   "name": "lintlens",
   "displayName": "LintLens — ESLint rules made easier",
   "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
-  "version": "2.1.7",
+  "version": "2.2.0",
   "publisher": "ghmcadams",
   "author": {
     "name": "Gabriel McAdams",

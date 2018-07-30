@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const acorn = require('acorn');
+const flagDuplicates = require('./flagDuplicates');
 
 module.exports = function getRules(document) {
     let rules = [];
@@ -39,5 +40,5 @@ module.exports = function getRules(document) {
         }
     });
 
-    return rules;
+    return flagDuplicates(rules);
 };
