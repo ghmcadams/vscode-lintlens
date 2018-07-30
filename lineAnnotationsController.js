@@ -8,15 +8,7 @@ const constants = require('./constants');
 
 const glyphs = constants.glyphs;
 
-const annotationDecoration = vscode.window.createTextEditorDecorationType({
-    after: {
-        color: new vscode.ThemeColor('lintlens.annotationColor'),
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-        textDecoration: 'none'
-    },
-    rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen
-});
+const annotationDecoration = vscode.window.createTextEditorDecorationType({});
 
 function clearAnnotations(editor) {
     if (editor === undefined || editor._disposed === true) {
@@ -211,8 +203,14 @@ function createOpenWebViewPanelCommand(text, url, pageTitle, tooltip = '') {
 function getDecorationObject(contentText, hoverMessage) {
     return {
         hoverMessage,
+        rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
         renderOptions: {
             after: {
+                color: new vscode.ThemeColor('lintlens.annotationColor'),
+                fontWeight: 'normal',
+                fontStyle: 'normal',
+                textDecoration: 'none',
+                margin: '0',
                 contentText
             }
         }
