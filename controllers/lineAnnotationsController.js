@@ -1,14 +1,34 @@
 const vscode = require('vscode');
-const jsonParser = require('./parsers/jsonParser');
-const jsParser = require('./parsers/jsParser');
-const yamlParser = require('./parsers/yamlParser');
-const pkgParser = require('./parsers/pkgParser');
-const eslintManager = require('./eslintManager');
-const constants = require('./constants');
+const DocumentParser = require('../parsers/DocumentParser');
+const eslintManager = require('../eslintManager');
+const constants = require('../constants');
 
 const glyphs = constants.glyphs;
-
 const annotationDecoration = vscode.window.createTextEditorDecorationType({});
+
+function initialize(context) {
+    // generate on start
+    let activeEditor = vscode.window.activeTextEditor;
+
+    // generate when document is made active
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+        activeEditor = editor;
+        if (editor) {
+            addAnnotations(editor);
+        }
+	}, null, context.subscriptions);
+
+    // generate when the document is edited
+    vscode.workspace.onDidChangeTextDocument(event => {
+		if (activeEditor && event.document === activeEditor.document) {
+            addAnnotations(activeEditor);
+		}
+	}, null, context.subscriptions);
+
+	if (activeEditor) {
+		addAnnotations(activeEditor);
+	}
+}
 
 function clearAnnotations(editor) {
     if (editor === undefined || editor._disposed === true) {
@@ -22,27 +42,8 @@ function addAnnotations(editor) {
         return;
     }
 
-    let parser;
-
-    if (vscode.languages.match({ pattern: '**/.eslintrc.js', scheme: 'file', language: 'javascript' }, editor.document) > 0) {
-        parser = jsParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = jsonParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yaml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc.yml', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = jsonParser;
-    } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, editor.document) > 0) {
-        parser = yamlParser;
-    } else if (vscode.languages.match({ pattern: '**/package.json', scheme: 'file', language: 'json' }, editor.document) > 0) {
-        parser = pkgParser;
-    } else {
-        return;
-    }
-
-    const rules = parser(editor.document);
+    let parser = new DocumentParser(editor.document);
+    const rules = parser.getRules();
     if (rules.length === 0) {
         return clearAnnotations(editor);
     }
@@ -161,7 +162,7 @@ function getHoverMessage(rule, ruleInfo) {
         }
     }
 
-    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information \[${glyphs.arrowIcon}\]`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`, 'Click for more information');
+    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`);
     hoverMessage += `${nonBreakingPad('', 70)}\n\n---\n\n${openWebViewPanelCommandString}`;
     hoverMessage = hoverMessage.replace(/\n/g, '  \n');
 
@@ -191,13 +192,16 @@ function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
     return `[${commandText}](command:${constants.replaceTextCommand}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
 }
 
-function createOpenWebViewPanelCommand(text, url, pageTitle, tooltip = '') {
+function createOpenWebViewPanelCommand(text, url, title) {
     let args = {
         url,
-        pageTitle
+        title
     };
 
-    return `[${text}](command:${constants.openWebViewPanelCommand}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Click here'}")`;
+    let textLink = `[${text}](command:${constants.openWebViewPanelCommand}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
+    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${constants.openInBrowserCommand}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
+
+    return `${textLink} ${glyphLink}`;
 }
 
 function getDecorationObject(contentText, hoverMessage) {
@@ -218,6 +222,7 @@ function getDecorationObject(contentText, hoverMessage) {
 }
 
 module.exports = {
+    initialize,
     addAnnotations,
     clearAnnotations
 };

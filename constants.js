@@ -1,5 +1,6 @@
 module.exports = {
     openWebViewPanelCommand: 'lintlens.openWebView',
+    openInBrowserCommand: 'lintlens.openInBrowser',
     replaceTextCommand: 'lintlens.replaceText',
     extensionId: 'lintlens',
     extensionName: 'LintLens',
