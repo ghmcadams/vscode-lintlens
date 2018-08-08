@@ -189,7 +189,7 @@ function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
         newText
     ];
 
-    return `[${commandText}](command:${constants.replaceTextCommand}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
+    return `[${commandText}](command:${constants.commands.replaceText}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
 }
 
 function createOpenWebViewPanelCommand(text, url, title) {
@@ -198,8 +198,8 @@ function createOpenWebViewPanelCommand(text, url, title) {
         title
     };
 
-    let textLink = `[${text}](command:${constants.openWebViewPanelCommand}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
-    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${constants.openInBrowserCommand}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
+    let textLink = `[${text}](command:${constants.commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
+    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${constants.commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
 
     return `${textLink} ${glyphLink}`;
 }

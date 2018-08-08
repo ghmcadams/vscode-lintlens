@@ -21,10 +21,10 @@ function processWebviewMessage(message) {
             vscode.window.showErrorMessage(message.text);
             return;
         case 'openInVSCode':
-            vscode.commands.executeCommand(constants.openWebViewPanelCommand, {url: message.url, title: constants.extensionName});
+            vscode.commands.executeCommand(constants.commands.openWebViewPanel, {url: message.url, title: constants.extensionName});
             return;
         case 'openInBrowser':
-            vscode.commands.executeCommand(constants.openInBrowserCommand, message.url);
+            vscode.commands.executeCommand(constants.commands.openInBrowser, message.url);
             return;
         default:
             return;

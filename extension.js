@@ -9,9 +9,9 @@ exports.activate = function activate(context) {
     codeModController.initialize(context);
     webViewController.initialize(context);
 
-    context.subscriptions.push(vscode.commands.registerCommand(constants.openWebViewPanelCommand, webViewController.openInVSCode));
-    context.subscriptions.push(vscode.commands.registerCommand(constants.openInBrowserCommand, webViewController.openInBrowser));
-    context.subscriptions.push(vscode.commands.registerTextEditorCommand(constants.replaceTextCommand, codeModController.replaceRange));
+    context.subscriptions.push(vscode.commands.registerCommand(constants.commands.openWebViewPanel, webViewController.openInVSCode));
+    context.subscriptions.push(vscode.commands.registerCommand(constants.commands.openInBrowser, webViewController.openInBrowser));
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand(constants.commands.replaceText, codeModController.replaceRange));
 }
 
 exports.deactivate = function deactivate() {
