@@ -57,14 +57,14 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "vscode": "^1.1.6"
+    "vscode": "^1.1.35"
   },
   "dependencies": {
     "acorn": "^5.7.1",
     "eslint": "^5.1.0",
     "fuse.js": "^3.2.1",
     "node-fetch": "^2.1.2",
-    "open": "0.0.5",
+    "open": "^6.4.0",
     "yaml-ast-parser": "0.0.40"
   }
 }
