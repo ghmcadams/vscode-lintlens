@@ -67,7 +67,7 @@ function searchRules(pluginName, key) {
 function importPlugin(scope, plugin) {
     const pluginName = getPluginName(scope, plugin);
 
-    if (!pluginName || pluginsImported.indexOf(pluginName) > -1) {
+    if (pluginName === '' || pluginsImported.indexOf(pluginName) > -1) {
         return Promise.resolve(pluginName);
     }
 
@@ -75,7 +75,8 @@ function importPlugin(scope, plugin) {
         return pluginsBeingImported.get(pluginName);
     }
 
-    const packagePattern = `**/node_modules/${getPluginPackageName(scope, plugin)}/package.json`;
+    const pluginPackageName = getPluginPackageName(scope, plugin);
+    const packagePattern = `**/node_modules/${pluginPackageName}/package.json`;
 
     let pluginLoader = vscode.workspace.findFiles(packagePattern, null, 1)
         .then(packagePaths => {
@@ -160,7 +161,7 @@ function getRuleDetails(ruleName) {
 }
 
 function getPluginName(scope, plugin) {
-    return [scope, plugin].filter(x => !!x).join('/');
+    return [scope, plugin].filter(x => x !== undefined).join('/');
 }
 
 function getPluginPackageName(scope, plugin) {
