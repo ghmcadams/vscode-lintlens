@@ -23,46 +23,51 @@ const fuseOptions = {
 loadAllRules();
 
 function breakOutRuleName(ruleName) {
-    let plugin = null;
-    let key = ruleName;
     let ruleNameParts = ruleName.split('/');
-    if (ruleNameParts.length > 1) {
-        plugin = ruleNameParts[0];
-        key = ruleNameParts[1];
+
+    let scope;
+    if (ruleNameParts[0].startsWith('@')) {
+        [scope, ...ruleNameParts] = ruleNameParts;
     }
 
-    return {
-        plugin,
-        key
-    };
+    let plugin;
+    if (ruleNameParts.length > 1) {
+        [plugin, ...ruleNameParts] = ruleNameParts;
+    }
+
+    const key = ruleNameParts.join('/');
+
+    return { scope, plugin, key };
 }
 
 function loadAllRules() {
     rules = linter.rules.getAllLoadedRules();
     ruleKeys = Array.from(rules.keys())
         .reduce((ret, item) => {
-            let ruleParts = breakOutRuleName(item);
-            let plugin = ruleParts.plugin || 'base';
+            const { scope, plugin, key } = breakOutRuleName(item);
+            let pluginName = getPluginName(scope, plugin) || 'base';
 
-            ret[plugin] = ret[plugin] || [];
-            ret[plugin].push(ruleParts.key);
+            ret[pluginName] = ret[pluginName] || [];
+            ret[pluginName].push(key);
 
             return ret;
         }, {});
 }
 
-function searchRules({plugin, key}) {
-    const list = ruleKeys[plugin || 'base'] || [];
+function searchRules(pluginName, key) {
+    const list = ruleKeys[pluginName || 'base'] || [];
     const fuse = new Fuse(list, fuseOptions);
     let suggestedRules = fuse.search(key);
 
     return suggestedRules.map(index => {
-        return ((plugin ? plugin + '/' : '') + list[index]);
+        return ((pluginName ? pluginName + '/' : '') + list[index]);
     });
 }
 
-function importPlugin(pluginName) {
-    if (pluginName === null || pluginsImported.indexOf(pluginName) > -1) {
+function importPlugin(scope, plugin) {
+    const pluginName = getPluginName(scope, plugin);
+
+    if (!pluginName || pluginsImported.indexOf(pluginName) > -1) {
         return Promise.resolve(pluginName);
     }
 
@@ -70,7 +75,9 @@ function importPlugin(pluginName) {
         return pluginsBeingImported.get(pluginName);
     }
 
-    let pluginLoader = vscode.workspace.findFiles(`**/node_modules/${constants.eslintPluginPrefix}${pluginName}/package.json`, null, 1)
+    const packagePattern = `**/node_modules/${getPluginPackageName(scope, plugin)}/package.json`;
+
+    let pluginLoader = vscode.workspace.findFiles(packagePattern, null, 1)
         .then(packagePaths => {
             if (packagePaths.length === 0) {
                 throw new MissingPluginError(pluginName);
@@ -99,20 +106,20 @@ function importPlugin(pluginName) {
 }
 
 function getRuleDetails(ruleName) {
-    // If the rule is a plugin rule, import plugin first
-    let ruleParts = breakOutRuleName(ruleName);
+    const { scope, plugin, key } = breakOutRuleName(ruleName);
 
-    const pluginPackageName = `${constants.eslintPluginPrefix}${ruleParts.plugin}`;
+    const pluginPackageName = getPluginPackageName(scope, plugin);
+
     const pluginUrl = `${constants.npmPackageBaseUrl}${pluginPackageName}`;
 
-    return importPlugin(ruleParts.plugin)
-        .then((pluginName) => {
+    return importPlugin(scope, plugin)
+        .then(pluginName => {
             if (!rules.has(ruleName)) {
                 return {
                     ruleName,
                     pluginName,
                     isRuleFound: false,
-                    suggestedRules: searchRules(ruleParts),
+                    suggestedRules: searchRules(pluginName, key),
                     isPluginMissing: false,
                     infoUrl: pluginName ? pluginUrl : constants.eslintRulesUrl,
                     infoPageTitle: pluginName ? pluginPackageName : 'eslint rules'
@@ -141,7 +148,7 @@ function getRuleDetails(ruleName) {
             if (err.name === 'MissingPluginError') {
                 return {
                     ruleName,
-                    pluginName: ruleParts.plugin,
+                    pluginName: getPluginName(scope, plugin),
                     isRuleFound: false,
                     isPluginMissing: true,
                     infoUrl: pluginUrl,
@@ -150,6 +157,16 @@ function getRuleDetails(ruleName) {
                 };
             }
         });
+}
+
+function getPluginName(scope, plugin) {
+    return [scope, plugin].filter(x => !!x).join('/');
+}
+
+function getPluginPackageName(scope, plugin) {
+    const scopePath = scope ? `${scope}/` : '';
+    const pluginPath = plugin ? `-${plugin}` : '';
+    return `${scopePath}eslint-plugin${pluginPath}`;
 }
 
 module.exports = {

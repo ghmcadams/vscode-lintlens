@@ -21,7 +21,6 @@ module.exports = {
     },
 
     npmPackageBaseUrl: 'https://www.npmjs.com/package/',
-    eslintPluginPrefix: 'eslint-plugin-',
     eslintRulesUrl: 'https://eslint.org/docs/rules/',
     MISSING_URL_URL: 'https://github.com/ghmcadams/vscode-lintlens/wiki/Missing-Rule-Docs-URL'
 };
