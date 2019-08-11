@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const yaml = require('yaml-ast-parser');
 const Parser = require('./Parser');
 
-module.exports = class JSONParser extends Parser {
+module.exports = class YAMLParser extends Parser {
     constructor(document) {
         super(document);
     }
