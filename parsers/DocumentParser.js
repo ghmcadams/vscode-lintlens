@@ -10,20 +10,24 @@ module.exports = class DocumentParser extends Parser {
     constructor(document) {
         super(document);
 
+        function isMatch(pattern, language) {
+            return vscode.languages.match({ pattern, scheme: 'file', language }, document) > 0;
+        }
+
         if (new.target === DocumentParser) {
-            if (vscode.languages.match({ pattern: '**/.eslintrc.js', scheme: 'file', language: 'javascript' }, document) > 0) {
+            if (isMatch('**/.eslintrc.js', 'javascript')) {
                 return new JSParser(document);
-            } else if (vscode.languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.json', 'json')) {
                 return new JSONParser(document);
-            } else if (vscode.languages.match({ pattern: '**/.eslintrc.yaml', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.yaml', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (vscode.languages.match({ pattern: '**/.eslintrc.yml', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.yml', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc', 'json')) {
                 return new JSONParser(document);
-            } else if (vscode.languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (vscode.languages.match({ pattern: '**/package.json', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/package.json', 'json')) {
                 return new PkgParser(document);
             }
     
