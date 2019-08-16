@@ -19,11 +19,15 @@ module.exports = class DocumentParser extends Parser {
                 return new JSParser(document);
             } else if (isMatch('**/.eslintrc.json', 'json')) {
                 return new JSONParser(document);
+            } else if (isMatch('**/.eslintrc.json', 'jsonc')) {
+                return new JSONParser(document);
             } else if (isMatch('**/.eslintrc.yaml', 'yaml')) {
                 return new YAMLParser(document);
             } else if (isMatch('**/.eslintrc.yml', 'yaml')) {
                 return new YAMLParser(document);
             } else if (isMatch('**/.eslintrc', 'json')) {
+                return new JSONParser(document);
+            } else if (isMatch('**/.eslintrc', 'jsonc')) {
                 return new JSONParser(document);
             } else if (isMatch('**/.eslintrc', 'yaml')) {
                 return new YAMLParser(document);
