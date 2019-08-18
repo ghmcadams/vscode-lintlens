@@ -1,4 +1,3 @@
-const vscode = require('vscode');
 const yaml = require('yaml-ast-parser');
 const Parser = require('./Parser');
 
@@ -7,43 +6,22 @@ module.exports = class YAMLParser extends Parser {
         super(document);
     }
 
-    parse() {
-        const ast = yaml.load(this.document.getText());
-
-        const mainRules = this.getRulesFromNode(ast);
-
-        const overrideRules = ast.mappings
-            .filter(prop => prop.key.value === 'overrides')
-            .flatMap(prop => prop.value.items.flatMap(item => this.getRulesFromNode(item)));
-
-        return mainRules.concat(overrideRules);
+    get ast() {
+        return yaml.load(this.document.getText());
     }
 
-    getRulesFromNode(node) {
-        return node.mappings
-            .filter(prop => prop.key.value === 'rules')
-            .flatMap(prop => prop.value.mappings.map(rule => this.getRule(rule)));
+    getProps(node) {
+        return node.mappings;
     }
 
-    getRule(rule) {
-        let keyStartPosition = this.document.positionAt(rule.startPosition - 1);
-        let keyEndPosition = this.document.positionAt(rule.endPosition - 1);
-        let keyRange = this.document.validateRange(
-            new vscode.Range(keyStartPosition, keyEndPosition),
-        );
-        let lineEndingRange = this.document.validateRange(
-            new vscode.Range(
-                keyStartPosition.line,
-                Number.MAX_SAFE_INTEGER,
-                keyStartPosition.line,
-                Number.MAX_SAFE_INTEGER,
-            ),
-        );
+    getItems(node) {
+        return node.items;
+    }
 
-        return {
-            name: rule.key.value,
-            keyRange,
-            lineEndingRange,
-        };
+    getRuleLocation(rule) {
+        return [
+            this.document.positionAt(rule.startPosition - 1),
+            this.document.positionAt(rule.endPosition - 1),
+        ];
     }
 };

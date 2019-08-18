@@ -54,7 +54,7 @@ function addAnnotations(editor) {
                 const contentText = getContentText(rule, ruleInfo);
                 const hoverMessage = getHoverMessage(rule, ruleInfo);
                 let decoration = getDecorationObject(contentText, hoverMessage);
-                decoration.range = rule.lineEndingRange;
+                decoration.range = rule.eolRange;
                 return decoration;
             });
     }))
