@@ -10,33 +10,26 @@ export default class DocumentParser extends Parser {
     constructor(document) {
         super(document);
 
-        function isMatch(pattern, language) {
-            const selector = {
-                pattern,
-                scheme: 'file',
-                language
-            };
-            return (languages.match(selector, document) > 0);
+        function isMatch(language, ...patterns) {
+            return patterns.some(pattern => {
+                const selector = {
+                    pattern,
+                    scheme: 'file',
+                    language
+                };
+                return (languages.match(selector, document) > 0);
+            });
         }
 
         if (new.target === DocumentParser) {
-            if (isMatch('**/.eslintrc.js', 'javascript')) {
+            // Choose parser based on filename and language
+            if (isMatch('javascript', '**/.eslintrc.js')) {
                 return new JSParser(document);
-            } else if (isMatch('**/.eslintrc.json', 'jsonc')) {
+            } else if (isMatch('json', '**/.eslintrc', '**/.eslintrc.json') || isMatch('jsonc', '**/.eslintrc', '**/.eslintrc.json')) {
                 return new JSONParser(document);
-            } else if (isMatch('**/.eslintrc.json', 'json')) {
-                return new JSONParser(document);
-            } else if (isMatch('**/.eslintrc.yaml', 'yaml')) {
+            } else if (isMatch('yaml', '**/.eslintrc', '**/.eslintrc.yaml', '**/.eslintrc.yml')) {
                 return new YAMLParser(document);
-            } else if (isMatch('**/.eslintrc.yml', 'yaml')) {
-                return new YAMLParser(document);
-            } else if (isMatch('**/.eslintrc', 'jsonc')) {
-                return new JSONParser(document);
-            } else if (isMatch('**/.eslintrc', 'json')) {
-                return new JSONParser(document);
-            } else if (isMatch('**/.eslintrc', 'yaml')) {
-                return new YAMLParser(document);
-            } else if (isMatch('**/package.json', 'json')) {
+            } else if (isMatch('json', '**/package.json')) {
                 return new PkgParser(document);
             }
     
