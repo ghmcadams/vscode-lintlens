@@ -1,52 +1,45 @@
-const vscode = require('vscode');
-const path = require('path');
-const url = require('url');
-const open = require('open');
-const fetch = require('node-fetch');
-const constants = require('../constants');
-
+import { window, commands, ViewColumn, Uri } from 'vscode';
+import path from 'path';
+import url from 'url';
+import open from 'open';
+import axios from 'axios';
+import { commands as commandConstants, extensionId, extensionName } from '../constants';
+import loadingCSS from '../static/loading.css';
+import webPanelScript from '../static/webPanelScript';
 
 let extensionContext;
-let extensionPath;
 let webViewPanel;
 
-function initialize(context) {
+export function initialize(context) {
     extensionContext = context;
-    extensionPath = context.extensionPath;
 }
 
 function processWebviewMessage(message) {
     switch (message.command) {
         case 'alert':
-            vscode.window.showErrorMessage(message.text);
+            window.showErrorMessage(message.text);
             return;
         case 'openInVSCode':
-            vscode.commands.executeCommand(constants.commands.openWebViewPanel, {url: message.url, title: constants.extensionName});
+            commands.executeCommand(commandConstants.openWebViewPanel, {url: message.url, title: extensionName});
             return;
         case 'openInBrowser':
-            vscode.commands.executeCommand(constants.commands.openInBrowser, message.url);
+            commands.executeCommand(commandConstants.openInBrowser, message.url);
             return;
         default:
             return;
     }
 }
 
-function getScriptText() {
-    const scriptPath = path.join(extensionPath, 'static', 'webPanelScript.js');
-    return `<script type="text/javascript" src="vscode-resource:${scriptPath}"></script>`;
-}
-
 function getLoadingHtml() {
-    const cssPath = path.join(extensionPath, 'static', 'loading.css');
-
     return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src vscode-resource: https:; style-src vscode-resource:;">
-        <link href="vscode-resource:${cssPath}" rel="stylesheet">
+        <style>
+            ${loadingCSS}
+        </style>
     </head>
     <body>
         <div class="preloader">
@@ -69,13 +62,24 @@ function getLoadingHtml() {
 function prepareHtml(html, baseUrl) {
     let baseHost = new url.URL(baseUrl).hostname;
 
-    return html
+    const newHtml = html
+        // remove newline characters
+        .replace(/\n/g, ' ')
+
+        // replace relative paths with absolute
+        .replace(
+            /(href|src)="([^"]*?)"/gmi,
+            function (match, p1, p2) {
+                let newUrl = url.resolve(baseUrl, p2);
+                return `${p1}="${newUrl}"`;
+            }
+        )
+
         // replace hyperlinks with extension commands
         .replace(
-            /<a(.*?)href="([^"]*)"([^>]*?)>(.*?)<\/a>/gmi,
-            function (match, p1, p2, p3, p4) {
-                let newUrl = url.resolve(baseUrl, p2);
-                return `<a${p1}onClick="openLinkInBrowser('${newUrl}');"${p3}>${p4}</a>`;
+            /(<a(?!href)[^r]*?)href="([^"]*?)"/gmi,
+            function (match, p1, p2) {
+                return `${p1}onClick="openLinkInBrowser('${p2}');"`;
             }
         )
 
@@ -94,17 +98,18 @@ function prepareHtml(html, baseUrl) {
         // add extension specific javascript
         .replace(
             '</body>',
-            `${getScriptText()}</body>`
+            `<script type="text/javascript">
+            ${webPanelScript}
+            </script></body>`
         );
+
+    return newHtml;
 }
 
-function openInVSCode({url, title}) {
+export function openInVSCode({url, title}) {
     if (!webViewPanel) {
-        webViewPanel = vscode.window.createWebviewPanel(`${constants.extensionId}-webviewer`, `${constants.extensionName} - Web Viewer`, vscode.ViewColumn.One, {
+        webViewPanel = window.createWebviewPanel(`${extensionId}-webviewer`, `${extensionName} - Web Viewer`, ViewColumn.One, {
             enableScripts: true,
-            localResourceRoots: [
-                vscode.Uri.file(path.join(extensionPath, 'static'))
-            ],
             retainContextWhenHidden: true
         });
 
@@ -117,11 +122,10 @@ function openInVSCode({url, title}) {
 
     webViewPanel.webview.html = getLoadingHtml();
 
-    return fetch(url)
-        .then(res => res.text())
-        .then(html => prepareHtml(html, url))
+    return axios.get(url)
+        .then(response => prepareHtml(response.data, url))
         .then(html => {
-            const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : vscode.ViewColumn.One;
+            const column = window.activeTextEditor ? window.activeTextEditor.viewColumn : ViewColumn.One;
             webViewPanel.title = title;
             webViewPanel.webview.html = html;
             webViewPanel.reveal(column)
@@ -131,12 +135,6 @@ function openInVSCode({url, title}) {
         });
 }
 
-function openInBrowser(url) {
+export function openInBrowser(url) {
     open(url);
-}
-
-module.exports = {
-    initialize,
-    openInBrowser,
-    openInVSCode
 }

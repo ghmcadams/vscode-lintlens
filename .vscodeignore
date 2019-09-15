@@ -1,3 +1,9 @@
-.vscode/**
+.vscode
+images/
+node_modules
+src/
+.gitattributes
 .gitignore
-images/*
+LICENSE-MIT
+package-lock.json
+webpack.config.js

@@ -1,15 +1,15 @@
-const vscode = require('vscode');
-const acorn = require('acorn');
-const Parser = require('./Parser');
+import { Position, Range } from 'vscode';
+import { parse } from 'acorn';
+import Parser from './Parser';
 
-module.exports = class JSParser extends Parser {
+export default class JSParser extends Parser {
     constructor(document) {
         super(document);
     }
 
     parse() {
         let rules = [];
-        let ast = acorn.parse(this.document.getText(), { locations: true, sourceType: 'module' });
+        let ast = parse(this.document.getText(), { locations: true, sourceType: 'module' });
 
         ast.body.forEach(stmt => {
             if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
@@ -18,10 +18,10 @@ module.exports = class JSParser extends Parser {
                         stmt.expression.right.properties.forEach(prop => {
                             if ((prop.key.type === 'Literal' && prop.key.value === 'rules') || (prop.key.type === 'Identifier' && prop.key.name === 'rules')) {
                                 prop.value.properties.forEach(rule => {
-                                    let keyStartPosition = new vscode.Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
-                                    let keyEndPosition = new vscode.Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
-                                    let keyRange = this.document.validateRange(new vscode.Range(keyStartPosition, keyEndPosition));
-                                    let lineEndingRange = this.document.validateRange(new vscode.Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
+                                    let keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
+                                    let keyEndPosition = new Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
+                                    let keyRange = this.document.validateRange(new Range(keyStartPosition, keyEndPosition));
+                                    let lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
 
                                     let name;
                                     if (rule.key.type === 'Literal') {

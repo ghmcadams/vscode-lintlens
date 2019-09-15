@@ -1,4 +1,4 @@
-module.exports = class Parser {
+export default class Parser {
     constructor(document) {
         if (new.target === Parser) {
             throw new Error('Parser cannot be instantiated directly.');

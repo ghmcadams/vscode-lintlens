@@ -52,18 +52,28 @@
       }
     ]
   },
-  "main": "./extension",
+  "main": "./dist/extension.js",
   "scripts": {
+    "dev": "npm run clean && webpack --mode development --watch",
+    "clean": "rm -rf ./dist",
+    "build": "npm run clean && webpack --mode development",
+    "vscode:prepublish": "npm run clean && webpack --mode production",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "vscode": "^1.1.35"
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "babel-loader": "^8.0.6",
+    "raw-loader": "^3.1.0",
+    "vscode": "^1.1.35",
+    "webpack": "^4.39.1",
+    "webpack-cli": "^3.3.6"
   },
   "dependencies": {
     "acorn": "^5.7.1",
+    "axios": "^0.19.0",
     "eslint": "^5.1.0",
     "fuse.js": "^3.2.1",
-    "node-fetch": "^2.1.2",
     "open": "^6.4.0",
     "yaml-ast-parser": "0.0.40"
   }

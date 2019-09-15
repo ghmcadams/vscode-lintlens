@@ -1,11 +1,11 @@
-const path = require('path');
-const vscode = require('vscode');
-const eslint = require('eslint');
-const Fuse = require('fuse.js');
-const MissingPluginError = require('./errors/missingPluginError');
-const constants = require('./constants');
+import path from 'path';
+import { workspace } from 'vscode';
+import { Linter } from 'eslint';
+import Fuse from 'fuse.js';
+import MissingPluginError from './errors/missingPluginError';
+import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL } from './constants';
 
-const linter = new eslint.Linter();
+const linter = new Linter();
 let rules;
 let ruleKeys = {};
 const pluginsImported = [];
@@ -78,22 +78,25 @@ function importPlugin(scope, plugin) {
     const pluginPackageName = getPluginPackageName(scope, plugin);
     const packagePattern = `**/node_modules/${pluginPackageName}/package.json`;
 
-    let pluginLoader = vscode.workspace.findFiles(packagePattern, null, 1)
+    let pluginLoader = workspace.findFiles(packagePattern, null, 1)
         .then(packagePaths => {
             if (packagePaths.length === 0) {
                 throw new MissingPluginError(pluginName);
             }
 
             let dirname = path.dirname(packagePaths[0].path);
-            let package = require(dirname);
+            let pluginPackage = __non_webpack_require__(dirname);
 
-            linter.rules.importPlugin(package, pluginName);
+            linter.rules.importPlugin(pluginPackage, pluginName);
             pluginsImported.push(pluginName);
 
             loadAllRules();
 
             return pluginName;
         }, err => {
+            throw err;
+        })
+        .catch(err => {
             throw err;
         })
         .then(pluginName => {
@@ -106,12 +109,12 @@ function importPlugin(scope, plugin) {
     return pluginLoader;
 }
 
-function getRuleDetails(ruleName) {
+export function getRuleDetails(ruleName) {
     const { scope, plugin, key } = breakOutRuleName(ruleName);
 
     const pluginPackageName = getPluginPackageName(scope, plugin);
 
-    const pluginUrl = `${constants.npmPackageBaseUrl}${pluginPackageName}`;
+    const pluginUrl = `${npmPackageBaseUrl}${pluginPackageName}`;
 
     return importPlugin(scope, plugin)
         .then(pluginName => {
@@ -122,7 +125,7 @@ function getRuleDetails(ruleName) {
                     isRuleFound: false,
                     suggestedRules: searchRules(pluginName, key),
                     isPluginMissing: false,
-                    infoUrl: pluginName ? pluginUrl : constants.eslintRulesUrl,
+                    infoUrl: pluginName ? pluginUrl : eslintRulesUrl,
                     infoPageTitle: pluginName ? pluginPackageName : 'eslint rules'
                 };
             }
@@ -136,7 +139,7 @@ function getRuleDetails(ruleName) {
                 pluginName,
                 isRuleFound: true,
                 isPluginMissing: false,
-                infoUrl: ruleDocs.url || (pluginName ? constants.MISSING_URL_URL : constants.eslintRulesUrl),
+                infoUrl: ruleDocs.url || (pluginName ? MISSING_URL_URL : eslintRulesUrl),
                 infoPageTitle: ruleName,
                 category: ruleDocs.category,
                 isRecommended: ruleDocs.recommended,
@@ -169,7 +172,3 @@ function getPluginPackageName(scope, plugin) {
     const pluginPath = plugin ? `-${plugin}` : '';
     return `${scopePath}eslint-plugin${pluginPath}`;
 }
-
-module.exports = {
-    getRuleDetails
-};

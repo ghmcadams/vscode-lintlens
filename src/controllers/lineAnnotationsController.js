@@ -1,17 +1,16 @@
-const vscode = require('vscode');
-const DocumentParser = require('../parsers/DocumentParser');
-const eslintManager = require('../eslintManager');
-const constants = require('../constants');
+import { window, workspace, MarkdownString, DecorationRangeBehavior, ThemeColor } from 'vscode';
+import DocumentParser from '../parsers/DocumentParser';
+import { getRuleDetails } from '../eslintManager';
+import { glyphs, extensionName, commands } from '../constants';
 
-const glyphs = constants.glyphs;
-const annotationDecoration = vscode.window.createTextEditorDecorationType({});
+const annotationDecoration = window.createTextEditorDecorationType({});
 
-function initialize(context) {
+export function initialize(context) {
     // generate on start
-    let activeEditor = vscode.window.activeTextEditor;
+    let activeEditor = window.activeTextEditor;
 
     // generate when document is made active
-    vscode.window.onDidChangeActiveTextEditor(editor => {
+    window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
             addAnnotations(editor);
@@ -19,7 +18,7 @@ function initialize(context) {
 	}, null, context.subscriptions);
 
     // generate when the document is edited
-    vscode.workspace.onDidChangeTextDocument(event => {
+    workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document) {
             addAnnotations(activeEditor);
 		}
@@ -30,14 +29,14 @@ function initialize(context) {
 	}
 }
 
-function clearAnnotations(editor) {
+export function clearAnnotations(editor) {
     if (editor === undefined || editor._disposed === true) {
         return;
     }
     editor.setDecorations(annotationDecoration, []);
 }
 
-function addAnnotations(editor) {
+export function addAnnotations(editor) {
     if (editor === undefined || editor._disposed === true || editor.document === undefined) {
         return;
     }
@@ -49,7 +48,7 @@ function addAnnotations(editor) {
     }
 
     Promise.all(rules.map(rule => {
-        return eslintManager.getRuleDetails(rule.name)
+        return getRuleDetails(rule.name)
             .then(ruleInfo => {
                 const contentText = getContentText(rule, ruleInfo);
                 const hoverMessage = getHoverMessage(rule, ruleInfo);
@@ -162,11 +161,11 @@ function getHoverMessage(rule, ruleInfo) {
         }
     }
 
-    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${constants.extensionName}`);
+    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
     hoverMessage += `${nonBreakingPad('', 70)}\n\n---\n\n${openWebViewPanelCommandString}`;
     hoverMessage = hoverMessage.replace(/\n/g, '  \n');
 
-    let markdown = new vscode.MarkdownString(hoverMessage);
+    let markdown = new MarkdownString(hoverMessage);
     markdown.isTrusted = true;
 
     return markdown;
@@ -189,7 +188,7 @@ function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
         newText
     ];
 
-    return `[${commandText}](command:${constants.commands.replaceText}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
+    return `[${commandText}](command:${commands.replaceText}?${encodeURIComponent(JSON.stringify(args))} "${tooltip || 'Replace text'}")`;
 }
 
 function createOpenWebViewPanelCommand(text, url, title) {
@@ -198,8 +197,8 @@ function createOpenWebViewPanelCommand(text, url, title) {
         title
     };
 
-    let textLink = `[${text}](command:${constants.commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
-    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${constants.commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
+    let textLink = `[${text}](command:${commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
+    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
 
     return `${textLink} ${glyphLink}`;
 }
@@ -207,10 +206,10 @@ function createOpenWebViewPanelCommand(text, url, title) {
 function getDecorationObject(contentText, hoverMessage) {
     return {
         hoverMessage,
-        rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
+        rangeBehavior: DecorationRangeBehavior.ClosedOpen,
         renderOptions: {
             after: {
-                color: new vscode.ThemeColor('lintlens.annotationColor'),
+                color: new ThemeColor('lintlens.annotationColor'),
                 fontWeight: 'normal',
                 fontStyle: 'normal',
                 textDecoration: 'none',
@@ -220,9 +219,3 @@ function getDecorationObject(contentText, hoverMessage) {
         }
     };
 }
-
-module.exports = {
-    initialize,
-    addAnnotations,
-    clearAnnotations
-};
