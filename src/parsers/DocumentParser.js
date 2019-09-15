@@ -10,24 +10,33 @@ export default class DocumentParser extends Parser {
     constructor(document) {
         super(document);
 
+        function isMatch(pattern, language) {
+            const selector = {
+                pattern,
+                scheme: 'file',
+                language
+            };
+            return (languages.match(selector, document) > 0);
+        }
+
         if (new.target === DocumentParser) {
-            if (languages.match({ pattern: '**/.eslintrc.js', scheme: 'file', language: 'javascript' }, document) > 0) {
+            if (isMatch('**/.eslintrc.js', 'javascript')) {
                 return new JSParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'jsonc' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.json', 'jsonc')) {
                 return new JSONParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc.json', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.json', 'json')) {
                 return new JSONParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc.yaml', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.yaml', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc.yml', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc.yml', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'jsonc' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc', 'jsonc')) {
                 return new JSONParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc', 'json')) {
                 return new JSONParser(document);
-            } else if (languages.match({ pattern: '**/.eslintrc', scheme: 'file', language: 'yaml' }, document) > 0) {
+            } else if (isMatch('**/.eslintrc', 'yaml')) {
                 return new YAMLParser(document);
-            } else if (languages.match({ pattern: '**/package.json', scheme: 'file', language: 'json' }, document) > 0) {
+            } else if (isMatch('**/package.json', 'json')) {
                 return new PkgParser(document);
             }
     
