@@ -1,6 +1,6 @@
 import { window, workspace, MarkdownString, DecorationRangeBehavior, ThemeColor } from 'vscode';
 import DocumentParser from '../parsers/DocumentParser';
-import { getRuleDetails } from '../eslintManager';
+import { getRuleDetails } from '../rules';
 import { glyphs, extensionName, commands } from '../constants';
 
 const annotationDecoration = window.createTextEditorDecorationType({});
@@ -47,22 +47,18 @@ export function addAnnotations(editor) {
         return clearAnnotations(editor);
     }
 
-    Promise.all(rules.map(rule => {
-        return getRuleDetails(rule.name)
-            .then(ruleInfo => {
-                const contentText = getContentText(rule, ruleInfo);
-                const hoverMessage = getHoverMessage(rule, ruleInfo);
-                let decoration = getDecorationObject(contentText, hoverMessage);
-                decoration.range = rule.lineEndingRange;
-                return decoration;
-            });
-    }))
-        .then(decorations => {
-            editor.setDecorations(annotationDecoration, decorations);
-        })
-        .catch(err => {
-            console.log(err);
-        });
+    const decorations = rules.map(rule => {
+        const ruleInfo = getRuleDetails(rule.name);
+
+        const contentText = getContentText(rule, ruleInfo);
+        const hoverMessage = getHoverMessage(rule, ruleInfo);
+        let decoration = getDecorationObject(contentText, hoverMessage);
+        decoration.range = rule.lineEndingRange;
+
+        return decoration;
+    });
+
+    editor.setDecorations(annotationDecoration, decorations);
 }
 
 function getContentText(rule, ruleInfo) {
