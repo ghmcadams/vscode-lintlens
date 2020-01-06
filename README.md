@@ -20,7 +20,7 @@ Adds details and a documentation link beside each [ESLint rule](https://eslint.o
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
-- JavaScript - use `.eslintrc.js` and export an object containing your configuration.
+- JavaScript - use `.eslintrc.js` or `.eslintrc.cjs` and export an object containing your configuration.
 - YAML - use `.eslintrc.yaml` or `.eslintrc.yml` to define the configuration structure.
 - JSON - use `.eslintrc.json` to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
 - **Deprecated** - use `.eslintrc`, which can be either JSON or YAML.
