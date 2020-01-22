@@ -4,5 +4,6 @@ export default class MissingPluginError extends LintLensError {
     constructor(plugin, ...rest) {
         super(...rest);
         this.plugin = plugin;
+        this.name = "MissingPluginError"
     }
 }
