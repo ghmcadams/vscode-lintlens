@@ -55,7 +55,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "dev": "npm run clean && webpack --mode development --watch",
-    "clean": "rm -rf ./dist",
+    "clean": "rimraf ./dist",
     "build": "npm run clean && webpack --mode development",
     "vscode:prepublish": "npm run clean && webpack --mode production",
     "postinstall": "node ./node_modules/vscode/bin/install"
@@ -65,6 +65,7 @@
     "@babel/preset-env": "^7.5.5",
     "babel-loader": "^8.0.6",
     "raw-loader": "^3.1.0",
+    "rimraf": "^3.0.0",
     "vscode": "^1.1.35",
     "webpack": "^4.39.1",
     "webpack-cli": "^3.3.6"
