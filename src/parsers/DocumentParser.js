@@ -23,7 +23,7 @@ export default class DocumentParser extends Parser {
 
         if (new.target === DocumentParser) {
             // Choose parser based on filename and language
-            if (isMatch('javascript', '**/.eslintrc.js') || isMatch('javascriptreact', '**/.eslintrc.js')) {
+            if (isMatch('javascript', '**/.eslintrc.js', '**/.eslintrc.cjs') || isMatch('javascriptreact', '**/.eslintrc.js', '**/.eslintrc.cjs')) {
                 return new JSParser(document);
             } else if (isMatch('json', '**/.eslintrc', '**/.eslintrc.json') || isMatch('jsonc', '**/.eslintrc', '**/.eslintrc.json')) {
                 return new JSONParser(document);
