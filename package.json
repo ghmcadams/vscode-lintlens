@@ -71,7 +71,7 @@
     "webpack-cli": "^3.3.6"
   },
   "dependencies": {
-    "acorn": "^5.7.1",
+    "acorn": "^5.7.4",
     "axios": "^0.19.0",
     "fuse.js": "^3.2.1",
     "open": "^6.4.0",
