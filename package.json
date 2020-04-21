@@ -57,6 +57,7 @@
     "dev": "npm run clean && webpack --mode development --watch",
     "clean": "rimraf ./dist",
     "build": "npm run clean && webpack --mode development",
+    "publish": "vsce publish",
     "vscode:prepublish": "npm run clean && webpack --mode production",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },

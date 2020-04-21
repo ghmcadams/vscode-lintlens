@@ -153,7 +153,14 @@ function getHoverMessage(rule, ruleInfo) {
         if (ruleInfo.description) {
             hoverMessage += `\n---\n`;
 
-            hoverMessage += `> ${ruleInfo.description}\n`;
+            hoverMessage += `${ruleInfo.description}\n`;
+        }
+
+        if (ruleInfo.schemaDocumentation) {
+            hoverMessage += `\n---\n`;
+            hoverMessage += '**Usage**:\n\n';
+
+            hoverMessage += `${ruleInfo.schemaDocumentation}\n`;
         }
     }
 
