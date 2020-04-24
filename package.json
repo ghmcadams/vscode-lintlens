@@ -1,81 +1,104 @@
 {
-  "name": "lintlens",
-  "displayName": "LintLens — ESLint rules made easier",
-  "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
-  "version": "2.8.0",
-  "publisher": "ghmcadams",
-  "author": {
-    "name": "Gabriel McAdams",
-    "email": "ghmcadams@yahoo.com"
-  },
-  "homepage": "https://github.com/ghmcadams/vscode-lintlens/blob/master/README.md",
-  "bugs": {
-    "url": "https://github.com/ghmcadams/vscode-lintlens/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ghmcadams/vscode-lintlens.git"
-  },
-  "license": "MIT",
-  "engines": {
-    "vscode": "^1.25.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "galleryBanner": {
-    "color": "#0F1382",
-    "theme": "dark"
-  },
-  "keywords": [
-    "lintlens",
-    "eslint",
-    "rules",
-    "metadata",
-    "annotation",
-    "multi-root ready"
-  ],
-  "activationEvents": [
-    "workspaceContains:**/.eslintrc*",
-    "workspaceContains:**/package.json"
-  ],
-  "contributes": {
-    "colors": [
-      {
-        "id": "lintlens.annotationColor",
-        "description": "text color of line annotations",
-        "defaults": {
-          "dark": "#99999950",
-          "light": "#999999A6",
-          "highContrast": "#99999999"
-        }
-      }
-    ]
-  },
-  "main": "./dist/extension.js",
-  "scripts": {
-    "dev": "npm run clean && webpack --mode development --watch",
-    "clean": "rimraf ./dist",
-    "build": "npm run clean && webpack --mode development",
-    "publish": "vsce publish",
-    "vscode:prepublish": "npm run clean && webpack --mode production",
-    "postinstall": "node ./node_modules/vscode/bin/install"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.5.5",
-    "@babel/preset-env": "^7.5.5",
-    "babel-loader": "^8.0.6",
-    "raw-loader": "^3.1.0",
-    "rimraf": "^3.0.0",
-    "vscode": "^1.1.35",
-    "webpack": "^4.39.1",
-    "webpack-cli": "^3.3.6"
-  },
-  "dependencies": {
-    "acorn": "^5.7.1",
-    "axios": "^0.19.0",
-    "fuse.js": "^3.2.1",
-    "open": "^6.4.0",
-    "yaml-ast-parser": "0.0.40"
-  }
+    "name": "lintlens",
+    "displayName": "LintLens — ESLint rules made easier",
+    "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
+    "version": "2.8.0",
+    "main": "./dist/extension.js",
+    "publisher": "ghmcadams",
+    "author": {
+        "name": "Gabriel McAdams",
+        "email": "ghmcadams@yahoo.com"
+    },
+    "homepage": "https://github.com/ghmcadams/vscode-lintlens/blob/master/README.md",
+    "bugs": {
+        "url": "https://github.com/ghmcadams/vscode-lintlens/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ghmcadams/vscode-lintlens.git"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.25.0"
+    },
+    "scripts": {
+        "dev": "npm run clean && webpack --mode development --watch",
+        "clean": "rimraf ./dist",
+        "build": "npm run clean && webpack --mode development",
+        "publish": "vsce publish",
+        "vscode:prepublish": "npm run clean && webpack --mode production",
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.5.5",
+        "@babel/preset-env": "^7.5.5",
+        "babel-loader": "^8.0.6",
+        "raw-loader": "^3.1.0",
+        "rimraf": "^3.0.0",
+        "vscode": "^1.1.35",
+        "webpack": "^4.39.1",
+        "webpack-cli": "^3.3.6"
+    },
+    "dependencies": {
+        "acorn": "^5.7.1",
+        "axios": "^0.19.0",
+        "fuse.js": "^3.2.1",
+        "open": "^6.4.0",
+        "yaml-ast-parser": "0.0.40"
+    },
+    "keywords": [
+        "lintlens",
+        "eslint",
+        "rules",
+        "metadata",
+        "annotation",
+        "multi-root ready"
+    ],
+    "categories": [
+        "Other"
+    ],
+    "galleryBanner": {
+        "color": "#0F1382",
+        "theme": "dark"
+    },
+    "activationEvents": [
+        "workspaceContains:**/.eslintrc*",
+        "workspaceContains:**/package.json"
+    ],
+    "contributes": {
+        "colors": [
+            {
+                "id": "lintlens.annotationColor",
+                "description": "text color of line annotations",
+                "defaults": {
+                    "dark": "#99999950",
+                    "light": "#999999A6",
+                    "highContrast": "#99999999"
+                }
+            }
+        ],
+        "languages": [{
+            "id": "lintlens",
+            "aliases": ["LintLens Documentation", "Lintlens", "lintlens"],
+            "extensions": [".lintlens"],
+            "configuration": "./syntaxes/language-configuration.json"
+        }],
+        "grammars": [
+            {
+                "language": "lintlens",
+                "scopeName": "source.lintlens",
+                "path": "./syntaxes/lintlens.tmLanguage.json"
+            },
+            {
+                "scopeName": "markdown.lintlens.codeblock",
+                "path": "./syntaxes/codeblock.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.lintlens": "lintlens"
+                }
+            }
+        ]
+    }
 }

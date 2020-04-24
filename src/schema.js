@@ -20,7 +20,7 @@ function isMultipleItems(schema) {
 }
 
 function getIndent(count) {
-    return '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(count);
+    return '  '.repeat(count);
 }
 
 function getConstantText(text) {

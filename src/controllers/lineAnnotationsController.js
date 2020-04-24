@@ -160,7 +160,9 @@ function getHoverMessage(rule, ruleInfo) {
             hoverMessage += `\n---\n`;
             hoverMessage += '**Usage**:\n\n';
 
+            hoverMessage += `\n\`\`\`lintlens\n`;
             hoverMessage += `${ruleInfo.schemaDocumentation}\n`;
+            hoverMessage += `\n\`\`\`\n`;
         }
     }
 
