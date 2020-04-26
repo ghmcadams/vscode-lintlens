@@ -1,0 +1,90 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "LintLens Documentation",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#types"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#variables"
+		},
+		{
+			"include": "#special"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numeric"
+		},
+		{
+			"include": "#comments"
+		}
+	],
+	"repository": {
+		"types": {
+			"patterns": [{
+				"name": "storage.type.lintlens",
+				"match": "\\b(string|boolean|number|integer|any)\\b"
+			}]
+		},
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.lintlens",
+				"match": "\\b(if|then|else|any of|all of|one of|not)\\b"
+			}]
+		},
+		"operators": {
+			"patterns": [{
+				"name": "keyword.operator.lintlens",
+				"match": "\\b(<|>|≤|≥|\\|)\\b"
+			}]
+		},
+		"variables": {
+			"patterns": [{
+				"name": "variable.language.lintlens",
+				"match": "\\b(x)\\b"
+			}]
+		},
+		"special": {
+			"patterns": [{
+				"name": "constant.language.lintlens",
+				"match": "\\b(true|false|null)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.lintlens",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.lintlens",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numeric" : {
+			"patterns": [
+				{
+					"match" : "(\\b\\d+)",
+					"name" : "constant.numeric.lintlens"
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"match": "(\\# .*)",
+					"name": "comment.lintlens"
+				}
+			]
+		}
+	},
+	"scopeName": "source.lintlens"
+}

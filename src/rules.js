@@ -2,6 +2,8 @@ import Fuse from 'fuse.js';
 import { MissingPluginError, MissingESLintError, UnsupportedESLintError } from './errors';
 import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL, eslintPluginPrefix } from './constants';
 import { getWorkspaceDir } from './workspace';
+import { getLinter } from './eslint';
+import { getSchemaDocumentation } from './schema';
 
 const rules = loadRules();
 const pluginsImported = [];
@@ -16,19 +18,7 @@ const fuseOptions = {
 };
 
 function loadRules() {
-    const eslintPackagePath = getWorkspaceDir('./node_modules/eslint');
-
-    if (!eslintPackagePath) {
-        throw new MissingESLintError();
-    }
-
-    const eslint = __non_webpack_require__(eslintPackagePath);
-    const linter = new eslint.Linter();
-
-    if (!linter.getRules || typeof linter.getRules !== "function") {
-        throw new UnsupportedESLintError();
-    }
-
+    const linter = getLinter();
     const builtinRules = linter.getRules();
     return {
         map: builtinRules,
@@ -152,6 +142,8 @@ export function getRuleDetails(ruleName) {
         } = {}
     } = rules.map.get(ruleName);
 
+    let schemaDocumentation = getSchemaDocumentation(ruleMeta.schema);
+
     return {
         ruleName,
         pluginName,
@@ -164,7 +156,9 @@ export function getRuleDetails(ruleName) {
         isFixable: ruleMeta.fixable ? true : false,
         isDeprecated: ruleMeta.deprecated ? true : false,
         replacedBy: ruleDocs.replacedBy,
-        description: ruleDocs.description
+        description: ruleDocs.description,
+        schema: ruleMeta.schema,
+        schemaDocumentation
     };
 }
 
