@@ -2,21 +2,23 @@
 
 [![Visual Studio Marketplace](https://img.shields.io/vscode-marketplace/v/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
 [![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/ghmcadams.lintlens.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
-[![David](https://img.shields.io/david/dev/ghmcadams/vscode-lintlens.svg?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens)
+[![David](https://img.shields.io/david/ghmcadams/vscode-lintlens?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens)
 [![David](https://img.shields.io/david/dev/ghmcadams/vscode-lintlens.svg?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens?type=dev)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 
-Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.
+Augment your ESLint rules in Visual Studio Code — Adds metadata and usage information beside each ESLint rule.
 
 <p align="left">
   <br />
-  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-screenshot-rules.png" alt="LintLens Screenshot" width="300px" />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-screenshot-hover.png" alt="LintLens Screenshot" width="300px" />
   <br />
 </p>
 
 ## Features
 
-Adds details and a documentation link beside each [ESLint rule](https://eslint.org/docs/rules/) in your configuration file (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) located anywhere in your workspace folders (supports multiple config files).
+Adds details beside each [ESLint rule](https://eslint.org/docs/rules/) in your configuration file (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) located anywhere in your workspace folders (supports multiple config files).
+
+Displays detailed information (including usage schema information and a link to the official docs page) in a hover container for each rule.
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
@@ -28,20 +30,20 @@ Supports all configuration file formats currently [supported by ESLint](https://
 
 If you are new to ESLint check the [documentation](http://eslint.org/).  
 
+Hover for more information on each rule:
+
+<p align="center">
+  <br />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-hover.gif" alt="LintLens Preview Hover" width="600px" />
+  <br />
+</p>
+
+
 Auto-updates as you type:
 
 <p align="center">
   <br />
   <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-main.gif" alt="LintLens Preview Main" width="600px" />
-  <br />
-</p>
-
-
-Click for more information on each rule:
-
-<p align="center">
-  <br />
-  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-links.gif" alt="LintLens Preview Links" width="600px" />
   <br />
 </p>
 

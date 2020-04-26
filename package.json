@@ -2,7 +2,7 @@
     "name": "lintlens",
     "displayName": "LintLens — ESLint rules made easier",
     "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
-    "version": "2.8.0",
+    "version": "3.0.0",
     "main": "./dist/extension.js",
     "publisher": "ghmcadams",
     "author": {
@@ -77,12 +77,20 @@
                 }
             }
         ],
-        "languages": [{
-            "id": "lintlens",
-            "aliases": ["LintLens Documentation", "Lintlens", "lintlens"],
-            "extensions": [".lintlens"],
-            "configuration": "./syntaxes/language-configuration.json"
-        }],
+        "languages": [
+            {
+                "id": "lintlens",
+                "aliases": [
+                    "LintLens Documentation",
+                    "Lintlens",
+                    "lintlens"
+                ],
+                "extensions": [
+                    ".lintlens"
+                ],
+                "configuration": "./syntaxes/language-configuration.json"
+            }
+        ],
         "grammars": [
             {
                 "language": "lintlens",
