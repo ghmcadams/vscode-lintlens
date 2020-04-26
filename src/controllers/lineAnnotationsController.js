@@ -121,7 +121,8 @@ function getHoverMessage(rule, ruleInfo) {
             });
         }
     } else {
-        hoverMessage = `**${ruleInfo.ruleName}**`;
+        hoverMessage = createOpenWebViewPanelCommand(`**${ruleInfo.ruleName}**`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
+
         if (ruleInfo.category) {
             hoverMessage += `&nbsp;&nbsp;&nbsp;\\[\`${ruleInfo.category}\`\\]`;
         }
@@ -156,32 +157,25 @@ function getHoverMessage(rule, ruleInfo) {
             hoverMessage += `${ruleInfo.description}\n`;
         }
 
+        hoverMessage = hoverMessage.replace(/\n/g, '  \n');
+
         if (ruleInfo.schemaDocumentation) {
             hoverMessage += `\n---\n`;
             hoverMessage += '**Usage**:\n\n';
 
             hoverMessage += `\n\`\`\`lintlens\n`;
             hoverMessage += `${ruleInfo.schemaDocumentation}\n`;
-            hoverMessage += `\n\`\`\`\n`;
+            hoverMessage += `\n\n\`\`\`\n`;
         }
     }
 
-    let openWebViewPanelCommandString = createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
-    hoverMessage += `${nonBreakingPad('', 70)}\n\n---\n\n${openWebViewPanelCommandString}`;
-    hoverMessage = hoverMessage.replace(/\n/g, '  \n');
+    hoverMessage += `\n---\n`;
+    hoverMessage += createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
 
     let markdown = new MarkdownString(hoverMessage);
     markdown.isTrusted = true;
 
     return markdown;
-}
-
-function nonBreakingPad(text, length) {
-    let ret = text;
-    for (let i = text.length; i <= length; i++) {
-        ret += '&nbsp;';
-    }
-    return ret;
 }
 
 function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
@@ -202,10 +196,10 @@ function createOpenWebViewPanelCommand(text, url, title) {
         title
     };
 
-    let textLink = `[${text}](command:${commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode")`;
+    let textLink = `[${text}](command:${commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode (may be resource intensive)")`;
     let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
 
-    return `${textLink} ${glyphLink}`;
+    return `${textLink}&nbsp;&nbsp;${glyphLink}`;
 }
 
 function getDecorationObject(contentText, hoverMessage) {
