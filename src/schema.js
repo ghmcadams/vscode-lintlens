@@ -501,7 +501,7 @@ function getSchemaDoc({ schema, root = schema, indent = 0, parentType = containe
 
 export function getSchemaDocumentation(schemaConfig) {
     const standardOptionsEnum = {
-        enum: ["off", 0, "warning", 1, "error", 2]
+        enum: ["off", 0, "warn", 1, "error", 2]
     };
 
     if (schemaConfig && (schemaConfig.length || Object.entries(schemaConfig).length)) {
