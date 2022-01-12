@@ -76,9 +76,9 @@ function breakOutRuleName(ruleName) {
     if (scope || plugin) {
         if (scope && plugin) {
             pluginName = `${scope}/${plugin}`;
+        } else {
+            pluginName = scope || plugin;
         }
-
-        pluginName = scope || plugin;
     }
 
     return {
@@ -163,6 +163,7 @@ export function getRuleDetails(ruleName) {
 }
 
 function getPluginPackageName(pluginName) {
+    console.log('*****', pluginName)
     if (!pluginName) {
         return '';
     }
@@ -173,6 +174,10 @@ function getPluginPackageName(pluginName) {
     }
 
     if (pluginName.startsWith('@')) {
+        if (pluginName.includes('/')) {
+            const [scope, plugin] = pluginName.split('/');
+            return `${scope}/${eslintPluginPrefix}-${plugin}`;
+        }
         return `${pluginName}/${eslintPluginPrefix}`;
     }
 
