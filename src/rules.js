@@ -163,7 +163,6 @@ export function getRuleDetails(ruleName) {
 }
 
 function getPluginPackageName(pluginName) {
-    console.log('*****', pluginName)
     if (!pluginName) {
         return '';
     }
