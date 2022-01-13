@@ -173,10 +173,6 @@ function getPluginPackageName(pluginName) {
     }
 
     if (pluginName.startsWith('@')) {
-        if (pluginName.includes('/')) {
-            const [scope, plugin] = pluginName.split('/');
-            return `${scope}/${eslintPluginPrefix}-${plugin}`;
-        }
         return `${pluginName}/${eslintPluginPrefix}`;
     }
 
