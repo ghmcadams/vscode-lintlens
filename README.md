@@ -2,9 +2,8 @@
 
 [![Visual Studio Marketplace](https://img.shields.io/vscode-marketplace/v/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
 [![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/ghmcadams.lintlens.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
-[![David](https://img.shields.io/david/ghmcadams/vscode-lintlens?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens)
-[![David](https://img.shields.io/david/dev/ghmcadams/vscode-lintlens.svg?style=flat-square)](https://david-dm.org/ghmcadams/vscode-lintlens?type=dev)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?style=flat-square)](http://opensource.org/licenses/MIT)
+[![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fimg.shields.io%2Ftwitter%2Furl%3Furl%3Dhttps%253A%252F%252Fgithub.com%252Fghmcadams%252Fvscode-lintlens%252F)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fghmcadams%2Fvscode-lintlens%2F)
 
 Augment your ESLint rules in Visual Studio Code — Adds metadata and usage information beside each ESLint rule.
 
