@@ -76,9 +76,9 @@ function breakOutRuleName(ruleName) {
     if (scope || plugin) {
         if (scope && plugin) {
             pluginName = `${scope}/${plugin}`;
+        } else {
+            pluginName = scope || plugin;
         }
-
-        pluginName = scope || plugin;
     }
 
     return {
