@@ -2,7 +2,9 @@ import { getWorkspaceDir } from './workspace';
 import { MissingESLintError, UnsupportedESLintError } from './errors';
 
 
-const eslintPackagePath = getWorkspaceDir('./node_modules/eslint');
+const eslintPackagePath =
+    getWorkspaceDir('./node_modules/eslint') ||
+    getWorkspaceDir('.yarn/sdks/eslint');
 
 if (!eslintPackagePath) {
     throw new MissingESLintError();
