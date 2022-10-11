@@ -21,6 +21,7 @@ Displays detailed information (including usage schema information and a link to 
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
+- Flat Config - use `eslint.config.js` at the root and export an array containing your configurations.
 - JavaScript - use `.eslintrc.js` or `.eslintrc.cjs` and export an object containing your configuration.
 - YAML - use `.eslintrc.yaml` or `.eslintrc.yml` to define the configuration structure.
 - JSON - use `.eslintrc.json` to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
@@ -58,3 +59,4 @@ In an effort to support all possible plugins and to keep size small, this extens
 - When using the JS configuration file format, this extension currently only supports rules existing
   in a single exports object at the root (`module.exports.rules`). Additionally, the language mode
   must match `javascript` or `javascriptreact`.
+- Parsing js configs is somewhat limited. Simple exporting of a config works, as does exporting from a variable.  Beyond that could be improved.

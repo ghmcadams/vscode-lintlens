@@ -8,8 +8,8 @@ function findVariableDeclaration(body, name) {
         if (statement.type === 'VariableDeclaration') {
             for (const declaration of statement.declarations) {
                 if (declaration.type === 'VariableDeclarator' && declaration.id.name === name) {
-                    if (declaration.init.type === 'ObjectExpression') {
-                        return declaration.init.properties;
+                    if (declaration.init.type === 'ArrayExpression') {
+                        return declaration.init.elements;
                     } else if (declaration.init.type === 'Identifier') {
                         return findVariableDeclaration(body, declaration.init.name);
                     }
@@ -34,13 +34,13 @@ function isModuleExports(statement) {
     }
 }
 
-function getConfigProperties(body) {
+function getConfigElements(body) {
     for (const statement of body) {
         // default export
         if (statement.type === 'ExportDefaultDeclaration') {
             // initialized
-            if (statement.declaration.type === 'ObjectExpression') {
-                return statement.declaration.properties;
+            if (statement.declaration.type === 'ArrayExpression') {
+                return statement.declaration.elements;
             // assigned variable value
             } else if (statement.declaration.type === 'Identifier') {
                 return findVariableDeclaration(body, statement.declaration.name);
@@ -48,8 +48,8 @@ function getConfigProperties(body) {
         // module.exports
         } else if (isModuleExports(statement)) {
             // initialized
-            if (statement.expression.right.type === 'ObjectExpression') {
-                return statement.expression.right.properties;
+            if (statement.expression.right.type === 'ArrayExpression') {
+                return statement.expression.right.elements;
             // assigned variable value
             } else if (statement.expression.right.type === 'Identifier') {
                 return findVariableDeclaration(body, statement.expression.right.name);
@@ -75,31 +75,14 @@ function isRulesProperty(prop) {
     );
 }
 
-function isOverridesProperty(prop) {
-    return (
-        prop.type === 'Property' && (
-            (
-                prop.key.type === 'Identifier' &&
-                prop.key.name === 'overrides'
-            ) || (
-                prop.key.type === 'Literal' &&
-                prop.key.value === 'overrides'
-            )
-        ) &&
-        prop.value.type === 'ArrayExpression'
-    );
-}
-
-function collectConfiguredRules(properties) {
+function collectConfiguredRules(elements) {
     const rules = [];
 
-    for (const prop of properties) {
-        if (isRulesProperty(prop)) {
-            rules.push(...prop.value.properties.filter(({ type }) => type === 'Property'));
-        } else if (isOverridesProperty(prop)) {
-            for (const element of prop.value.elements) {
-                if (element.type === 'ObjectExpression') {
-                    rules.push(...collectConfiguredRules(element.properties));
+    for (const element of elements) {
+        if (element.type === 'ObjectExpression') {
+            for (const prop of element.properties) {
+                if (isRulesProperty(prop)) {
+                    rules.push(...prop.value.properties.filter(({ type }) => type === 'Property'));
                 }
             }
         }
@@ -109,7 +92,7 @@ function collectConfiguredRules(properties) {
 }
 
 
-export default class JSParser extends Parser {
+export default class FlatConfigParser extends Parser {
     constructor(document) {
         super(document);
     }
@@ -117,8 +100,8 @@ export default class JSParser extends Parser {
     parse() {
         const ast = parse(this.document.getText(), { locations: true, sourceType: 'module' });
 
-        const configObject = getConfigProperties(ast.body);
-        const configuredRules = collectConfiguredRules(configObject);
+        const configArray = getConfigElements(ast.body);
+        const configuredRules = collectConfiguredRules(configArray);
 
         return configuredRules.map(rule => {
             const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
