@@ -56,7 +56,11 @@ In an effort to support all possible plugins and to keep size small, this extens
 
 - Does not support globally installed eslint or plugin packages
 - ESLint v4.15.0 added an official location for rules to store a URL to their documentation in the rule metadata in [eslint/eslint#9788](https://github.com/eslint/eslint/pull/9788). This adds the URL to all the existing rules so anything consuming them can know where their documentation is without having to resort to external packages to guess.  If your plugin hasn't included this metadata, its possible you have an older version that needs to be updated.
-- When using the JS configuration file format, this extension currently only supports rules existing
-  in a single exports object at the root (`module.exports.rules`). Additionally, the language mode
-  must match `javascript` or `javascriptreact`.
-- Parsing js configs is somewhat limited. Simple exporting of a config works, as does exporting from a variable.  Beyond that could be improved.
+- Parsing js configs (flat or legacy) is somewhat limited.
+  - Simple exporting of a config works
+  - Exporting from a variable works
+  - Finding rules through rest spread works
+
+  Beyond that, parsing could be improved
+
+  Additionally, the language mode must match `javascript` or `javascriptreact`.

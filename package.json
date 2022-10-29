@@ -40,7 +40,7 @@
         "webpack-cli": "^3.3.6"
     },
     "dependencies": {
-        "acorn": "^5.7.1",
+        "acorn": "^8.8.1",
         "axios": "^0.21.2",
         "fuse.js": "^3.2.1",
         "open": "^6.4.0",
@@ -63,6 +63,7 @@
     },
     "activationEvents": [
         "workspaceContains:**/.eslintrc*",
+        "workspaceContains:**/eslint.config.js",
         "workspaceContains:**/package.json"
     ],
     "contributes": {

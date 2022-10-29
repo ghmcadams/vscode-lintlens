@@ -3,15 +3,31 @@ import { parse } from 'acorn';
 import Parser from './Parser';
 
 
-function findVariableDeclaration(body, name) {
+function getProperties(body, elements) {
+    const properties = [];
+
+    for (const element of elements) {
+        if (element.type === 'ObjectExpression') {
+            properties.push(...element.properties);
+        } else if (element.type === 'SpreadElement' && element.argument.type === 'Identifier') {
+            properties.push(...getPropertiesFromVariable(body, element.argument.name));
+        }
+    }
+
+    return properties;
+}
+
+function getPropertiesFromVariable(body, name) {
     for (const statement of body) {
         if (statement.type === 'VariableDeclaration') {
             for (const declaration of statement.declarations) {
                 if (declaration.type === 'VariableDeclarator' && declaration.id.name === name) {
-                    if (declaration.init.type === 'ObjectExpression') {
+                    if (declaration.init.type === 'ArrayExpression') {
+                        return getProperties(body, declaration.init.elements);
+                    } else if (declaration.init.type === 'ObjectExpression') {
                         return declaration.init.properties;
                     } else if (declaration.init.type === 'Identifier') {
-                        return findVariableDeclaration(body, declaration.init.name);
+                        return getPropertiesFromVariable(body, declaration.init.name);
                     }
                 }
             }
@@ -43,7 +59,7 @@ function getConfigProperties(body) {
                 return statement.declaration.properties;
             // assigned variable value
             } else if (statement.declaration.type === 'Identifier') {
-                return findVariableDeclaration(body, statement.declaration.name);
+                return getPropertiesFromVariable(body, statement.declaration.name);
             }
         // module.exports
         } else if (isModuleExports(statement)) {
@@ -52,7 +68,7 @@ function getConfigProperties(body) {
                 return statement.expression.right.properties;
             // assigned variable value
             } else if (statement.expression.right.type === 'Identifier') {
-                return findVariableDeclaration(body, statement.expression.right.name);
+                return getPropertiesFromVariable(body, statement.expression.right.name);
             }
         }
     }
@@ -62,16 +78,13 @@ function getConfigProperties(body) {
 
 function isRulesProperty(prop) {
     return (
-        prop.type === 'Property' && (
-            (
-                prop.key.type === 'Identifier' &&
-                prop.key.name === 'rules'
-            ) || (
-                prop.key.type === 'Literal' &&
-                prop.key.value === 'rules'
-            )
-        ) &&
-        prop.value.type === 'ObjectExpression'
+        (
+            prop.key.type === 'Identifier' &&
+            prop.key.name === 'rules'
+        ) || (
+            prop.key.type === 'Literal' &&
+            prop.key.value === 'rules'
+        )
     );
 }
 
@@ -90,20 +103,36 @@ function isOverridesProperty(prop) {
     );
 }
 
-function collectConfiguredRules(properties) {
+function getRules(body, properties) {
     const rules = [];
 
     for (const prop of properties) {
-        if (isRulesProperty(prop)) {
-            rules.push(...prop.value.properties.filter(({ type }) => type === 'Property'));
+        if (prop.type === 'SpreadElement' && prop.argument.type === 'Identifier') {
+            rules.push(...getRules(body, getPropertiesFromVariable(body, prop.argument.name)));
+        } else if (isRulesProperty(prop)) {
+            if (prop.value.type === 'Identifier') {
+                rules.push(...getPropertiesFromVariable(body, prop.value.name));
+            }
+
+            if (prop.value.type === 'ObjectExpression') {
+                for (const rulesProp of prop.value.properties) {
+                    if (rulesProp.type === 'SpreadElement' && rulesProp.argument.type === 'Identifier') {
+                        rules.push(...getPropertiesFromVariable(body, rulesProp.argument.name));
+                    } else if (rulesProp.type === 'Property') {
+                        rules.push(rulesProp);
+                    }
+                }
+            }
         } else if (isOverridesProperty(prop)) {
             for (const element of prop.value.elements) {
                 if (element.type === 'ObjectExpression') {
-                    rules.push(...collectConfiguredRules(element.properties));
+                    rules.push(...getRules(body, element.properties));
                 }
             }
         }
     }
+
+    // TODO: augment with anything that messes with the variable after assignment (EX: reassignment or setting object property externally, etc.)
 
     return rules;
 }
@@ -117,8 +146,8 @@ export default class JSParser extends Parser {
     parse() {
         const ast = parse(this.document.getText(), { locations: true, sourceType: 'module' });
 
-        const configObject = getConfigProperties(ast.body);
-        const configuredRules = collectConfiguredRules(configObject);
+        const configProperties = getConfigProperties(ast.body);
+        const configuredRules = getRules(ast.body, configProperties);
 
         return configuredRules.map(rule => {
             const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
