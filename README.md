@@ -27,6 +27,7 @@ Supports all configuration file formats currently [supported by ESLint](https://
 - JSON - use `.eslintrc.json` to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
 - **Deprecated** - use `.eslintrc`, which can be either JSON or YAML.
 - package.json - create an `eslintConfig` property in your `package.json` file and define your configuration there.
+- Through extension configuration (`lintlens.configFileLocations`), you can set globs that point to any config locations within your open workspace(s)
 
 If you are new to ESLint check the [documentation](http://eslint.org/).  
 
@@ -54,13 +55,11 @@ In an effort to support all possible plugins and to keep size small, this extens
 
 ## Known Issues
 
-- Does not support globally installed eslint or plugin packages
+- Does not support globally installed eslint or plugin packages (must be installed in the currently open workspace)
 - ESLint v4.15.0 added an official location for rules to store a URL to their documentation in the rule metadata in [eslint/eslint#9788](https://github.com/eslint/eslint/pull/9788). This adds the URL to all the existing rules so anything consuming them can know where their documentation is without having to resort to external packages to guess.  If your plugin hasn't included this metadata, its possible you have an older version that needs to be updated.
-- Parsing js configs (flat or legacy) is somewhat limited.
+- Parsing js configs (flat and legacy) is somewhat limited, but should work in almost all cases.
   - Simple exporting of a config works
   - Exporting from a variable works
   - Finding rules through rest spread works
-
-  Beyond that, parsing could be improved
-
-  Additionally, the language mode must match `javascript` or `javascriptreact`.
+  - Beyond that, parsing could be improved
+  - Additionally, the language mode must match `javascript` or `javascriptreact`.

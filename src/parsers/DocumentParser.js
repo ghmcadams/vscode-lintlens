@@ -37,17 +37,20 @@ export default class DocumentParser extends Parser {
             }
 
             // Check configured path globs
-            const configuredGlobs = workspace.getConfiguration('lintlens').get('configFileLocations');
-            for (const glob of configuredGlobs) {
-                // TODO: how do I determine flat vs standard JS?
+            const configFileLocations = workspace.getConfiguration('lintlens').get('configFileLocations');
+            for (const fileLocation of configFileLocations) {
+                const parts = fileLocation.split(':');
+                const format = parts.length === 1 ? 'js' : parts[0];
+                const glob = parts.length === 1 ? parts[0] : parts[1];
+
                 if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
+                    if (format === 'flat') {
+                        return new FlatConfigParser(document);
+                    }
                     return new JSParser(document);
-                    // return new FlatConfigParser(document);
-                // } else if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
-                //     return new JSParser(document);
-                } else if (isMatch('json', glob) || isMatch('jsonc', glob)) {
+                } else if (format === 'json' && (isMatch('json', glob) || isMatch('jsonc', glob))) {
                     return new JSONParser(document);
-                } else if (isMatch('yaml', glob)) {
+                } else if (format === 'yml' && isMatch('yaml', glob)) {
                     return new YAMLParser(document);
                 }
             }

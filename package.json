@@ -74,12 +74,14 @@
             "properties": {
                 "lintlens.configFileLocations": {
                     "description": "Specifies a set of globs that define the workspace-relative location to your ESLint configuration file(s)",
+                    "scope": "resource",
                     "type": "array",
                     "items": {
                         "type": "string",
-                        "format": "uri",
-                        "scope": "resource"
+                        "pattern": "(flat|js|json|yml|yaml)?:?(.+)",
+                        "description": "a glob that define the workspace-relative location to your ESLint configuration file(s), with an optional format type (EX: json:**/src/**/*config.json)"
                     },
+                    "uniqueItems": true,
                     "default": []
                 }
             }
