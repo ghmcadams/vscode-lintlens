@@ -9,7 +9,7 @@ export default class PkgParser extends Parser {
 
     parse() {
         let rules = [];
-        let ast = parseExpressionAt(this.document.getText(), 0, { locations: true });
+        let ast = parseExpressionAt(this.document.getText(), 0, { locations: true, ecmaVersion: 2020 });
 
         ast.properties.forEach(prop => {
             if (prop.key.value === 'eslintConfig') {

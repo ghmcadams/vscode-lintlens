@@ -125,7 +125,7 @@ export default class FlatConfigParser extends Parser {
     }
 
     parse() {
-        const ast = parse(this.document.getText(), { locations: true, sourceType: 'module' });
+        const ast = parse(this.document.getText(), { locations: true, sourceType: 'module', ecmaVersion: 2020 });
 
         const configProperties = getConfigProperties(ast.body);
         const configuredRules = getRules(ast.body, configProperties);

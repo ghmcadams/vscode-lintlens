@@ -1,12 +1,10 @@
 import Fuse from 'fuse.js';
-import { MissingPluginError, MissingESLintError, UnsupportedESLintError } from './errors';
+import { MissingPluginError } from './errors';
 import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL, eslintPluginPrefix } from './constants';
-import { getWorkspaceDir } from './workspace';
-import { getLinter } from './eslint';
+import { getLinterRules } from './eslint';
 import { getSchemaDocumentation } from './schema';
+import { getPackagePathForDocument } from './workspace';
 
-const rules = loadRules();
-const pluginsImported = [];
 
 const fuseOptions = {
     shouldSort: true,
@@ -17,44 +15,21 @@ const fuseOptions = {
     minMatchCharLength: 1
 };
 
-function loadRules() {
-    const linter = getLinter();
-    const builtinRules = linter.getRules();
-    return {
-        map: builtinRules,
-        keys: {
-            base: Array.from(builtinRules.keys())
-        }
-    };
-}
-
-function importPlugin(pluginName, pluginPackageName) {
-    const pluginPackagePath = getWorkspaceDir(`./node_modules/${pluginPackageName}`);
-
-    if (!pluginPackagePath) {
-        throw new MissingPluginError(pluginName);
+function getPluginPackageName(pluginName) {
+    if (!pluginName) {
+        return '';
     }
 
-    let plugin;
-    try {
-        plugin = __non_webpack_require__(pluginPackagePath);
-    } catch(err) {
-        console.log(`Error importing ${pluginName}: `, err.message || err);
+    if (pluginName.includes('/')) {
+        const [scope, plugin] = pluginName.split('/');
+        return `${scope}/${eslintPluginPrefix}-${plugin}`;
     }
 
-    if (plugin.rules) {
-        const keys = Object.keys(plugin.rules);
-        keys.forEach(ruleId => {
-            const qualifiedRuleId = `${pluginName}/${ruleId}`;
-            const rule = plugin.rules[ruleId];
-
-            rules.map.set(qualifiedRuleId, rule);
-        });
-
-        rules.keys[pluginName] = keys;
+    if (pluginName.startsWith('@')) {
+        return `${pluginName}/${eslintPluginPrefix}`;
     }
 
-    pluginsImported.push(pluginName);
+    return `${eslintPluginPrefix}-${pluginName}`;
 }
 
 function breakOutRuleName(ruleName) {
@@ -87,7 +62,37 @@ function breakOutRuleName(ruleName) {
     };
 }
 
-function searchRules(pluginName, ruleId) {
+function importPlugin(documentFilePath, rules, pluginName, pluginPackageName) {
+    const pluginPackagePath = getPackagePathForDocument(documentFilePath, pluginPackageName);
+
+    if (!pluginPackagePath) {
+        throw new MissingPluginError(pluginName);
+    }
+
+    let plugin;
+    try {
+        plugin = __non_webpack_require__(pluginPackagePath);
+    } catch(err) {
+        // console.log(`Error importing ${pluginName}: `, err.message || err);
+        throw new MissingPluginError(`Error importing ${pluginName}: ${err.message || err}`);
+    }
+
+    if (plugin.rules) {
+        const keys = Object.keys(plugin.rules);
+        keys.forEach(ruleId => {
+            const qualifiedRuleId = `${pluginName}/${ruleId}`;
+            const rule = plugin.rules[ruleId];
+
+            rules.map.set(qualifiedRuleId, rule);
+        });
+
+        rules.keys[pluginName] = keys;
+    }
+
+    rules.pluginsImported.push(pluginName);
+}
+
+function searchRules(rules, pluginName, ruleId) {
     const list = rules.keys[pluginName || 'base'] || [];
     const fuse = new Fuse(list, fuseOptions);
     let suggestedRules = fuse.search(ruleId);
@@ -97,15 +102,17 @@ function searchRules(pluginName, ruleId) {
     });
 }
 
-export function getRuleDetails(ruleName) {
+export function getRuleDetails(documentFilePath, ruleName) {
+    const rules = getLinterRules(documentFilePath);
+
     const { pluginName, ruleId } = breakOutRuleName(ruleName);
 
     const pluginPackageName = getPluginPackageName(pluginName);
     const pluginUrl = `${npmPackageBaseUrl}${pluginPackageName}`;
 
-    if (pluginName && !pluginsImported.includes(pluginName)) {
+    if (pluginName && !rules.pluginsImported.includes(pluginName)) {
         try {
-            importPlugin(pluginName, pluginPackageName);
+            importPlugin(documentFilePath, rules, pluginName, pluginPackageName);
         } catch (err) {
             if (err.name === 'MissingPluginError') {
                 return {
@@ -128,7 +135,7 @@ export function getRuleDetails(ruleName) {
             ruleName,
             pluginName,
             isRuleFound: false,
-            suggestedRules: searchRules(pluginName, ruleId),
+            suggestedRules: searchRules(rules, pluginName, ruleId),
             isPluginMissing: false,
             infoUrl: pluginName ? pluginUrl : eslintRulesUrl,
             infoPageTitle: pluginName ? pluginPackageName : 'eslint rules'
@@ -160,21 +167,4 @@ export function getRuleDetails(ruleName) {
         schema: ruleMeta.schema,
         schemaDocumentation
     };
-}
-
-function getPluginPackageName(pluginName) {
-    if (!pluginName) {
-        return '';
-    }
-
-    if (pluginName.includes('/')) {
-        const [scope, plugin] = pluginName.split('/');
-        return `${scope}/${eslintPluginPrefix}-${plugin}`;
-    }
-
-    if (pluginName.startsWith('@')) {
-        return `${pluginName}/${eslintPluginPrefix}`;
-    }
-
-    return `${eslintPluginPrefix}-${pluginName}`;
 }

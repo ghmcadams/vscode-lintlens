@@ -42,6 +42,7 @@
     "dependencies": {
         "acorn": "^8.8.1",
         "axios": "^0.21.2",
+        "findup-sync": "^5.0.0",
         "fuse.js": "^3.2.1",
         "open": "^6.4.0",
         "yaml-ast-parser": "0.0.40"
@@ -64,9 +65,25 @@
     "activationEvents": [
         "workspaceContains:**/.eslintrc*",
         "workspaceContains:**/eslint.config.js",
-        "workspaceContains:**/package.json"
+        "workspaceContains:**/package.json",
+        "workspaceContains:**/*"
     ],
     "contributes": {
+        "configuration": {
+            "title": "LintLens",
+            "properties": {
+                "lintlens.configFileLocations": {
+                    "description": "Specifies a set of globs that define the workspace-relative location to your ESLint configuration file(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "uri",
+                        "scope": "resource"
+                    },
+                    "default": []
+                }
+            }
+        },
         "colors": [
             {
                 "id": "lintlens.annotationColor",

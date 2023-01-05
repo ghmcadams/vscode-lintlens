@@ -6,7 +6,6 @@ import { glyphs, extensionName, commands } from '../constants';
 const annotationDecoration = window.createTextEditorDecorationType({});
 
 export function initialize(context) {
-    // generate on start
     let activeEditor = window.activeTextEditor;
 
     // generate when document is made active
@@ -24,6 +23,7 @@ export function initialize(context) {
 		}
 	}, null, context.subscriptions);
 
+    // generate on start
 	if (activeEditor) {
 		addAnnotations(activeEditor);
 	}
@@ -48,18 +48,26 @@ export function addAnnotations(editor) {
         return clearAnnotations(editor);
     }
 
-    const decorations = rules.map(rule => {
-        const ruleInfo = getRuleDetails(rule.name);
+    try {
+        const decorations = rules.map(rule => {
+            const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
+    
+            const contentText = getContentText(rule, ruleInfo);
+            const hoverMessage = getHoverMessage(rule, ruleInfo);
+            let decoration = getDecorationObject(contentText, hoverMessage);
+            decoration.range = rule.lineEndingRange;
+    
+            return decoration;
+        });
 
-        const contentText = getContentText(rule, ruleInfo);
-        const hoverMessage = getHoverMessage(rule, ruleInfo);
-        let decoration = getDecorationObject(contentText, hoverMessage);
-        decoration.range = rule.lineEndingRange;
+        editor.setDecorations(annotationDecoration, decorations);
+    } catch (err) {
+        if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
+            window.showErrorMessage(err.message);
+        }
 
-        return decoration;
-    });
-
-    editor.setDecorations(annotationDecoration, decorations);
+        return;
+    }
 }
 
 function getContentText(rule, ruleInfo) {

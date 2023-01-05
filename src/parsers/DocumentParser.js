@@ -1,4 +1,4 @@
-import { languages } from 'vscode';
+import { languages, workspace } from 'vscode';
 import Parser from './Parser';
 import JSONParser from './JSONParser';
 import JSParser from './JSParser';
@@ -35,7 +35,23 @@ export default class DocumentParser extends Parser {
             } else if (isMatch('json', '**/package.json')) {
                 return new PkgParser(document);
             }
-    
+
+            // Check configured path globs
+            const configuredGlobs = workspace.getConfiguration('lintlens').get('configFileLocations');
+            for (const glob of configuredGlobs) {
+                // TODO: how do I determine flat vs standard JS?
+                if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
+                    return new JSParser(document);
+                    // return new FlatConfigParser(document);
+                // } else if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
+                //     return new JSParser(document);
+                } else if (isMatch('json', glob) || isMatch('jsonc', glob)) {
+                    return new JSONParser(document);
+                } else if (isMatch('yaml', glob)) {
+                    return new YAMLParser(document);
+                }
+            }
+
             // If code reaches here, a standard parser with no functionality will be returned
             // TODO: this might cause silent "not working" cases
         }

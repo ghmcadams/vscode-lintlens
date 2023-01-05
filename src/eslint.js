@@ -1,24 +1,36 @@
-import { getWorkspaceDir } from './workspace';
+import { getPackagePathForDocument } from './workspace';
 import { MissingESLintError, UnsupportedESLintError } from './errors';
 
 
-const eslintPackagePath =
-    getWorkspaceDir('./node_modules/eslint') ||
-    getWorkspaceDir('.yarn/sdks/eslint');
+const rulesCache = new Map();
 
-if (!eslintPackagePath) {
-    throw new MissingESLintError();
-}
-
-const eslint = __non_webpack_require__(eslintPackagePath);
-let linter;
-
-export function getLinter() {
-    if (!linter) {
-        linter = new eslint.Linter();
-        if (!linter.getRules || typeof linter.getRules !== "function") {
-            throw new UnsupportedESLintError();
-        }
+export function getLinterRules(documentFilePath) {
+    const eslintPackagePath = getPackagePathForDocument(documentFilePath, 'eslint');
+    if (!eslintPackagePath) {
+        throw new MissingESLintError();
     }
-    return linter;
+
+    if (rulesCache.has(eslintPackagePath)) {
+        return rulesCache.get(eslintPackagePath);
+    }
+
+    const eslint = __non_webpack_require__(eslintPackagePath);
+    const linter = new eslint.Linter();
+    if (!linter.getRules || typeof linter.getRules !== "function") {
+        throw new UnsupportedESLintError();
+    }
+
+    const builtinRules = linter.getRules();
+
+    const output = {
+        map: builtinRules,
+        keys: {
+            base: Array.from(builtinRules.keys())
+        },
+        pluginsImported: []
+    };
+
+    rulesCache.set(eslintPackagePath, output);
+
+    return rulesCache.get(eslintPackagePath);
 }
