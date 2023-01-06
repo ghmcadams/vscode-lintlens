@@ -40,8 +40,8 @@ export default class DocumentParser extends Parser {
             const configFileLocations = workspace.getConfiguration('lintlens').get('configFileLocations');
             for (const fileLocation of configFileLocations) {
                 const parts = fileLocation.split(':');
-                const format = parts.length === 1 ? 'js' : parts[0];
-                const glob = parts.length === 1 ? parts[0] : parts[1];
+                const format = parts.length === 2 ? parts[0] : 'js';
+                const glob = parts.length === 2 ? parts[1] : parts[0];
 
                 if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
                     if (format === 'flat') {
