@@ -1,7 +1,8 @@
 # LintLens - VSCode extension
 
-[![Visual Studio Marketplace](https://img.shields.io/vscode-marketplace/v/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
-[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/ghmcadams.lintlens.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/version-short/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/installs-short/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/rating-star/ghmcadams.lintlens.svg)](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 [![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fimg.shields.io%2Ftwitter%2Furl%3Furl%3Dhttps%253A%252F%252Fgithub.com%252Fghmcadams%252Fvscode-lintlens%252F)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fghmcadams%2Fvscode-lintlens%2F)
 
@@ -15,19 +16,18 @@ Augment your ESLint rules in Visual Studio Code — Adds metadata and usage info
 
 ## Features
 
-Adds details beside each [ESLint rule](https://eslint.org/docs/rules/) in your configuration file (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) located anywhere in your workspace folders (supports multiple config files).
+Adds details beside each [ESLint rule](https://eslint.org/docs/rules/) in your configuration file (including [plugins](https://www.npmjs.com/search?q=eslint-plugin-&ranking=popularity)) located anywhere in your workspace folders (supports multiple config files, and even multiple versions of ESLint and plugins).
 
 Displays detailed information (including usage schema information and a link to the official docs page) in a hover container for each rule.
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
 - Flat Config - use `eslint.config.js` at the root and export an array containing your configurations.
-- JavaScript - use `.eslintrc.js` or `.eslintrc.cjs` and export an object containing your configuration.
-- YAML - use `.eslintrc.yaml` or `.eslintrc.yml` to define the configuration structure.
-- JSON - use `.eslintrc.json` to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
+- JavaScript - use `.eslintrc.js` or `.eslintrc.cjs` (or any other javascript file in your workspace) and export an object containing your configuration.
+- YAML - use `.eslintrc.yaml` or `.eslintrc.yml` (or any other yaml file in your workspace) to define the configuration structure.
+- JSON - use `.eslintrc.json` (or any other JSON file in your workspace) to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
 - **Deprecated** - use `.eslintrc`, which can be either JSON or YAML.
 - package.json - create an `eslintConfig` property in your `package.json` file and define your configuration there.
-- Through extension configuration (`lintlens.configFileLocations`), you can set globs that point to any config locations within your open workspace(s)
 
 If you are new to ESLint check the [documentation](http://eslint.org/).  
 

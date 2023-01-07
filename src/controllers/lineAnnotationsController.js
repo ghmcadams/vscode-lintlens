@@ -41,7 +41,7 @@ export function addAnnotations(editor) {
         return;
     }
 
-    let parser = new DocumentParser(editor.document);
+    const parser = new DocumentParser(editor.document);
     const rules = parser.getRules();
     if (rules.length === 0) {
         // TODO: this might cause silent "not working" cases

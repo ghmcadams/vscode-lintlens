@@ -2,7 +2,7 @@
     "name": "lintlens",
     "displayName": "LintLens — ESLint rules made easier",
     "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
-    "version": "6.1.1",
+    "version": "6.1.3",
     "main": "./dist/extension.js",
     "publisher": "ghmcadams",
     "author": {
@@ -69,23 +69,6 @@
         "workspaceContains:**/*"
     ],
     "contributes": {
-        "configuration": {
-            "title": "LintLens",
-            "properties": {
-                "lintlens.configFileLocations": {
-                    "description": "Specifies a set of globs that define the workspace-relative location to your ESLint configuration file(s)",
-                    "scope": "resource",
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "pattern": "(flat|js|json|yml|yaml)?:?(.+)",
-                        "description": "a glob that define the workspace-relative location to your ESLint configuration file(s), with an optional format type (EX: json:**/src/**/*config.json)"
-                    },
-                    "uniqueItems": true,
-                    "default": []
-                }
-            }
-        },
         "colors": [
             {
                 "id": "lintlens.annotationColor",

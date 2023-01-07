@@ -22,6 +22,16 @@ export default class DocumentParser extends Parser {
             });
         }
 
+        function isLanguageMatch(...codeLanguages) {
+            return codeLanguages.some(language => {
+                const selector = {
+                    scheme: 'file',
+                    language
+                };
+                return (languages.match(selector, document) > 0);
+            });
+        }
+
         if (new.target === DocumentParser) {
             // Choose parser based on filename and language
             if (isMatch('javascript', '**/eslint.config.js') || isMatch('javascriptreact', '**/eslint.config.js')) {
@@ -36,27 +46,15 @@ export default class DocumentParser extends Parser {
                 return new PkgParser(document);
             }
 
-            // Check configured path globs
-            const configFileLocations = workspace.getConfiguration('lintlens').get('configFileLocations');
-            for (const fileLocation of configFileLocations) {
-                const parts = fileLocation.split(':');
-                const format = parts.length === 2 ? parts[0] : 'js';
-                const glob = parts.length === 2 ? parts[1] : parts[0];
-
-                if (isMatch('javascript', glob) || isMatch('javascriptreact', glob)) {
-                    if (format === 'flat') {
-                        return new FlatConfigParser(document);
-                    }
-                    return new JSParser(document);
-                } else if (format === 'json' && (isMatch('json', glob) || isMatch('jsonc', glob))) {
-                    return new JSONParser(document);
-                } else if (format === 'yml' && isMatch('yaml', glob)) {
-                    return new YAMLParser(document);
-                }
+            // Choose parser based on language
+            if (isLanguageMatch('javascript', 'javascriptreact')) {
+                // TODO: determine flat config vs legacy JS config
+                return new JSParser(document);
+            } else if (isLanguageMatch('json')) {
+                return new JSONParser(document);
+            } else if (isLanguageMatch('yaml')) {
+                return new YAMLParser(document);
             }
-
-            // If code reaches here, a standard parser with no functionality will be returned
-            // TODO: this might cause silent "not working" cases
         }
     }
 }
