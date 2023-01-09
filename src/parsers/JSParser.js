@@ -1,5 +1,6 @@
 import { Position, Range } from 'vscode';
 import { parse } from 'acorn';
+import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
 
@@ -137,6 +138,28 @@ function getRules(body, properties) {
     return rules;
 }
 
+function readRuleConfig(astBody, configText, ruleValue) {
+    if (ruleValue.type === 'Literal') {
+        return JSON.parse(jsonrepair(configText));
+    }
+
+    // if (ruleValue.type === 'Identifier') {
+    //     // TODO: get the variable value and replace it in the config text;
+    //     return 6;
+    // }
+
+    // if (ruleValue.type === 'ArrayExpression') {
+    //     // ruleValue.elements
+    // }
+
+    try {
+        const repairedJSONText = jsonrepair(configText);
+        return JSON.parse(repairedJSONText);
+    } catch(err) {
+        return null;
+    }
+}
+
 
 export default class JSParser extends Parser {
     constructor(document) {
@@ -144,7 +167,8 @@ export default class JSParser extends Parser {
     }
 
     parse() {
-        const ast = parse(this.document.getText(), { locations: true, sourceType: 'module', ecmaVersion: 2020 });
+        const documentText = this.document.getText();
+        const ast = parse(documentText, { locations: true, sourceType: 'module', ecmaVersion: 2020 });
 
         const configProperties = getConfigProperties(ast.body);
         const configuredRules = getRules(ast.body, configProperties);
@@ -153,8 +177,14 @@ export default class JSParser extends Parser {
             const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
             const keyEndPosition = new Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
             const keyRange = this.document.validateRange(new Range(keyStartPosition, keyEndPosition));
+
+            const valueStartPosition = new Position(rule.value.loc.start.line - 1, rule.value.loc.start.column);
+            const valueEndPosition = new Position(rule.value.loc.end.line - 1, rule.value.loc.end.column);
+            const valueRange = this.document.validateRange(new Range(valueStartPosition, valueEndPosition));
+            const value = readRuleConfig(ast.body, documentText.slice(rule.value.start, rule.value.end), rule.value);
+
             const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
-        
+
             let name;
             if (rule.key.type === 'Literal') {
                 name = rule.key.value;
@@ -165,6 +195,8 @@ export default class JSParser extends Parser {
             return {
                 name: name ?? 'Unknown',
                 keyRange,
+                valueRange,
+                value,
                 lineEndingRange
             };
         });

@@ -1,3 +1,12 @@
+import ajv from './ajv';
+
+
+const severityMap = {
+    off: 0,
+    warn: 1,
+    error: 2
+};
+
 const containerType = {
     "root": 0,
     "object": 1,
@@ -175,6 +184,11 @@ function getArrayDoc({ schema, root, indent, parentType }) {
     if (parentType === containerType.array) {
         const arr = getArrayBodyDoc(({ schema, root, indent, parentType }));
         return arr;
+    }
+
+    // if there is nothing but array, then show empty one
+    if (Object.keys(schema).length <= 1) {
+        return '[]';
     }
 
     let ret = '[\n';
@@ -424,9 +438,9 @@ function getSchemaDoc({ schema, root = schema, indent = 0, parentType = containe
         }
     }
 
-    if (item.hasOwnProperty('not')) {
-        return getNotDoc(({ schema: item, root, indent, parentType }));
-    }
+    // if (item.hasOwnProperty('not')) {
+    //     return getNotDoc(({ schema: item, root, indent, parentType }));
+    // }
 
     if (item.hasOwnProperty('const')) {
         return getConstDoc(({ schema: item, root, indent, parentType }));
@@ -498,18 +512,83 @@ function getSchemaDoc({ schema, root = schema, indent = 0, parentType = containe
     return '';
 }
 
-
-export function getSchemaDocumentation(schemaConfig) {
-    const standardOptionsEnum = {
-        enum: ["off", 0, "warn", 1, "error", 2]
-    };
-
-    if (schemaConfig && (schemaConfig.length || Object.entries(schemaConfig).length)) {
-        const eslintRuleOption = [ standardOptionsEnum, schemaConfig ];
-        return getStandardArrayDoc({ schema: eslintRuleOption, root: schemaConfig, indent: 0, parentType: containerType.root });
+function cleanUpSchema(schema) {
+    if (Array.isArray(schema)) {
+        if (schema.length) {
+            return {
+                type: "array",
+                items: schema,
+                minItems: 0,
+                maxItems: schema.length
+            };
+        }
+        return {
+            type: "array",
+            minItems: 0,
+            maxItems: 0
+        };
     }
 
-    return getEnumDoc({ schema: standardOptionsEnum, root: schemaConfig, indent: 0 });
+    // Given a full schema, leave it alone
+    return schema ?? null;
+}
+
+function validateRuleSeverity(config) {
+    const ret = {
+        valid: true,
+        errors: []
+    };
+
+    const severity = Array.isArray(config) ? config[0] : config;
+    const normSeverity = typeof severity === "string" ? severityMap[severity.toLowerCase()] : severity;
+
+    if (![0, 1, 2].includes(normSeverity)) {
+        ret.valid = false;
+        ret.errors = [`Severity should be one of the following: off, 0, warn, 1, error, 2`];
+    }
+
+    return ret;
+}
+
+function validateRuleOptions(schema, config) {
+    const ret = {
+        valid: true,
+        errors: []
+    };
+
+    if (schema) {
+        const cleanedSchemaConfig = cleanUpSchema(schema);
+    
+        const nonSeverityConfig = Array.isArray(config) ? config.slice(1) : []
+        ret.valid = ajv.validate(cleanedSchemaConfig, nonSeverityConfig);
+        if (!ret.valid) {
+            ret.errors = ajv.errors.map(error => `Value ${JSON.stringify(error.data)} ${error.message}.`);
+        }
+    }
+
+    return ret;
+}
+
+
+export function getSchemaDocumentation(schema) {
+    if (!schema || (Array.isArray(schema) && schema.length === 0) || Object.keys(schema).length === 0) {
+        return '';
+    }
+
+    return getSchemaDoc({ schema });
+}
+
+export function validateConfigFromSchema(schema, config) {
+    const severityValidation = validateRuleSeverity(config);
+    const nonSeverityValidation = validateRuleOptions(schema, config);
+
+    return {
+        valid: severityValidation.valid && nonSeverityValidation.valid,
+        errors: [
+            ...severityValidation.errors,
+            ...nonSeverityValidation.errors
+        ]
+    };
 }
 
 

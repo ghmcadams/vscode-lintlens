@@ -1,9 +1,11 @@
-import { window, workspace, MarkdownString, DecorationRangeBehavior, ThemeColor } from 'vscode';
+import { window, workspace, languages, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
 import DocumentParser from '../parsers/DocumentParser';
 import { getRuleDetails } from '../rules';
 import { glyphs, extensionName, commands } from '../constants';
+import { validateConfigFromSchema } from '../schema';
 
 const annotationDecoration = window.createTextEditorDecorationType({});
+const validationCollection = languages.createDiagnosticCollection('validation');
 
 export function initialize(context) {
     let activeEditor = window.activeTextEditor;
@@ -34,6 +36,7 @@ export function clearAnnotations(editor) {
         return;
     }
     editor.setDecorations(annotationDecoration, []);
+    validationCollection.clear();
 }
 
 export function addAnnotations(editor) {
@@ -44,37 +47,86 @@ export function addAnnotations(editor) {
     const parser = new DocumentParser(editor.document);
     const rules = parser.getRules();
     if (rules.length === 0) {
-        // TODO: this might cause silent "not working" cases
         return clearAnnotations(editor);
     }
 
     try {
+        const validationErrors = [];
         const decorations = rules.map(rule => {
-            const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
+            try {
+                const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
+
+                // validate rule config options
+                let ruleHasValidationErrors = false;
+                if (rule.value) {
+                    const { valid, errors } = validateConfigFromSchema(ruleInfo.schema, rule.value);
+                    if (!valid) {
+                        ruleHasValidationErrors = true;
     
-            const contentText = getContentText(rule, ruleInfo);
-            const hoverMessage = getHoverMessage(rule, ruleInfo);
-            let decoration = getDecorationObject(contentText, hoverMessage);
-            decoration.range = rule.lineEndingRange;
+                        validationErrors.push(...errors.map(error => ({
+                            source: 'LintLens',
+                            range: rule.valueRange,
+                            severity: DiagnosticSeverity.Error,
+                            message: error,
+                        })));
+                    }
+                }
+
+                // add diagnostics for duplicated and deprecated rules
+                if (rule.duplicate) {
+                    validationErrors.push({
+                        source: 'LintLens',
+                        range: rule.keyRange,
+                        severity: DiagnosticSeverity.Hint,
+                        message: 'duplicate rule configuration',
+                    });
+                }
+                if (ruleInfo.isDeprecated) {
+                    validationErrors.push({
+                        source: 'LintLens',
+                        range: rule.keyRange,
+                        severity: DiagnosticSeverity.Warning,
+                        message: 'rule is deprecated',
+                    });
+                }
     
-            return decoration;
+                // Create annotation decoration
+                const contentText = getContentText(rule, ruleInfo, ruleHasValidationErrors);
+                const hoverMessage = getHoverMessage(rule, ruleInfo, ruleHasValidationErrors);
+                const decoration = getDecorationObject(rule.lineEndingRange, contentText, hoverMessage);
+    
+                return decoration;
+            } catch(err) {
+                if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
+                    throw err;
+                }
+
+                // TODO: what should I do with rule decoration errors?
+                return null;
+            }
         });
 
         editor.setDecorations(annotationDecoration, decorations);
+        validationCollection.set(editor.document.uri, validationErrors);
     } catch (err) {
         if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
             window.showErrorMessage(err.message);
         }
 
+        // TODO: what should I do with all other errors?
         return;
     }
 }
 
-function getContentText(rule, ruleInfo) {
+function getContentText(rule, ruleInfo, ruleHasValidationErrors) {
     let contentText = '';
 
+    if (ruleHasValidationErrors === true) {
+        contentText += `${glyphs.redXIcon} `;
+    }
+
     if (rule.duplicate === true) {
-        contentText += `${glyphs.plusInCircle} `;
+        contentText += `${glyphs.circledTwo} `;
     }
 
     if (ruleInfo.isPluginMissing) {
@@ -94,8 +146,9 @@ function getContentText(rule, ruleInfo) {
             contentText += `${glyphs.wrenchIcon} `;
         }
 
-        if (ruleInfo.category) {
-            contentText += `[${ruleInfo.category}]:  `;
+        if (ruleInfo.type || ruleInfo.category) {
+            const categoryText = `[${ruleInfo.type ?? ruleInfo.category}${ruleInfo.type && ruleInfo.category ? ` (${ruleInfo.category})` : ''}]`;
+            contentText += `${categoryText}:  `;
         }
 
         if (ruleInfo.description) {
@@ -108,19 +161,19 @@ function getContentText(rule, ruleInfo) {
     return ` ${glyphs.dot} ${glyphs.dot} ${glyphs.dot} ${contentText}`;
 }
 
-function getHoverMessage(rule, ruleInfo) {
+function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
     let hoverMessage;
     if (ruleInfo.isPluginMissing) {
         hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n`;
 
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
         }
     } else if (!ruleInfo.isRuleFound) {
         hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n`;
 
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
         }
 
         if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
@@ -132,13 +185,18 @@ function getHoverMessage(rule, ruleInfo) {
     } else {
         hoverMessage = createOpenWebViewPanelCommand(`**${ruleInfo.ruleName}**`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
 
-        if (ruleInfo.category) {
-            hoverMessage += `&nbsp;&nbsp;&nbsp;\\[\`${ruleInfo.category}\`\\]`;
+        if (ruleInfo.type || ruleInfo.category) {
+            const categoryText = `[${ruleInfo.type ?? ruleInfo.category}${ruleInfo.type && ruleInfo.category ? ` (${ruleInfo.category})` : ''}]`;
+            hoverMessage += `&nbsp;&nbsp;&nbsp;\\${categoryText}`;
         }
         hoverMessage += '\n';
 
+        if (ruleHasValidationErrors === true) {
+            hoverMessage += `&nbsp;&nbsp;${glyphs.redXIcon}&nbsp;&nbsp;validation error in rule configuration\n`;
+        }
+
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.plusInCircle}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
         }
 
         if (ruleInfo.isRecommended === true) {
@@ -211,8 +269,9 @@ function createOpenWebViewPanelCommand(text, url, title) {
     return `${textLink}&nbsp;&nbsp;${glyphLink}`;
 }
 
-function getDecorationObject(contentText, hoverMessage) {
+function getDecorationObject(range, contentText, hoverMessage) {
     return {
+        range,
         hoverMessage,
         rangeBehavior: DecorationRangeBehavior.ClosedOpen,
         renderOptions: {

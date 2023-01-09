@@ -142,14 +142,18 @@ export function getRuleDetails(documentFilePath, ruleName) {
         };
     }
 
+    // https://github.com/eslint/eslint/blob/3e34418b31664decfb2337de798feafbf985b66c/lib/shared/types.js#L137-L160
     const {
+        schema,
         meta: ruleMeta = {},
         meta: {
             docs: ruleDocs = {}
         } = {}
     } = rules.map.get(ruleName);
 
-    let schemaDocumentation = getSchemaDocumentation(ruleMeta.schema);
+    const ruleSchema = schema ?? ruleMeta.schema ?? [];
+
+    const schemaDocumentation = getSchemaDocumentation(ruleSchema);
 
     return {
         ruleName,
@@ -158,13 +162,14 @@ export function getRuleDetails(documentFilePath, ruleName) {
         isPluginMissing: false,
         infoUrl: ruleDocs.url || (pluginName ? MISSING_URL_URL : eslintRulesUrl),
         infoPageTitle: ruleName,
+        type: ruleMeta.type,
         category: ruleDocs.category,
         isRecommended: ruleDocs.recommended,
         isFixable: ruleMeta.fixable ? true : false,
         isDeprecated: ruleMeta.deprecated ? true : false,
-        replacedBy: ruleDocs.replacedBy,
+        replacedBy: ruleMeta.replacedBy,
         description: ruleDocs.description,
-        schema: ruleMeta.schema,
+        schema: ruleSchema,
         schemaDocumentation
     };
 }

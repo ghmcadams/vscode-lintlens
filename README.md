@@ -20,6 +20,8 @@ Adds details beside each [ESLint rule](https://eslint.org/docs/rules/) in your c
 
 Displays detailed information (including usage schema information and a link to the official docs page) in a hover container for each rule.
 
+Validates rule options in your config file
+
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
 - Flat Config - use `eslint.config.js` at the root and export an array containing your configurations.
@@ -61,5 +63,7 @@ In an effort to support all possible plugins and to keep size small, this extens
   - Simple exporting of a config works
   - Exporting from a variable works
   - Finding rules through rest spread works
+  - rule option validation does not work when variables are used
   - Beyond that, parsing could be improved
   - Additionally, the language mode must match `javascript` or `javascriptreact`.
+- Rule option validation does not yet work for YAML config files

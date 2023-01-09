@@ -5,6 +5,7 @@ export function initialize(context) {
 }
 
 export function replaceRange(editor, edit, ...[ rangeStartLine, rangeStartCharacter, rangeEndLine, rangeEndCharacter, newText ]) {
-    range = editor.document.getWordRangeAtPosition(new Position(rangeStartLine, rangeStartCharacter + 1), /[^\s\:\"\']+/);
+    const position = new Position(rangeStartLine, rangeStartCharacter + 1);
+    const range = editor.document.getWordRangeAtPosition(position, /[^\s\:\"\']+/);
     edit.replace(range, newText);
 }
