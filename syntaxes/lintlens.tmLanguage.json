@@ -1,37 +1,17 @@
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-	"name": "LintLens Documentation",
+	"name": "LintLens ESLint Configuration Options",
+	"scopeName": "source.lintlens",
 	"patterns": [
 		{
-			"include": "#keywords"
-		},
-		{
-			"include": "#types"
-		},
-		{
-			"include": "#operators"
-		},
-		{
-			"include": "#variables"
-		},
-		{
-			"include": "#special"
-		},
-		{
-			"include": "#strings"
-		},
-		{
-			"include": "#numeric"
-		},
-		{
-			"include": "#comments"
+			"include": "#value"
 		}
 	],
 	"repository": {
 		"types": {
 			"patterns": [{
 				"name": "storage.type.lintlens",
-				"match": "\\b(string|boolean|number|integer|any)\\b"
+				"match": "\\b(string|object|array|boolean|number|integer|any)\\b"
 			}]
 		},
 		"keywords": {
@@ -52,27 +32,36 @@
 				"match": "\\b(x)\\b"
 			}]
 		},
-		"special": {
+		"constants": {
 			"patterns": [{
 				"name": "constant.language.lintlens",
 				"match": "\\b(true|false|null)\\b"
 			}]
 		},
+		"regexp": {
+			"patterns": [{
+				"name": "constant.regexp.lintlens",
+				"match": "(\/.+\/)"
+			}]
+		},
+		"special": {
+			"patterns": [{
+				"name": "special.lintlens",
+				"match": "\\b(required)\\b"
+			}]
+		},
 		"strings": {
-			"name": "string.quoted.double.lintlens",
-			"begin": "\"",
-			"end": "\"",
 			"patterns": [
 				{
-					"name": "constant.character.escape.lintlens",
-					"match": "\\\\."
+					"name": "string.quoted.double.lintlens",
+					"match": "\"([^\"]+)\""
 				}
 			]
 		},
 		"numeric" : {
 			"patterns": [
 				{
-					"match" : "(\\b\\d+)",
+					"match": "(?x)-?(?:0|[1-9]\\d*)(?:(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)?",
 					"name" : "constant.numeric.lintlens"
 				}
 			]
@@ -84,7 +73,40 @@
 					"name": "comment.lintlens"
 				}
 			]
+		},
+		"object": {
+			"begin": "\\{",
+			"end": "\\}",
+			"patterns": [
+				{ "include": "#objectkey" },
+				{
+					"begin": ":",
+					"end": "(,)|(?=\\})",
+					"patterns": [
+						{ "include": "#value" }
+					]
+				}
+			]
+		},
+		"objectkey": {
+			"begin": "\"",
+			"end": "\"",
+			"name": "support.type.property-name.json.lintlens"
+		},
+		"value": {
+			"patterns": [
+				{ "include": "#types" },
+				{ "include": "#keywords" },
+				{ "include": "#operators" },
+				{ "include": "#variables" },
+				{ "include": "#constants" },
+				{ "include": "#regexp" },
+				{ "include": "#special" },
+				{ "include": "#object" },
+				{ "include": "#strings" },
+				{ "include": "#numeric" },
+				{ "include": "#comments" }
+			]
 		}
-	},
-	"scopeName": "source.lintlens"
+	}
 }

@@ -1,7 +1,7 @@
 import { window, workspace, languages, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
 import DocumentParser from '../parsers/DocumentParser';
 import { getRuleDetails } from '../rules';
-import { glyphs, extensionName, commands } from '../constants';
+import { glyphs, extensionName, commands, messages } from '../constants';
 import { validateConfigFromSchema } from '../schema';
 
 const annotationDecoration = window.createTextEditorDecorationType({});
@@ -73,12 +73,20 @@ export function addAnnotations(editor) {
                 }
 
                 // add diagnostics for duplicated and deprecated rules
+                if (!ruleInfo.isRuleFound) {
+                    validationErrors.push({
+                        source: 'LintLens',
+                        range: rule.keyRange,
+                        severity: DiagnosticSeverity.Error,
+                        message: `Rule "${rule.name}" not found`,
+                    });
+                }
                 if (rule.duplicate) {
                     validationErrors.push({
                         source: 'LintLens',
                         range: rule.keyRange,
                         severity: DiagnosticSeverity.Hint,
-                        message: 'duplicate rule configuration',
+                        message: messages.duplicateRule,
                     });
                 }
                 if (ruleInfo.isDeprecated) {
@@ -86,7 +94,7 @@ export function addAnnotations(editor) {
                         source: 'LintLens',
                         range: rule.keyRange,
                         severity: DiagnosticSeverity.Warning,
-                        message: 'rule is deprecated',
+                        message: `Rule "${rule.name}" is deprecated`,
                     });
                 }
     
@@ -167,13 +175,13 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
         hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n`;
 
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;*${messages.duplicateRule}*\n`;
         }
     } else if (!ruleInfo.isRuleFound) {
         hoverMessage = `**Rule not found**: \`${ruleInfo.ruleName}\`\n`;
 
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;*${messages.duplicateRule}*\n`;
         }
 
         if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
@@ -192,11 +200,11 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
         hoverMessage += '\n';
 
         if (ruleHasValidationErrors === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.redXIcon}&nbsp;&nbsp;validation error in rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.redXIcon}&nbsp;&nbsp;***${messages.validationError}***\n`;
         }
 
         if (rule.duplicate === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;duplicate rule configuration\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;*${messages.duplicateRule}*\n`;
         }
 
         if (ruleInfo.isRecommended === true) {
@@ -228,10 +236,14 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
 
         if (ruleInfo.schemaDocumentation) {
             hoverMessage += `\n---\n`;
-            hoverMessage += '**Usage**:\n\n';
+            hoverMessage += '**Rule Options**:\n\n';
 
+            // A code block (\\\ <language> , followed by the code, then another line with \\\) with the lintlens language
             hoverMessage += `\n\`\`\`lintlens\n`;
-            hoverMessage += `${ruleInfo.schemaDocumentation}\n`;
+
+            const documentation = ruleInfo.schemaDocumentation.replaceAll('\n', `${getSpaces(3)}\n`);
+            hoverMessage += `${documentation}\n`;
+
             hoverMessage += `\n\n\`\`\`\n`;
         }
     }
@@ -243,6 +255,10 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
     markdown.isTrusted = true;
 
     return markdown;
+}
+
+function getSpaces(count) {
+    return ' '.repeat(count);
 }
 
 function createReplaceTextCommand(commandText, range, newText, tooltip = '') {

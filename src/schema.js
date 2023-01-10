@@ -13,21 +13,6 @@ const containerType = {
     "array": 2
 };
 
-function isMultipleItems(schema) {
-    if (Array.isArray(schema) && schema.length > 1) {
-        return true;
-    }
-    if (schema.hasOwnProperty('type')
-        && schema.type === 'array'
-        && schema.hasOwnProperty('items')
-        && schema.items.length > 1
-    ) {
-        return true;
-    }
-
-    return false;
-}
-
 function getIndent(count) {
     return '  '.repeat(count);
 }
@@ -88,13 +73,13 @@ function getStandardArrayBodyDoc({ schema, root, indent, parentType }) {
 }
 
 function getNullDoc() {
-    return '<null />';
+    return 'null';
 }
 
 function getMultiTypeDoc({ schema }) {
     let ret = '(';
 
-    ret += schema.type.map(type => `<${type} />`).join(' | ');
+    ret += schema.type.join(' | ');
 
     if (schema.hasOwnProperty('default')) {
         ret += ` (default: ${schema.default})`;
@@ -110,19 +95,15 @@ function getEnumDoc({ schema }) {
         return getConstantText(schema.enum[0]);
     }
 
-    let ret = '< ';
-
     // TODO: consider static(ish) newlines - so I can maintain indent
 
-    ret += schema.enum.map(item => {
+    let ret = schema.enum.map(item => {
         return getConstantText(item);
     }).join(' | ');
 
     if (schema.hasOwnProperty('default')) {
         ret += ` (default: ${getConstantText(schema.default)})`;
     }
-
-    ret += ' />';
 
     return ret;
 }
@@ -139,6 +120,27 @@ function getObjectDoc({ schema, root, indent }) {
     //     maxLength
     //     pattern (regex)
 
+
+    // if there is nothing but object, then show empty one
+    var propsCheck = [
+        'properties',
+        'patternProperties',
+        'additionalProperties',
+        'minProperties',
+        'maxProperties'
+    ].map(prop => {
+        if (schema.hasOwnProperty(prop)) {
+            return Object.keys(schema[prop]).length > 0;
+        }
+
+        return false;
+    });
+
+
+    if (!propsCheck.some(entry => entry)) {
+        return '';
+    }
+
     let ret = '{\n';
 
     if (schema.hasOwnProperty('properties')) {
@@ -146,6 +148,8 @@ function getObjectDoc({ schema, root, indent }) {
         const items = Object.entries(schema.properties).map(([key, value]) => {
             //TODO: rethink how to indicate required properties
             return `${getIndent(indent + 1)}${required.includes(key) ? '(required) ' : ''}"${key}": ${getSchemaDoc({ schema: value, root, indent: indent + 1, parentType: containerType.object })}`;
+            // TODO: quotes or not? (quotes makes it red like any other string, not makes ot black)
+            // return `${getIndent(indent + 1)}${required.includes(key) ? '(required) ' : ''}${key}: ${getSchemaDoc({ schema: value, root, indent: indent + 1, parentType: containerType.object })}`;
         });
         ret += `${items.join(',\n')}\n`;
     }
@@ -160,10 +164,10 @@ function getObjectDoc({ schema, root, indent }) {
     if (schema.hasOwnProperty('additionalProperties')) {
         if (typeof schema.additionalProperties === 'boolean') {
             if (schema.additionalProperties === true) {
-                ret += `${getIndent(indent + 1)}...<any>\n`;
+                ret += `${getIndent(indent + 1)}[any]: any\n`;
             }
         } else {
-            ret += `${getIndent(indent + 1)}...[<any>]: ${getSchemaDoc({ schema: schema.additionalProperties, root, indent: indent + 1, parentType: containerType.object })}\n`;
+            ret += `${getIndent(indent + 1)}[any]: ${getSchemaDoc({ schema: schema.additionalProperties, root, indent: indent + 1, parentType: containerType.object })}\n`;
         }
     }
 
@@ -191,6 +195,19 @@ function getArrayDoc({ schema, root, indent, parentType }) {
         return '[]';
     }
 
+    // TODO: think about prefixItems (tuples) vs items (normal array)
+    if (schema.hasOwnProperty('prefixItems') && !schema.hasOwnProperty('items')) {
+        schema.items = schema.prefixItems;
+    }
+    if (Array.isArray(schema.items) && schema.items.length === 1) {
+        schema.items = schema.items[0];
+    }
+    // simple array of a type
+    // TODO: this does not handle other properties on the array (like min items, etc.)
+    if (schema.items && Object.keys(schema.items).length === 1 && Object.keys(schema.items)[0] === 'type') {
+        return `${schema.items.type}[]`;
+    }
+
     let ret = '[\n';
 
     ret += `${getIndent(indent + 1)}${getArrayBodyDoc({ schema, root, indent: indent + 1, parentType })}\n`;
@@ -204,8 +221,8 @@ function getArrayBodyDoc({ schema, root, indent }) {
     let ret = '';
     let itemCount = null;
 
-    if (schema.hasOwnProperty('items') || schema.hasOwnProperty('contains')) {
-        const items = schema.contains || schema.items;
+    if (schema.hasOwnProperty('items') || schema.hasOwnProperty('prefixItems') || schema.hasOwnProperty('contains')) {
+        const items = schema.contains || schema.items || schema.prefixItems;
         if (schema.hasOwnProperty('contains')) {
             ret += `(contains)\n${getIndent(indent)}`;
         }
@@ -218,7 +235,7 @@ function getArrayBodyDoc({ schema, root, indent }) {
                 return getSchemaDoc({ schema: item, root, indent, parentType: containerType.array });
             }).join(`,\n${getIndent(indent)}`);
         } else {
-            ret += `...${getSchemaDoc({ schema: items, root, indent, parentType: containerType.array })}`;
+            ret += `${getSchemaDoc({ schema: items, root, indent, parentType: containerType.array })}`;
         }
     }
 
@@ -226,25 +243,35 @@ function getArrayBodyDoc({ schema, root, indent }) {
         itemCount = null;
         if (typeof schema.additionalItems === 'boolean') {
             if (schema.additionalItems === true) {
-                ret += `\n${getIndent(indent)}...<any>`;
+                ret += `\n${getIndent(indent)}any`;
             }
         } else {
-            ret += `\n${getIndent(indent)}...${getSchemaDoc({ schema: schema.additionalItems, root, indent, parentType: containerType.array })}`;
+            ret += `\n${getIndent(indent)}${getSchemaDoc({ schema: schema.additionalItems, root, indent, parentType: containerType.array })}`;
         }
+    }
+
+    if (schema.hasOwnProperty('oneOf')) {
+        ret += getOneOfDoc({ schema, root, indent, parentType: containerType.array });
+    }
+    if (schema.hasOwnProperty('anyOf')) {
+        ret += getAnyOfDoc({ schema, root, indent, parentType: containerType.array });
+    }
+    if (schema.hasOwnProperty('allOf')) {
+        ret += getAllOfDoc({ schema, root, indent, parentType: containerType.array });
     }
 
     if (itemCount !== 1) {
         //TODO: infer:  min = 0, max = item count --> optional
         if (schema.hasOwnProperty('minItems')) {
-            ret += `\n${getIndent(indent)}# min items: ${schema.minItems}`;
+            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# min items: ${schema.minItems}`;
         }
-    
+
         if (schema.hasOwnProperty('maxItems')) {
-            ret += `\n${getIndent(indent)}# max items: ${schema.maxItems}`;
+            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# max items: ${schema.maxItems}`;
         }
-    
+
         if (schema.hasOwnProperty('uniqueItems')) {
-            ret += `\n${getIndent(indent)}# unique: ${schema.uniqueItems}`;
+            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# unique: ${schema.uniqueItems}`;
         }
     }
 
@@ -252,7 +279,7 @@ function getArrayBodyDoc({ schema, root, indent }) {
 }
 
 function getStringDoc({ schema }) {
-    let ret = '<string';
+    let ret = 'string';
 
     const mods = [];
     if (schema.hasOwnProperty('minLength') || schema.hasOwnProperty('maxLength')) {
@@ -283,13 +310,11 @@ function getStringDoc({ schema }) {
         ret += ')';
     }
 
-    ret += ' />';
-
     return ret;
 }
 
 function getNumericDoc({ schema }) {
-    let ret = `<${schema.type}`;
+    let ret = schema.type;
 
     const mods = [];
     if (schema.hasOwnProperty('minimum') || schema.hasOwnProperty('exclusiveMinimum') || schema.hasOwnProperty('maximum') || schema.hasOwnProperty('exclusiveMaximum')) {
@@ -320,16 +345,14 @@ function getNumericDoc({ schema }) {
         ret += ')';
     }
 
-    ret += ' />';
-
     return ret;
 }
 
 function getBooleanDoc({ schema }) {
     if (schema.hasOwnProperty('default')) {
-        return `<boolean (default: ${schema.default}) />`;
+        return `boolean (default: ${schema.default})`;
     }
-    return '<boolean />';
+    return 'boolean';
 }
 
 function getConstDoc({ schema }) {
@@ -345,7 +368,9 @@ function getOneOfDoc({ schema, root, indent, parentType }) {
             ...item
         };
     });
-    return getOfDoc({ label: 'one', items, root, indent, parentType });
+    return items.map(item => {
+        return getSchemaDoc({ schema: item, root, indent, parentType });
+    }).join(' | ');
 }
 
 function getAnyOfDoc({ schema, root, indent, parentType }) {
@@ -357,7 +382,9 @@ function getAnyOfDoc({ schema, root, indent, parentType }) {
             ...item
         };
     });
-    return getOfDoc({ label: 'any', items, root, indent, parentType });
+    return items.map(item => {
+        return getSchemaDoc({ schema: item, root, indent, parentType });
+    }).join(' | ');
 }
 
 function getAllOfDoc({ schema, root, indent, parentType }) {
@@ -369,47 +396,30 @@ function getAllOfDoc({ schema, root, indent, parentType }) {
             ...item
         };
     });
-    return getOfDoc({ label: 'all', items, root, indent, parentType });
-}
 
-function getOfDoc({ label, items, root, indent, parentType }) {
     if (items.length === 1) {
         return getSchemaDoc({ schema: items[0], root, indent, parentType });
     }
 
-    let ret = `<${label} of:\n`;
+    let ret = `All of\n`;
 
     ret += items.map(item => {
-        let itemRet = '';
-        let hasMultipleItems = isMultipleItems(item);
-        let newIndent = indent + (hasMultipleItems ? 1 : 0);
-
-        if (hasMultipleItems) {
-            itemRet += `${getIndent(newIndent)}(\n`;
-        }
-
-        itemRet += `${getIndent(newIndent + 1)}${getSchemaDoc({ schema: item, root, indent: newIndent + 1, parentType })}`;
-
-        if (hasMultipleItems) {
-            itemRet += `\n${getIndent(newIndent)})`;
-        }
-
-        return itemRet;
+        return `${getIndent(indent + 1)}${getSchemaDoc({ schema: item, root, indent: indent + 1, parentType })}`;
     }).join(',\n');
 
-    ret += `\n${getIndent(indent)}/>`;
+    ret += `\n${getIndent(indent)}`;
 
     return ret;
 }
 
 function getNotDoc({ schema, root, indent, parentType }) {
-    let ret = '<not:\n';
+    let ret = 'not:\n';
 
     const { not, ...rest } = schema;
 
     ret += `${getIndent(indent + 1)}${getSchemaDoc({ schema: { ...rest, ...not }, root, indent: indent + 1, parentType })}\n`;
 
-    ret += `${getIndent(indent)}/>`;
+    ret += `${getIndent(indent)}`;
 
     return ret;
 }
