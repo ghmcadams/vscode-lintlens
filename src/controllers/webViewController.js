@@ -1,8 +1,7 @@
 import { window, commands, ViewColumn, Uri } from 'vscode';
-import path from 'path';
 import url from 'url';
 import open from 'open';
-import axios from 'axios';
+import { xhr } from 'request-light';
 import { commands as commandConstants, extensionId, extensionName } from '../constants';
 import loadingCSS from '../static/loading.css';
 import webPanelScript from '../static/webPanelScript';
@@ -122,15 +121,14 @@ export function openInVSCode({url, title}) {
 
     webViewPanel.webview.html = getLoadingHtml();
 
-    return axios.get(url)
-        .then(response => prepareHtml(response.data, url))
+    return xhr({ url, followRedirects: 5 })
+        .then(response => prepareHtml(response.responseText, url))
         .then(html => {
             const column = window.activeTextEditor ? window.activeTextEditor.viewColumn : ViewColumn.One;
             webViewPanel.title = title;
             webViewPanel.webview.html = html;
             webViewPanel.reveal(column)
-        })
-        .catch(err => {
+        }, (error) => {
             //TODO: error occurred.  handle it
         });
 }

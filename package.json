@@ -42,11 +42,11 @@
     "dependencies": {
         "acorn": "^8.8.1",
         "ajv": "^6.12.6",
-        "axios": "^0.21.2",
         "findup-sync": "^5.0.0",
         "fuse.js": "^3.2.1",
         "jsonrepair": "^3.0.2",
         "open": "^6.4.0",
+        "request-light": "^0.6.0",
         "yaml-ast-parser": "0.0.40"
     },
     "keywords": [
