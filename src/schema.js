@@ -544,20 +544,10 @@ function cleanUpSchema(schema) {
 }
 
 function validateRuleSeverity(config) {
-    const ret = {
-        valid: true,
-        errors: []
-    };
-
     const severity = Array.isArray(config) ? config[0] : config;
     const normSeverity = typeof severity === "string" ? severityMap[severity.toLowerCase()] : severity;
 
-    if (![0, 1, 2].includes(normSeverity)) {
-        ret.valid = false;
-        ret.errors = [`Severity should be one of the following: off, 0, warn, 1, error, 2`];
-    }
-
-    return ret;
+    return [0, 1, 2].includes(normSeverity);
 }
 
 function validateRuleOptions(schema, config) {
@@ -593,9 +583,9 @@ export function validateConfigFromSchema(schema, config) {
     const nonSeverityValidation = validateRuleOptions(schema, config);
 
     return {
-        valid: severityValidation.valid && nonSeverityValidation.valid,
+        valid: severityValidation && nonSeverityValidation.valid,
         errors: [
-            ...severityValidation.errors,
+            ...(severityValidation ? [] : ['Severity should be one of the following: off, 0, warn, 1, error, 2']),
             ...nonSeverityValidation.errors
         ]
     };
