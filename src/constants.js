@@ -29,5 +29,5 @@ export const messages = {
     missingRule: '',
     missingPlugin: '',
     duplicateRule: 'duplicate rule configuration',
-    validationError: 'validation error in rule configuration'
+    validationError: 'validation error(s) in options configuration'
 };

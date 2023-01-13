@@ -579,15 +579,15 @@ export function getSchemaDocumentation(schema) {
 }
 
 export function validateConfigFromSchema(schema, config) {
-    const severityValidation = validateRuleSeverity(config);
+    const severityIsValid = validateRuleSeverity(config);
     const nonSeverityValidation = validateRuleOptions(schema, config);
 
     return {
-        valid: severityValidation && nonSeverityValidation.valid,
-        errors: [
-            ...(severityValidation ? [] : ['Severity should be one of the following: off, 0, warn, 1, error, 2']),
-            ...nonSeverityValidation.errors
-        ]
+        severity: {
+            valid: severityIsValid,
+            message: 'Severity should be one of the following: off, 0, warn, 1, error, 2.'
+        },
+        options: nonSeverityValidation
     };
 }
 

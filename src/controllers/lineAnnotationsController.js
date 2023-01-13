@@ -57,15 +57,25 @@ export function addAnnotations(editor) {
                 const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
 
                 // validate rule config options
-                let ruleHasValidationErrors = false;
+                ruleInfo.validationErrors = [];
                 if (rule.optionsConfig) {
-                    const { valid, errors } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
-                    if (!valid) {
-                        ruleHasValidationErrors = true;
-    
-                        diagnostics.push(...errors.map(error => ({
+                    const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
+                    if (!severity.valid) {
+                        ruleInfo.validationErrors.push(severity.message);
+
+                        diagnostics.push({
                             source: 'LintLens',
-                            range: rule.valueRange,
+                            range: rule.severityRange,
+                            severity: DiagnosticSeverity.Error,
+                            message: severity.message,
+                        });
+                    }
+                    if (!options.valid) {
+                        ruleInfo.validationErrors.push(...options.errors);
+
+                        diagnostics.push(...options.errors.map(error => ({
+                            source: 'LintLens',
+                            range: rule.optionsRange,
                             severity: DiagnosticSeverity.Error,
                             message: error,
                         })));
@@ -99,8 +109,8 @@ export function addAnnotations(editor) {
                 }
     
                 // Create annotation decoration
-                const contentText = getContentText(rule, ruleInfo, ruleHasValidationErrors);
-                const hoverMessage = getHoverMessage(rule, ruleInfo, ruleHasValidationErrors);
+                const contentText = getContentText(rule, ruleInfo);
+                const hoverMessage = getHoverMessage(rule, ruleInfo);
                 const decoration = getDecorationObject(rule.lineEndingRange, contentText, hoverMessage);
     
                 return decoration;
@@ -126,10 +136,10 @@ export function addAnnotations(editor) {
     }
 }
 
-function getContentText(rule, ruleInfo, ruleHasValidationErrors) {
+function getContentText(rule, ruleInfo) {
     let contentText = '';
 
-    if (ruleHasValidationErrors === true) {
+    if (ruleInfo.validationErrors?.length > 0) {
         contentText += `${glyphs.redXIcon} `;
     }
 
@@ -169,7 +179,7 @@ function getContentText(rule, ruleInfo, ruleHasValidationErrors) {
     return ` ${glyphs.dot} ${glyphs.dot} ${glyphs.dot} ${contentText}`;
 }
 
-function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
+function getHoverMessage(rule, ruleInfo) {
     let hoverMessage;
     if (ruleInfo.isPluginMissing) {
         hoverMessage = `**Missing plugin**: \`${ruleInfo.pluginName}\`\n`;
@@ -199,7 +209,7 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
         }
         hoverMessage += '\n';
 
-        if (ruleHasValidationErrors === true) {
+        if (ruleInfo.validationErrors?.length > 0) {
             hoverMessage += `&nbsp;&nbsp;${glyphs.redXIcon}&nbsp;&nbsp;***${messages.validationError}***\n`;
         }
 
@@ -246,6 +256,16 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
 
             hoverMessage += `\n\n\`\`\`\n`;
         }
+    }
+
+    if (ruleInfo.validationErrors?.length > 0) {
+        hoverMessage += `\n---\n`;
+
+        hoverMessage += `${glyphs.redXIcon} **Validation Errors**:\n`;
+
+        ruleInfo.validationErrors.forEach(error => {
+            hoverMessage += `> ${error}  \n`;
+        });
     }
 
     hoverMessage += `\n---\n`;

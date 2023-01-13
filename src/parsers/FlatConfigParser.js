@@ -141,6 +141,13 @@ function readRuleConfig(astBody, configText, ruleValue) {
     }
 }
 
+function getRange(document, statement) {
+    const keyStartPosition = new Position(statement.loc.start.line - 1, statement.loc.start.column);
+    const keyEndPosition = new Position(statement.loc.end.line - 1, statement.loc.end.column);
+
+    return document.validateRange(new Range(keyStartPosition, keyEndPosition));
+}
+
 
 export default class FlatConfigParser extends Parser {
     constructor(document) {
@@ -155,13 +162,10 @@ export default class FlatConfigParser extends Parser {
         const configuredRules = getRules(ast.body, configProperties);
 
         return configuredRules.map(rule => {
-            const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
-            const keyEndPosition = new Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
-            const keyRange = this.document.validateRange(new Range(keyStartPosition, keyEndPosition));
+            const keyRange = getRange(this.document, rule.key);
+            const severityRange = rule.value.type === 'ArrayExpression' ? getRange(this.document, rule.value.elements[0]) : getRange(this.document, rule.value);
+            const optionsRange = rule.value.type === 'ArrayExpression' && getRange(this.document, rule.value.elements[1]);
 
-            const valueStartPosition = new Position(rule.value.loc.start.line - 1, rule.value.loc.start.column);
-            const valueEndPosition = new Position(rule.value.loc.end.line - 1, rule.value.loc.end.column);
-            const valueRange = this.document.validateRange(new Range(valueStartPosition, valueEndPosition));
             const optionsConfig = readRuleConfig(ast.body, documentText.slice(rule.value.start, rule.value.end), rule.value);
 
             const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
@@ -176,7 +180,8 @@ export default class FlatConfigParser extends Parser {
             return {
                 name: name ?? 'Unknown',
                 keyRange,
-                valueRange,
+                severityRange,
+                optionsRange,
                 optionsConfig,
                 lineEndingRange
             };

@@ -3,6 +3,14 @@ import { parseExpressionAt } from 'acorn';
 import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
+
+function getRange(document, statement) {
+    const keyStartPosition = new Position(statement.loc.start.line - 1, statement.loc.start.column);
+    const keyEndPosition = new Position(statement.loc.end.line - 1, statement.loc.end.column);
+
+    return document.validateRange(new Range(keyStartPosition, keyEndPosition));
+}
+
 export default class PkgParser extends Parser {
     constructor(document) {
         super(document);
@@ -18,13 +26,10 @@ export default class PkgParser extends Parser {
                 prop.value.properties.forEach(cfg => {
                     if (cfg.key.value === 'rules') {
                         cfg.value.properties.forEach(rule => {
-                            const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
-                            const keyEndPosition = new Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
-                            const keyRange = this.document.validateRange(new Range(keyStartPosition, keyEndPosition));
-
-                            const valueStartPosition = new Position(rule.value.loc.start.line - 1, rule.value.loc.start.column);
-                            const valueEndPosition = new Position(rule.value.loc.end.line - 1, rule.value.loc.end.column);
-                            const valueRange = this.document.validateRange(new Range(valueStartPosition, valueEndPosition));
+                            const keyRange = getRange(this.document, rule.key);
+                            const severityRange = rule.value.type === 'ArrayExpression' ? getRange(this.document, rule.value.elements[0]) : getRange(this.document, rule.value);
+                            const optionsRange = rule.value.type === 'ArrayExpression' && getRange(this.document, rule.value.elements[1]);
+                
                             const optionsConfig = JSON.parse(jsonrepair(documentText.slice(rule.value.start, rule.value.end)));
 
                             const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
@@ -32,7 +37,8 @@ export default class PkgParser extends Parser {
                             rules.push({
                                 name: rule.key.value,
                                 keyRange,
-                                valueRange,
+                                severityRange,
+                                optionsRange,
                                 optionsConfig,
                                 lineEndingRange
                             });
@@ -42,13 +48,10 @@ export default class PkgParser extends Parser {
                             override.properties.forEach(overrideProp => {
                                 if (overrideProp.key.value === 'rules') {
                                     overrideProp.value.properties.forEach(rule => {
-                                        const keyStartPosition = new Position(rule.key.loc.start.line - 1, rule.key.loc.start.column);
-                                        const keyEndPosition = new Position(rule.key.loc.end.line - 1, rule.key.loc.end.column);
-                                        const keyRange = this.document.validateRange(new Range(keyStartPosition, keyEndPosition));
-
-                                        const valueStartPosition = new Position(rule.value.loc.start.line - 1, rule.value.loc.start.column);
-                                        const valueEndPosition = new Position(rule.value.loc.end.line - 1, rule.value.loc.end.column);
-                                        const valueRange = this.document.validateRange(new Range(valueStartPosition, valueEndPosition));
+                                        const keyRange = getRange(this.document, rule.key);
+                                        const severityRange = rule.value.type === 'ArrayExpression' ? getRange(this.document, rule.value.elements[0]) : getRange(this.document, rule.value);
+                                        const optionsRange = rule.value.type === 'ArrayExpression' && getRange(this.document, rule.value.elements[1]);
+                            
                                         const optionsConfig = JSON.parse(jsonrepair(documentText.slice(rule.value.start, rule.value.end)));
 
                                         const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
@@ -56,7 +59,8 @@ export default class PkgParser extends Parser {
                                         rules.push({
                                             name: rule.key.value,
                                             keyRange,
-                                            valueRange,
+                                            severityRange,
+                                            optionsRange,
                                             optionsConfig,
                                             lineEndingRange
                                         });
