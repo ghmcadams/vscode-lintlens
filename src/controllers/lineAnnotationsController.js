@@ -5,7 +5,7 @@ import { glyphs, extensionName, commands, messages } from '../constants';
 import { validateConfigFromSchema } from '../schema';
 
 const annotationDecoration = window.createTextEditorDecorationType({});
-const validationCollection = languages.createDiagnosticCollection('validation');
+const diagnosticsCollection = languages.createDiagnosticCollection('validation');
 
 export function initialize(context) {
     let activeEditor = window.activeTextEditor;
@@ -36,7 +36,7 @@ export function clearAnnotations(editor) {
         return;
     }
     editor.setDecorations(annotationDecoration, []);
-    validationCollection.clear();
+    diagnosticsCollection.clear();
 }
 
 export function addAnnotations(editor) {
@@ -51,19 +51,19 @@ export function addAnnotations(editor) {
     }
 
     try {
-        const validationErrors = [];
+        const diagnostics = [];
         const decorations = rules.map(rule => {
             try {
                 const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
 
                 // validate rule config options
                 let ruleHasValidationErrors = false;
-                if (rule.value) {
-                    const { valid, errors } = validateConfigFromSchema(ruleInfo.schema, rule.value);
+                if (rule.optionsConfig) {
+                    const { valid, errors } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
                     if (!valid) {
                         ruleHasValidationErrors = true;
     
-                        validationErrors.push(...errors.map(error => ({
+                        diagnostics.push(...errors.map(error => ({
                             source: 'LintLens',
                             range: rule.valueRange,
                             severity: DiagnosticSeverity.Error,
@@ -72,9 +72,9 @@ export function addAnnotations(editor) {
                     }
                 }
 
-                // add diagnostics for duplicated and deprecated rules
+                // add diagnostics as needed
                 if (!ruleInfo.isRuleFound) {
-                    validationErrors.push({
+                    diagnostics.push({
                         source: 'LintLens',
                         range: rule.keyRange,
                         severity: DiagnosticSeverity.Error,
@@ -82,7 +82,7 @@ export function addAnnotations(editor) {
                     });
                 }
                 if (rule.duplicate) {
-                    validationErrors.push({
+                    diagnostics.push({
                         source: 'LintLens',
                         range: rule.keyRange,
                         severity: DiagnosticSeverity.Hint,
@@ -90,7 +90,7 @@ export function addAnnotations(editor) {
                     });
                 }
                 if (ruleInfo.isDeprecated) {
-                    validationErrors.push({
+                    diagnostics.push({
                         source: 'LintLens',
                         range: rule.keyRange,
                         severity: DiagnosticSeverity.Warning,
@@ -115,7 +115,7 @@ export function addAnnotations(editor) {
         });
 
         editor.setDecorations(annotationDecoration, decorations);
-        validationCollection.set(editor.document.uri, validationErrors);
+        diagnosticsCollection.set(editor.document.uri, diagnostics);
     } catch (err) {
         if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
             window.showErrorMessage(err.message);
@@ -143,7 +143,7 @@ function getContentText(rule, ruleInfo, ruleHasValidationErrors) {
         contentText += `${glyphs.magnifyIcon} Rule not found`;
     } else {
         if (ruleInfo.isRecommended === true) {
-            contentText += `${glyphs.thumbsUpIcon} `;
+            contentText += `${glyphs.checkmark} `;
         }
 
         if (ruleInfo.isDeprecated === true) {
@@ -208,7 +208,7 @@ function getHoverMessage(rule, ruleInfo, ruleHasValidationErrors) {
         }
 
         if (ruleInfo.isRecommended === true) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.thumbsUpIcon}&nbsp;&nbsp;recommended\n`;
+            hoverMessage += `&nbsp;&nbsp;${glyphs.checkmark}&nbsp;&nbsp;recommended\n`;
         }
 
         if (ruleInfo.isFixable === true) {

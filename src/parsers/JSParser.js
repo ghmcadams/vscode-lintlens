@@ -181,7 +181,7 @@ export default class JSParser extends Parser {
             const valueStartPosition = new Position(rule.value.loc.start.line - 1, rule.value.loc.start.column);
             const valueEndPosition = new Position(rule.value.loc.end.line - 1, rule.value.loc.end.column);
             const valueRange = this.document.validateRange(new Range(valueStartPosition, valueEndPosition));
-            const value = readRuleConfig(ast.body, documentText.slice(rule.value.start, rule.value.end), rule.value);
+            const optionsConfig = readRuleConfig(ast.body, documentText.slice(rule.value.start, rule.value.end), rule.value);
 
             const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
 
@@ -196,7 +196,7 @@ export default class JSParser extends Parser {
                 name: name ?? 'Unknown',
                 keyRange,
                 valueRange,
-                value,
+                optionsConfig,
                 lineEndingRange
             };
         });

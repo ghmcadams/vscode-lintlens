@@ -8,7 +8,7 @@ export const extensionId = 'lintlens';
 export const extensionName = 'LintLens';
 
 export const glyphs = {
-    thumbsUpIcon: '\uD83D\uDC4D', // 👍
+    checkmark: '\u2705', // ✅
     arrowIcon: '\u2197', // ↗
     wrenchIcon: '\uD83D\uDD27', // 🔧
     NoEntryIcon: '\uD83D\uDEAB', // 🚫
