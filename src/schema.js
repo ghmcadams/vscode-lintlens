@@ -544,8 +544,7 @@ function cleanUpSchema(schema) {
 }
 
 function validateRuleSeverity(config) {
-    const severity = Array.isArray(config) ? config[0] : config;
-    const normSeverity = typeof severity === "string" ? severityMap[severity.toLowerCase()] : severity;
+    const normSeverity = typeof config === "string" ? severityMap[config.toLowerCase()] : config;
 
     return [0, 1, 2].includes(normSeverity);
 }
@@ -556,11 +555,10 @@ function validateRuleOptions(schema, config) {
         errors: []
     };
 
-    if (schema) {
+    if (schema && config) {
         const cleanedSchemaConfig = cleanUpSchema(schema);
-    
-        const nonSeverityConfig = Array.isArray(config) ? config.slice(1) : []
-        ret.valid = ajv.validate(cleanedSchemaConfig, nonSeverityConfig);
+
+        ret.valid = ajv.validate(cleanedSchemaConfig, config);
         if (!ret.valid) {
             ret.errors = ajv.errors.map(error => `Value ${JSON.stringify(error.data)} ${error.message}.`);
         }
@@ -579,8 +577,11 @@ export function getSchemaDocumentation(schema) {
 }
 
 export function validateConfigFromSchema(schema, config) {
-    const severityIsValid = validateRuleSeverity(config);
-    const nonSeverityValidation = validateRuleOptions(schema, config);
+    const severityConfig = Array.isArray(config) ? config[0] : config;
+    const nonSeverityConfig = Array.isArray(config) ? config.slice(1) : []
+
+    const severityIsValid = validateRuleSeverity(severityConfig);
+    const nonSeverityValidation = validateRuleOptions(schema, nonSeverityConfig);
 
     return {
         severity: {

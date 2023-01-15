@@ -63,7 +63,7 @@ export function addAnnotations(editor, context) {
 
                 // validate rule config options
                 ruleInfo.validationErrors = [];
-                if (rule.optionsConfig !== undefined) {
+                if (rule.optionsConfig !== null && rule.optionsConfig !== undefined) {
                     const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
                     if (!severity.valid) {
                         ruleInfo.validationErrors.push(severity.message);

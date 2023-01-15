@@ -38,6 +38,8 @@ export default class DocumentParser extends Parser {
                 return new FlatConfigParser(document);
             } else if (isMatch('javascript', '**/.eslintrc.js', '**/.eslintrc.cjs') || isMatch('javascriptreact', '**/.eslintrc.js', '**/.eslintrc.cjs')) {
                 return new JSParser(document);
+            } else if (isMatch('typescript', '**/.eslintrc.js', '**/.eslintrc.cjs') || isMatch('typescriptreact', '**/.eslintrc.js', '**/.eslintrc.cjs')) {
+                return new JSParser(document);
             } else if (isMatch('json', '**/.eslintrc', '**/.eslintrc.json') || isMatch('jsonc', '**/.eslintrc', '**/.eslintrc.json')) {
                 return new JSONParser(document);
             } else if (isMatch('yaml', '**/.eslintrc', '**/.eslintrc.yaml', '**/.eslintrc.yml')) {
@@ -47,8 +49,9 @@ export default class DocumentParser extends Parser {
             }
 
             // Choose parser based on language
-            if (isLanguageMatch('javascript', 'javascriptreact')) {
+            if (isLanguageMatch('javascript', 'javascriptreact', 'typescript', 'typescriptreact')) {
                 // TODO: determine flat config vs legacy JS config
+                // TODO: try to parse one and then try the other?
                 return new JSParser(document);
             } else if (isLanguageMatch('json')) {
                 return new JSONParser(document);

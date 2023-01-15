@@ -4,6 +4,23 @@ import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
 
+function getVariableFromBody(body, name) {
+    for (const statement of body) {
+        if (statement.type === 'VariableDeclaration') {
+            for (const declaration of statement.declarations) {
+                if (declaration.type === 'VariableDeclarator' && declaration.id.name === name) {
+                    if (declaration.init.type === 'Identifier') {
+                        return getPropertiesFromVariable(body, declaration.init.name);
+                    }
+                    return declaration.init;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
 function getProperties(body, elements) {
     const properties = [];
 
@@ -19,20 +36,11 @@ function getProperties(body, elements) {
 }
 
 function getPropertiesFromVariable(body, name) {
-    for (const statement of body) {
-        if (statement.type === 'VariableDeclaration') {
-            for (const declaration of statement.declarations) {
-                if (declaration.type === 'VariableDeclarator' && declaration.id.name === name) {
-                    if (declaration.init.type === 'ArrayExpression') {
-                        return getProperties(body, declaration.init.elements);
-                    } else if (declaration.init.type === 'ObjectExpression') {
-                        return declaration.init.properties;
-                    } else if (declaration.init.type === 'Identifier') {
-                        return getPropertiesFromVariable(body, declaration.init.name);
-                    }
-                }
-            }
-        }
+    const variable = getVariableFromBody(body, name);
+    if (variable.type === 'ArrayExpression') {
+        return getProperties(body, variable.elements);
+    } else if (variable.type === 'ObjectExpression') {
+        return variable.properties;
     }
 
     return [];
@@ -138,23 +146,38 @@ function getRules(body, properties) {
     return rules;
 }
 
-function readRuleConfig(astBody, configText, ruleValue) {
-    if (ruleValue.type === 'Literal') {
-        return JSON.parse(jsonrepair(configText));
-    }
-
-    // if (ruleValue.type === 'Identifier') {
-    //     // TODO: get the variable value and replace it in the config text;
-    //     return 6;
-    // }
-
-    // if (ruleValue.type === 'ArrayExpression') {
-    //     // ruleValue.elements
-    // }
-
+function readRuleConfig(documentText, bodyAST, ruleValueAST) {
     try {
-        const repairedJSONText = jsonrepair(configText);
-        return JSON.parse(repairedJSONText);
+        if (ruleValueAST.type === 'Literal') {
+            return ruleValueAST.value;
+        }
+        if (ruleValueAST.type === 'Identifier') {
+            const variableAST = getVariableFromBody(bodyAST, ruleValueAST.name);
+            return variableAST?.value ?? null;
+        }
+
+        if (ruleValueAST.type === 'ArrayExpression') {
+            const severityAST = ruleValueAST.elements[0];
+            const optionsAST = ruleValueAST.elements[1];
+
+            let severity;
+            if (severityAST.type === 'Literal') {
+                severity = severityAST.value;
+            }
+            if (severityAST.type === 'Identifier') {
+                const variableAST = getVariableFromBody(bodyAST, severityAST.name);
+                severity = variableAST?.value ?? null;
+            }
+
+            const options = optionsAST && JSON.parse(jsonrepair(documentText.slice(optionsAST.start, optionsAST.end)));
+
+            return [
+                severity,
+                ...(options ? [options] :[])
+            ];
+        }
+
+        return null;
     } catch(err) {
         return null;
     }
@@ -186,10 +209,15 @@ export default class JSParser extends Parser {
 
         return configuredRules.map(rule => {
             const keyRange = getRange(this.document, rule.key);
-            const severityRange = rule.value.type === 'ArrayExpression' ? getRange(this.document, rule.value.elements[0]) : getRange(this.document, rule.value);
-            const optionsRange = rule.value.type === 'ArrayExpression' && getRange(this.document, rule.value.elements[1]);
 
-            const optionsConfig = readRuleConfig(ast.body, documentText.slice(rule.value.start, rule.value.end), rule.value);
+            let severityRange, optionsRange;
+            if (rule.value.type === 'ArrayExpression') {
+                severityRange = getRange(this.document, rule.value.elements[0]);
+                optionsRange = getRange(this.document, rule.value.elements[1]);
+            } else if (rule.value.type === 'Literal') {
+                severityRange = getRange(this.document, rule.value);
+            }
+            const optionsConfig = readRuleConfig(documentText, ast.body, rule.value);
 
             const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
 
