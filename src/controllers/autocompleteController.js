@@ -17,9 +17,16 @@ export const provider = {
         }
 
         // Determine if user is typing a new object key (assume ESLint rule)
-        const regexp = /(?<=[{,])\s*?(?<openQuote>[\"\'\`]?)(?<ruleId>@?[a-zA-Z]+\/?[a-zA-Z]*(-?[a-zA-Z])*)(?<closeQuote>\k<openQuote>?)(?<separator>[^\S\r\n]*:?[^\S\r\n]*)(?<value>\[?(?:[0-2]|[\"\'\`]?((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?)))$/;
+        const regexp = /(?<=[{,])\s*?(?<openQuote>[\"\'\`]?)(?<ruleId>@?[\w-]+\/?[\w-]*(-?[\w-])*)(?<closeQuote>\k<openQuote>?)(?<separator>[^\S\r\n]*:?[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/;
         const beginningToCursor = new Range(0, 0, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
+
+        // Do not support editing existing text
+        const line = document.lineAt(position).text.slice(position.character);
+        if (line.length > 1) {
+            return;
+        }
+
         const matches = textSoFar.match(regexp);
         if (matches) {
             const {
