@@ -14,20 +14,20 @@ export function initialize(context) {
     window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
-            addAnnotations(editor);
+            addAnnotations(editor, context);
         }
 	}, null, context.subscriptions);
 
     // generate when the document is edited
     workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document) {
-            addAnnotations(activeEditor);
+            addAnnotations(activeEditor, context);
 		}
 	}, null, context.subscriptions);
 
     // generate on start
 	if (activeEditor) {
-		addAnnotations(activeEditor);
+		addAnnotations(activeEditor, context);
 	}
 }
 
@@ -39,7 +39,7 @@ export function clearAnnotations(editor) {
     diagnosticsCollection.clear();
 }
 
-export function addAnnotations(editor) {
+export function addAnnotations(editor, context) {
     if (editor === undefined || editor._disposed === true || editor.document === undefined) {
         return;
     }
@@ -50,6 +50,11 @@ export function addAnnotations(editor) {
         return clearAnnotations(editor);
     }
 
+    // store that this is an ESLint configuration file
+    const eslintConfigFiles = new Set(context.workspaceState.get('eslintConfigFiles', []));
+    eslintConfigFiles.add(editor.document.fileName);
+    context.workspaceState.update('eslintConfigFiles', [...eslintConfigFiles]);
+
     try {
         const diagnostics = [];
         const decorations = rules.map(rule => {
@@ -58,7 +63,7 @@ export function addAnnotations(editor) {
 
                 // validate rule config options
                 ruleInfo.validationErrors = [];
-                if (rule.optionsConfig) {
+                if (rule.optionsConfig !== undefined) {
                     const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
                     if (!severity.valid) {
                         ruleInfo.validationErrors.push(severity.message);
@@ -83,7 +88,14 @@ export function addAnnotations(editor) {
                 }
 
                 // add diagnostics as needed
-                if (!ruleInfo.isRuleFound) {
+                if (ruleInfo.isPluginMissing) {
+                    diagnostics.push({
+                        source: 'LintLens',
+                        range: rule.keyRange,
+                        severity: DiagnosticSeverity.Error,
+                        message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
+                    });
+                } else if (!ruleInfo.isRuleFound) {
                     diagnostics.push({
                         source: 'LintLens',
                         range: rule.keyRange,

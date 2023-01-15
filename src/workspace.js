@@ -1,5 +1,5 @@
 import { workspace } from 'vscode';
-import { relative, isAbsolute } from 'path';
+import { relative, isAbsolute, dirname } from 'path';
 import findup from 'findup-sync';
 
 
@@ -16,18 +16,19 @@ function isDescendant(parent, folder) {
 }
 
 export function getPackagePathForDocument(documentFilePath, packageName) {
-    if (!documentCache.has(documentFilePath)) {
-        documentCache.set(documentFilePath, new Map());
+    const folderName = dirname(documentFilePath);
+    if (!documentCache.has(folderName)) {
+        documentCache.set(folderName, new Map());
     }
-    const packagesForDocument = documentCache.get(documentFilePath);
+    const packagesForDocument = documentCache.get(folderName);
 
     if (packagesForDocument.has(packageName)) {
         return packagesForDocument.get(packageName);
     }
 
-    let packageFolder = findup(`node_modules/${packageName}`, { cwd: documentFilePath });
+    let packageFolder = findup(`node_modules/${packageName}`, { cwd: folderName });
     if (!packageFolder) {
-        packageFolder = findup(`.yarn/sdks/${packageName}`, { cwd: documentFilePath });
+        packageFolder = findup(`.yarn/sdks/${packageName}`, { cwd: folderName });
     }
 
     if (packageFolder !== null) {

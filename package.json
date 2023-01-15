@@ -43,6 +43,7 @@
         "webpack-cli": "^3.3.6"
     },
     "dependencies": {
+        "@babel/plugin-transform-runtime": "^7.19.6",
         "acorn": "^8.8.1",
         "ajv": "^6.12.6",
         "findup-sync": "^5.0.0",

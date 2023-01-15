@@ -173,3 +173,8 @@ export function getRuleDetails(documentFilePath, ruleName) {
         schemaDocumentation
     };
 }
+
+export function getAllRuleIds(documentFilePath) {
+    const rules = getLinterRules(documentFilePath);
+    return Array.from(rules.map.keys());
+}
