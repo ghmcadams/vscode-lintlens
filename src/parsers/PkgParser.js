@@ -5,6 +5,10 @@ import Parser from './Parser';
 
 
 function getRange(document, statement) {
+    if (!statement) {
+        return null;
+    }
+
     const keyStartPosition = new Position(statement.loc.start.line - 1, statement.loc.start.column);
     const keyEndPosition = new Position(statement.loc.end.line - 1, statement.loc.end.column);
 

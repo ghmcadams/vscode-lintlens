@@ -585,7 +585,7 @@ export function validateConfigFromSchema(schema, config) {
     return {
         severity: {
             valid: severityIsValid,
-            message: 'Severity should be one of the following: off, 0, warn, 1, error, 2.'
+            message: 'Severity should be one of the following: error (or 2), warn (or 1), off (or 0).'
         },
         options: nonSeverityValidation
     };
