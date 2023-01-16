@@ -4,15 +4,41 @@ import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
 
+function getRules(body) {
+    try {
+        const rules = [];
+    
+        for (const prop of body.properties) {
+            if (prop.key.value === 'rules') {
+                rules.push(...prop.value.properties);
+            } else if (prop.key.value === 'overrides') {
+                prop.value.elements.forEach(override => {
+                    override.properties.forEach(overrideProp => {
+                        if (overrideProp.key.value === 'rules') {
+                            rules.push(...overrideProp.value.properties);
+                        }
+                    });
+                });
+            }
+        }
+    
+        return rules;
+    } catch(err) {
+        return [];
+    }
+}
+
 function getRange(document, statement) {
-    if (!statement) {
+    if (!statement || (Array.isArray(statement) && statement.length === 0)) {
         return null;
     }
 
-    const keyStartPosition = new Position(statement.loc.start.line - 1, statement.loc.start.column);
-    const keyEndPosition = new Position(statement.loc.end.line - 1, statement.loc.end.column);
+    const statements = Array.isArray(statement) ? statement : [statement];
 
-    return document.validateRange(new Range(keyStartPosition, keyEndPosition));
+    const startPosition = new Position(statements.at(0).loc.start.line - 1, statements.at(0).loc.start.column);
+    const endPosition = new Position(statements.at(-1).loc.end.line - 1, statements.at(-1).loc.end.column);
+
+    return document.validateRange(new Range(startPosition, endPosition));
 }
 
 export default class JSONParser extends Parser {
@@ -21,68 +47,37 @@ export default class JSONParser extends Parser {
     }
 
     parse() {
-        const rules = [];
-        const documentText = this.document.getText();
-        const ast = parseExpressionAt(documentText, 0, { locations: true, ecmaVersion: 2020 });
-
-        ast.properties.forEach(prop => {
-            if (prop.key.value === 'rules') {
-                prop.value.properties.forEach(rule => {
-                    const keyRange = getRange(this.document, rule.key);
-
-                    let severityRange, optionsRange;
-                    if (rule.value.type === 'ArrayExpression') {
-                        severityRange = getRange(this.document, rule.value.elements[0]);
-                        optionsRange = getRange(this.document, rule.value.elements[1]);
-                    } else if (rule.value.type === 'Literal') {
-                        severityRange = getRange(this.document, rule.value);
-                    }
-                    const optionsConfig = JSON.parse(jsonrepair(documentText.slice(rule.value.start, rule.value.end)));
-
-                    const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
-
-                    rules.push({
-                        name: rule.key.value,
-                        keyRange,
-                        severityRange,
-                        optionsRange,
-                        optionsConfig,
-                        lineEndingRange
-                    });
-                });
-            } else if (prop.key.value === 'overrides') {
-                prop.value.elements.forEach(override => {
-                    override.properties.forEach(overrideProp => {
-                        if (overrideProp.key.value === 'rules') {
-                            overrideProp.value.properties.forEach(rule => {
-                                const keyRange = getRange(this.document, rule.key);
-
-                                let severityRange, optionsRange;
-                                if (rule.value.type === 'ArrayExpression') {
-                                    severityRange = getRange(this.document, rule.value.elements[0]);
-                                    optionsRange = getRange(this.document, rule.value.elements[1]);
-                                } else if (rule.value.type === 'Literal') {
-                                    severityRange = getRange(this.document, rule.value);
-                                }                    
-                                const optionsConfig = JSON.parse(jsonrepair(documentText.slice(rule.value.start, rule.value.end)));
-                    
-                                const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
-            
-                                rules.push({
-                                    name: rule.key.value,
-                                    keyRange,
-                                    severityRange,
-                                    optionsRange,
-                                    optionsConfig,
-                                    lineEndingRange
-                                });
-                            });
-                        }
-                    });
-                });
-            }
-        });
-
-        return rules;
+        try {
+            const documentText = this.document.getText();
+            const ast = parseExpressionAt(documentText, 0, { locations: true, ecmaVersion: 2020 });
+    
+            const configuredRules = getRules(ast);
+    
+            return configuredRules.map(rule => {
+                const keyRange = getRange(this.document, rule.key);
+    
+                let severityRange, optionsRange;
+                if (rule.value.type === 'ArrayExpression') {
+                    severityRange = getRange(this.document, rule.value.elements[0]);
+                    optionsRange = getRange(this.document, rule.value.elements.slice(1));
+                } else if (rule.value.type === 'Literal') {
+                    severityRange = getRange(this.document, rule.value);
+                }
+                const optionsConfig = JSON.parse(jsonrepair(documentText.slice(rule.value.start, rule.value.end)));
+    
+                const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
+    
+                return {
+                    name: rule.key.value,
+                    keyRange,
+                    severityRange,
+                    optionsRange,
+                    optionsConfig,
+                    lineEndingRange
+                };
+            });
+        } catch (err) {
+            return [];
+        }
     }
 };

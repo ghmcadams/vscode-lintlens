@@ -141,7 +141,7 @@ function readRuleConfig(documentText, bodyAST, ruleValueAST) {
 
         if (ruleValueAST.type === 'ArrayExpression') {
             const severityAST = ruleValueAST.elements[0];
-            const optionsAST = ruleValueAST.elements[1];
+            const optionsAST = ruleValueAST.elements.slice(1);
 
             let severity;
             if (severityAST.type === 'Literal') {
@@ -152,11 +152,12 @@ function readRuleConfig(documentText, bodyAST, ruleValueAST) {
                 severity = variableAST?.value ?? null;
             }
 
-            const options = optionsAST && JSON.parse(jsonrepair(documentText.slice(optionsAST.start, optionsAST.end)));
+            const options = (optionsAST?.length ?? 0) > 0 && JSON.parse(jsonrepair(documentText.slice(optionsAST.at(0).start, optionsAST.at(-1).end)));
+            const optionsAsArray = Array.isArray(options) ? options : [options];
 
             return [
                 severity,
-                ...(options ? [options] :[])
+                ...(options ? optionsAsArray :[])
             ];
         }
 
@@ -167,14 +168,16 @@ function readRuleConfig(documentText, bodyAST, ruleValueAST) {
 }
 
 function getRange(document, statement) {
-    if (!statement) {
+    if (!statement || (Array.isArray(statement) && statement.length === 0)) {
         return null;
     }
 
-    const keyStartPosition = new Position(statement.loc.start.line - 1, statement.loc.start.column);
-    const keyEndPosition = new Position(statement.loc.end.line - 1, statement.loc.end.column);
+    const statements = Array.isArray(statement) ? statement : [statement];
 
-    return document.validateRange(new Range(keyStartPosition, keyEndPosition));
+    const startPosition = new Position(statements.at(0).loc.start.line - 1, statements.at(0).loc.start.column);
+    const endPosition = new Position(statements.at(-1).loc.end.line - 1, statements.at(-1).loc.end.column);
+
+    return document.validateRange(new Range(startPosition, endPosition));
 }
 
 
@@ -184,41 +187,45 @@ export default class FlatConfigParser extends Parser {
     }
 
     parse() {
-        const documentText = this.document.getText();
-        const ast = parse(documentText, { locations: true, sourceType: 'module', ecmaVersion: 2020 });
-
-        const configProperties = getConfigProperties(ast.body);
-        const configuredRules = getRules(ast.body, configProperties);
-
-        return configuredRules.map(rule => {
-            const keyRange = getRange(this.document, rule.key);
-
-            let severityRange, optionsRange;
-            if (rule.value.type === 'ArrayExpression') {
-                severityRange = getRange(this.document, rule.value.elements[0]);
-                optionsRange = getRange(this.document, rule.value.elements[1]);
-            } else if (rule.value.type === 'Literal') {
-                severityRange = getRange(this.document, rule.value);
-            }
-            const optionsConfig = readRuleConfig(documentText, ast.body, rule.value);
-
-            const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
-
-            let name;
-            if (rule.key.type === 'Literal') {
-                name = rule.key.value;
-            } else if (rule.key.type === 'Identifier') {
-                name = rule.key.name;
-            }
-        
-            return {
-                name: name ?? 'Unknown',
-                keyRange,
-                severityRange,
-                optionsRange,
-                optionsConfig,
-                lineEndingRange
-            };
-        });
+        try {
+            const documentText = this.document.getText();
+            const ast = parse(documentText, { locations: true, sourceType: 'module', ecmaVersion: 2020 });
+    
+            const configProperties = getConfigProperties(ast.body);
+            const configuredRules = getRules(ast.body, configProperties);
+    
+            return configuredRules.map(rule => {
+                const keyRange = getRange(this.document, rule.key);
+    
+                let severityRange, optionsRange;
+                if (rule.value.type === 'ArrayExpression') {
+                    severityRange = getRange(this.document, rule.value.elements[0]);
+                    optionsRange = getRange(this.document, rule.value.elements.slice(1));
+                } else {// if (rule.value.type === 'Literal' || rule.value.type === 'Identifier') {
+                    severityRange = getRange(this.document, rule.value);
+                }
+                const optionsConfig = readRuleConfig(documentText, ast.body, rule.value);
+    
+                const lineEndingRange = this.document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
+    
+                let name;
+                if (rule.key.type === 'Literal') {
+                    name = rule.key.value;
+                } else if (rule.key.type === 'Identifier') {
+                    name = rule.key.name;
+                }
+            
+                return {
+                    name: name ?? 'Unknown',
+                    keyRange,
+                    severityRange,
+                    optionsRange,
+                    optionsConfig,
+                    lineEndingRange
+                };
+            });    
+        } catch (err) {
+            return [];
+        }
     }
 };
