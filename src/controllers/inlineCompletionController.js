@@ -1,5 +1,4 @@
 import { Range } from 'vscode';
-import { getAllRuleIds } from '../rules';
 
 
 let extensionContext;
@@ -16,8 +15,9 @@ export const provider = {
             return;
         }
 
-        // Determine if user is typing a new object key (assume ESLint rule)
-        const regexp = /(?<=[{,])\s*?(?<openQuote>[\"\'\`]?)(?<ruleId>@?[\w-]+\/?[\w-]*(-?[\w-])*)(?<closeQuote>\k<openQuote>?)(?<separator>[^\S\r\n]*:?[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/;
+        // Determine if user is typing after an object key (assume ESLint rule)
+        const regexp = /(?<=[{,])\s*?(?<q>[\"\'\`]?)[^\"\'\`\s]+\k<q>?(?<sep>[^\S\r\n]*:[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/;
+        // SINGLE LINE:   /^[\t ]*?(?<q>[\"\'\`]?)(?<ruleId>[^\"\'\`\s]+)\k<q>?(?<sep>(?<ws>[^\S\r\n]*):[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/
         const beginningToCursor = new Range(0, 0, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
 
@@ -30,27 +30,9 @@ export const provider = {
         const matches = textSoFar.match(regexp);
         if (matches) {
             const {
-                openQuote,
-                ruleId,
-                closeQuote,
-                separator,
+                sep: separator,
                 value
             } = matches.groups;
-
-            if (closeQuote === '') {
-                // Autocomplete rule Id
-                const startIndex = position.character - ruleId.length - openQuote.length;
-                const endIndex = position.character + openQuote.length;
-                const range = new Range(position.line, startIndex, position.line, endIndex);
-
-                const allRules = getAllRuleIds(document.fileName)
-                    .map(rule => (`${openQuote}${rule}${openQuote}: `));
-
-                return allRules.map(insertText => ({
-                    insertText,
-                    range
-                }));
-            }
 
             // Autocomplete severity
             const beforeColon = separator.split(':')[0];
@@ -69,8 +51,8 @@ export const provider = {
             ];
 
             const options = [
-                ...allSeverities.map(severity => (`${beforeColon}: ${severity}`)),
-                ...allSeverities.map(severity => (`${beforeColon}: [${severity}, `))
+                ...allSeverities.map(severity => (`${beforeColon}: ${severity},`)),
+                ...allSeverities.map(severity => (`${beforeColon}: [${severity}, `)),
             ];
 
             return options.map(insertText => ({
