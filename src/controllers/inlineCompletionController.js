@@ -1,4 +1,4 @@
-import { Range } from 'vscode';
+import { Range, InlineCompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 
 
 let extensionContext;
@@ -16,17 +16,9 @@ export const provider = {
         }
 
         // Determine if user is typing after an object key (assume ESLint rule)
-        const regexp = /(?<=[{,])\s*?(?<q>[\"\'\`]?)[^\"\'\`\s]+\k<q>?(?<sep>[^\S\r\n]*:[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/;
-        // SINGLE LINE:   /^[\t ]*?(?<q>[\"\'\`]?)(?<ruleId>[^\"\'\`\s]+)\k<q>?(?<sep>(?<ws>[^\S\r\n]*):[^\S\r\n]*)(?<value>\[?(?:[0-2]|([\"\'\`]((o(f(f)?)?)|(w(a(r(n)?)?)?)?|(e(r(r(o(r)?)?)?)?)?))?))$/
+        const regexp = /(?<=[{,])(?<!:\s*\[.+,\s*\{)\s*?(?<q>[\"\'\`]?)@?[\/\w-]+\k<q>?(?<sep>[^\S\r\n]*:[^\S\r\n]*)(?<value>\[?[^:]*)$/;
         const beginningToCursor = new Range(0, 0, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
-
-        // Do not support editing existing text
-        const line = document.lineAt(position).text.slice(position.character);
-        if (line.length > 1) {
-            return;
-        }
-
         const matches = textSoFar.match(regexp);
         if (matches) {
             const {
@@ -34,13 +26,10 @@ export const provider = {
                 value
             } = matches.groups;
 
-            // Autocomplete severity
-            const beforeColon = separator.split(':')[0];
-
             const startIndex = position.character - value.length - separator.length;
-            const endIndex = position.character;
-            const range = new Range(position.line, startIndex, position.line, endIndex);
+            const range = new Range(position.line, startIndex, position.line, Number.MAX_SAFE_INTEGER);
 
+            // TODO: add variables that have been used in this document (to the beginning)
             const allSeverities = [
                 "\"error\"",
                 "\"warn\"",
@@ -50,15 +39,28 @@ export const provider = {
                 "0"
             ];
 
-            const options = [
-                ...allSeverities.map(severity => (`${beforeColon}: ${severity},`)),
-                ...allSeverities.map(severity => (`${beforeColon}: [${severity}, `)),
-            ];
+            return [
+                ...allSeverities.map(severity => {
+                    // displays (label): severity
+                    // filtered by user typing (filterText)
+                    const item = new InlineCompletionItem(severity, CompletionItemKind.Property);
+                    item.filterText = `${separator}${severity}`;
+                    item.insertText = `: ${severity},`;
+                    item.range = range;
 
-            return options.map(insertText => ({
-                insertText,
-                range
-            }));
+                    return item;
+                }),
+                ...allSeverities.map(severity => {
+                    // displays (label): severity
+                    // filtered by user typing (filterText)
+                    const item = new InlineCompletionItem(`[${severity}, ]`, CompletionItemKind.Property);
+                    item.filterText = `${separator}[${severity}]`;
+                    item.insertText = new SnippetString(`: [${severity}, \$0],`);
+                    item.range = range;
+
+                    return item;
+                })
+            ];
         }
     },
 };
