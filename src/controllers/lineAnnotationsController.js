@@ -1,5 +1,5 @@
 import { window, workspace, languages, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
-import DocumentParser from '../parsers/DocumentParser';
+import { getParser } from '../parsers/DocumentParser';
 import { getRuleDetails } from '../rules';
 import { glyphs, extensionName, commands, messages } from '../constants';
 import { validateConfigFromSchema } from '../schema';
@@ -44,7 +44,7 @@ export function addAnnotations(editor, context) {
         return;
     }
 
-    const parser = new DocumentParser(editor.document);
+    const parser = getParser(editor.document);
     const rules = parser.getRules();
     if (rules.length === 0) {
         return clearAnnotations(editor);
