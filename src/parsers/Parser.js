@@ -14,6 +14,9 @@ export default class Parser {
     getConfig() {
         try {
             const eslintConfig = this.parse();
+            if (eslintConfig === null) {
+                return {};
+            }
 
             eslintConfig.forEach(section => {
                 const {
@@ -35,6 +38,9 @@ export default class Parser {
     getRules() {
         try {
             const eslintConfig = this.parse();
+            if (eslintConfig === null) {
+                return [];
+            }
 
             return eslintConfig.flatMap(section => {
                 const {
@@ -55,6 +61,9 @@ export default class Parser {
     getRulesContainers() {
         try {
             const eslintConfig = this.parse({ containersOnly: true });
+            if (eslintConfig === null) {
+                return [];
+            }
 
             return eslintConfig.flatMap(section => {
                 const {

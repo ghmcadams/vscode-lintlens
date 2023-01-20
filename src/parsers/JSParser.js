@@ -1,5 +1,5 @@
 import { Position, Range } from 'vscode';
-import { parse } from 'acorn';
+import { parse, parseExpressionAt } from 'acorn';
 import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
@@ -35,7 +35,7 @@ function getPropertyByName(body, object, name) {
 
     const realProperties = getRealProperties(body, object.properties);
     for (const prop of realProperties) {
-        if (prop.key.name === name) {
+        if (isCorrectProperty(prop, name)) {
             return getRealValue(body, prop.value);
         }
     }
@@ -151,10 +151,29 @@ function getAllContainers(body, container) {
 }
 
 
-function getASTBody(document) {
+function getASTBody(document, fileType) {
     const documentText = document.getText();
+
+    if ([ESLintFileType.JSON, ESLintFileType.PKG].includes(fileType)) {
+        return parseExpressionAt(documentText, 0, { locations: true, ecmaVersion: 2020 });
+    }
+
     const ast = parse(documentText, { locations: true, sourceType: 'module', ecmaVersion: 2020 });
     return ast.body;
+}
+
+function getConfigRoot(body, fileType) {
+    let configRoot;
+
+    if (fileType === ESLintFileType.JSON) {
+        configRoot = body;
+    } else if (fileType === ESLintFileType.PKG) {
+        configRoot = getPropertyByName(body, body, 'eslintConfig');
+    } else {
+        configRoot = getMainExport(body);
+    }
+
+    return configRoot ?? null;
 }
 
 function getMainExport(body) {
@@ -298,50 +317,61 @@ function getRuleDetails(document, body, rule) {
 export const ESLintConfigType = {
     Legacy: 'Legacy',
     Flat: 'Flat',
-    Unknown: 'Unknown'
+    Unknown: 'Unknown',
+};
+
+export const ESLintFileType = {
+    JS: 'JS',
+    JSON: 'JSON',
+    PKG: 'PKG',
 };
 
 export default class JSParser extends Parser {
-    constructor(document, type = ESLintConfigType.Unknown) {
+    constructor(document, options = {}) {
         super(document);
-        this.type = type;
+
+        // TODO: make sure these are one of the allowed options
+        const defaultedOptions = {
+            fileType: options.fileType ?? ESLintFileType.JS,
+            configType: options.configType ?? ESLintConfigType.Unknown,
+        };
+        this.options = defaultedOptions;
     }
 
     parse({
         containersOnly = false
     } = {}) {
-        const body = getASTBody(this.document);
+        const body = getASTBody(this.document, this.options.fileType);
 
-        const mainExport = getMainExport(body);
-
-        if (mainExport === null) {
+        const configRoot = getConfigRoot(body, this.options.fileType);
+        if (configRoot === null) {
             return null;
         }
-        if (this.type === ESLintConfigType.Legacy && mainExport.type !== 'ObjectExpression') {
+        if (this.options.configType === ESLintConfigType.Legacy && configRoot.type !== 'ObjectExpression') {
             return null;
         }
-        if (this.type === ESLintConfigType.Flat && mainExport.type !== 'ArrayExpression') {
+        if (this.options.configType === ESLintConfigType.Flat && configRoot.type !== 'ArrayExpression') {
             return null;
         }
-        if (!['ObjectExpression', 'ArrayExpression'].includes(mainExport.type)) {
+        if (!['ObjectExpression', 'ArrayExpression'].includes(configRoot.type)) {
             return null;
         }
 
         // Determine type based on export
-        if (this.type === ESLintConfigType.Unknown) {
-            this.type = mainExport.type === 'ArrayExpression' ? ESLintConfigType.Flat : ESLintConfigType.Legacy;
+        if (this.options.configType === ESLintConfigType.Unknown) {
+            this.options.configType = configRoot.type === 'ArrayExpression' ? ESLintConfigType.Flat : ESLintConfigType.Legacy;
         }
 
         let sections;
-        if (this.type === ESLintConfigType.Flat) {
-            sections = getRealElements(body, mainExport.elements);
-        } else if (this.type === ESLintConfigType.Legacy) {
-            const overrides = getOverrides(body, mainExport);
+        if (this.options.configType === ESLintConfigType.Flat) {
+            sections = getRealElements(body, configRoot.elements);
+        } else if (this.options.configType === ESLintConfigType.Legacy) {
+            const overrides = getOverrides(body, configRoot);
 
             // one entry for the main config
             // and one for each overrides
             sections = [
-                mainExport,
+                configRoot,
                 ...overrides
             ];
         }
@@ -370,6 +400,8 @@ export default class JSParser extends Parser {
                 // const extendsValue = extendsContainers.flatMap(container => getRealProperties(body, container.properties));
                 // const pluginsValue = pluginsContainers.flatMap(container => getRealProperties(body, container.properties));
 
+                // TODO: make a new function called getRuleFromContainers()
+                // TODO: and rename these things
                 const flatt = rulesContainers.flatMap(container => container.properties);
                 const filt = flatt.filter(rule => {
                     return rule.type === 'Property';
