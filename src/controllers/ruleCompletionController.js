@@ -32,39 +32,51 @@ export const provider = {
 
         // Determine if user is typing a new object key (assume ESLint rule)
         /*
-            ^                       # beginning of string
-            \{\s*                   # object opener and maybe whitespace
-            (?:                     # group (prior rules in the object)
-                [\"\'\`]?           # quote of some kind (maybe)
-                @?[\/\w-]+          # rule text
-                [\"\'\`]?           # quote of some kind (maybe)
-                \s*:\s*             # separator (with any amount of whitespace)
-                (?:                 # group (value)
+            ^\{(?:\s*(?:(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*)?(?:(?:(?:\.\.\.)?[\"\'\`]?\w+[\"\'\`]?)|(?:\[\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,)?(?:\s*\/\/[^\r\n]*\n)?)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$
 
-                    (?:[\"\'\`]?\w+[\"\'\`]?)                                                  # simple severity option value
-                    |                                                                          # OR
-                    (?:\[\s*[\"\'\`]?\w+[\"\'\`]?\s*,\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\])   # array option value
+            ^                                                               # beginning of string
+            \{                                                              # open object bracket
+            (?<other>                                                       # group (an other thing)
+                \s*                                                         # whitespace (zero or more)
+                (?<keyvalue>                                                # group (key/value pair)
+                    (?<keysep>                                              # group (key and separator)
+                        [\"\'\`]?                                           # quote (zero or one)
+                        @?[\/\w-]+                                          # key string character (one or more)
+                        [\"\'\`]?                                           # quote (zero or one)
+                        \s*:\s*                                             # whitespace (zero or more), colon, whitespace (zero or more)
+                    )?                                                      # close group (keysep)
+                    (?<value>                                               # group (value)
+                        (?<simple>                                          # group (simple value)
+                            (?<spread>\.\.\.)?                              # spread dots (zero or one)
+                            [\"\'\`]?                                       # quote (zero or one)
+                            [\w\.\[\]]+                                     # variable character (one or more)
+                            [\"\'\`]?                                       # quote (zero or one)
+                        )                                                   # close group (simple value)
+                        |                                                   # OR
+                        (?<array>                                           # group (array value)
+                            \[                                              # open array bracket
+                            \s*                                             # whitespace (zero or more)
+                            [^\[\]]*                                        # any character other than open or close array brackets (zero or more)
+                            (?<embedddarray>                                # group (embedded array)
+                                \[                                          # open array bracket
+                                [^\[\]]*                                    # any character other than open or close array brackets (zero or more)
+                                \]                                          # close array bracket
+                            )*                                              # close group (embedded array)
+                            [^\[\]]*                                        # any character other than open or close array brackets (zero or more)
+                            \]                                              # close array bracket
+                        )                                                   # close group (array value)
+                    )                                                       # close group (value)
+                    \s*                                                     # whitespace (zero or more)
+                    ,                                                       # comma
+                )?                                                          # close group (key/value pair)
+                (?<comment>\s*\/\/[^\r\n]*\n)?                              # line comment
+            )*                                                              # close group (zero or more)
+            (?<q>[\"\'\`]?)                                                 # current quote (if exists)
+            (?<r>@?[\/\w-]*)                                                # start of current rule id (if exists)
+            $                                                               # end of string
 
-                    #  break apart array option value
-                        \[                              # open bracket
-                            \s*                         # whitespace (maybe)
-                            [\"\'\`]?\w+[\"\'\`]?       # severity
-                            \s*,\s*                     # comma (with or without whitespace)
-                            [^\[\]]*                    # any amount of non array things
-                            (?:\[[^\[\]]*\])*           # inner array (any number of these)
-                            [^\[\]]*                    # any amount of non array things
-                        \]                              # close bracket
-                    # end break apart array option value
-
-                )                   # close group (value)
-
-                \s*,\s*             # comma and maybe whitespace
-            )*                      # close group (zero or more)
-            (?<q>[\"\'\`]?)         # current quote (if exists)
-            (?<r>@?[\/\w-]*)        # start of current rule id (if exists)
-            $                       # end of string
         */
-        const regexp = /^\{\s*(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*(?:(?:[\"\'\`]?\w+[\"\'\`]?)|(?:\[\s*[\"\'\`]?\w+[\"\'\`]?\s*,\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,\s*)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
+        const regexp = /^\{(?:\s*(?:(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*)?(?:(?:(?:\.\.\.)?[\"\'\`]?[\w\.\[\]]+[\"\'\`]?)|(?:\[\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,)?(?:\s*\/\/[^\r\n]*\n)?)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
         const beginningToCursor = new Range(rulesContainerRange.start.line, rulesContainerRange.start.character, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
         const matches = textSoFar.match(regexp);
