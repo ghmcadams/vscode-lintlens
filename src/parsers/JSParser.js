@@ -283,6 +283,13 @@ function readRuleValue(document, bodyAST, ruleValueAST) {
     }
 }
 
+function getRules(document, body, containers) {
+    return containers
+        .flatMap(container => container.properties)
+        .filter(rule => rule.type === 'Property')
+        .map(rule => getRuleDetails(document, body, rule));
+}
+
 function getRuleDetails(document, body, rule) {
     const keyRange = getRange(document, rule.key);
 
@@ -400,20 +407,7 @@ export default class JSParser extends Parser {
                 // const extendsValue = extendsContainers.flatMap(container => getRealProperties(body, container.properties));
                 // const pluginsValue = pluginsContainers.flatMap(container => getRealProperties(body, container.properties));
 
-                // TODO: make a new function called getRuleFromContainers()
-                // TODO: and rename these things
-                const flatt = rulesContainers.flatMap(container => container.properties);
-                const filt = flatt.filter(rule => {
-                    return rule.type === 'Property';
-                });
-                const newVal = filt.map(rule => getRuleDetails(this.document, body, rule));
-
-                rulesValue.entries = newVal;
-
-                // rulesValue.entries = rulesContainers
-                //     .flatMap(container => container.properties)
-                //     .filter(rule => rule.type === 'Property')
-                //     .map(rule => getRuleDetails(document, body, rule));
+                rulesValue.entries = getRules(this.document, body, rulesContainers);
             }
 
             return {
