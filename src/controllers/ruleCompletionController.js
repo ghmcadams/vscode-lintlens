@@ -2,6 +2,7 @@ import { Range, Position, CompletionItem, CompletionItemKind, SnippetString } fr
 import * as vscode from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 import { getAllRuleIds } from '../rules';
+import { match } from '../shared/regex';
 
 
 let extensionContext;
@@ -79,7 +80,10 @@ export const provider = {
         const regexp = /^\{(?:\s*(?:(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*)?(?:(?:(?:\.\.\.)?[\"\'\`]?[\w\.\[\]]+[\"\'\`]?)|(?:\[\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,)?(?:\s*\/\/[^\r\n]*\n)?)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
         const beginningToCursor = new Range(rulesContainerRange.start.line, rulesContainerRange.start.character, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
-        const matches = textSoFar.match(regexp);
+        const matches = match({
+            text: textSoFar,
+            regexp
+        });
         if (matches) {
             const {
                 q: openQuote,
