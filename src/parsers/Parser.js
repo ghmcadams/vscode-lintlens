@@ -30,7 +30,6 @@ export default class Parser {
 
             return eslintConfig;
         } catch(err) {
-            console.log(err);
             return {};
         }
     }
