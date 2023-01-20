@@ -107,7 +107,7 @@ export function addAnnotations(editor, context) {
                     diagnostics.push({
                         source: 'LintLens',
                         range: rule.keyRange,
-                        severity: DiagnosticSeverity.Hint,
+                        severity: DiagnosticSeverity.Warning,
                         message: messages.duplicateRule,
                     });
                 }
