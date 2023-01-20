@@ -20,6 +20,8 @@ export function activate(context) {
     const documentSelectors = [
         { language: 'javascript', scheme: 'file' },
         { language: 'javascriptreact', scheme: 'file' },
+        { language: 'typescript', scheme: 'file' },
+        { language: 'typescriptreact', scheme: 'file' },
         { language: 'json', scheme: 'file' },
         { language: 'jsonc', scheme: 'file' }
     ];

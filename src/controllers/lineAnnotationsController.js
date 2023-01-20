@@ -50,11 +50,6 @@ export function addAnnotations(editor, context) {
         return clearAnnotations(editor);
     }
 
-    // store that this is an ESLint configuration file
-    const eslintConfigFiles = new Set(context.workspaceState.get('eslintConfigFiles', []));
-    eslintConfigFiles.add(editor.document.fileName);
-    context.workspaceState.update('eslintConfigFiles', [...eslintConfigFiles]);
-
     try {
         const diagnostics = [];
         const decorations = rules.map(rule => {

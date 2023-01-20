@@ -1,5 +1,6 @@
 import { Range, Position, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 import * as vscode from 'vscode';
+import { getParser } from '../parsers/DocumentParser';
 import { getAllRuleIds } from '../rules';
 
 
@@ -11,17 +12,25 @@ export function initialize(context) {
 
 export const provider = {
     provideCompletionItems: (document, position, cancelToken, context) => {
-        // Check that this is an ESLINT configuration file
-        const eslintConfigFiles = extensionContext?.workspaceState.get('eslintConfigFiles') ?? [];
-        if (!eslintConfigFiles.includes(document.fileName)) {
+        const parser = getParser(document);
+        const rulesContainers = parser.getRulesContainers();
+        if (rulesContainers.length === 0) {
             return;
         }
 
-        // TODO: only do it if its in the right place
-        //      only in rules object (determined by the parser)
+        let rulesContainerRange = null;
+        for (const container of rulesContainers) {
+            if (container.contains(position)) {
+                rulesContainerRange = container;
+                break;
+            }
+        }
+        if (rulesContainerRange === null) {
+            // Not in a rules container
+            return;
+        }
 
         // Determine if user is typing a new object key (assume ESLint rule)
-
         /*
             ^                       # beginning of string
             \{\s*                   # object opener and maybe whitespace
@@ -55,8 +64,8 @@ export const provider = {
             (?<r>@?[\/\w-]*)        # start of current rule id (if exists)
             $                       # end of string
         */
-        const regexp = /\{\s*(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*(?:(?:[\"\'\`]?\w+[\"\'\`]?)|(?:\[\s*[\"\'\`]?\w+[\"\'\`]?\s*,\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,\s*)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
-        const beginningToCursor = new Range(0, 0, position.line, position.character);
+        const regexp = /^\{\s*(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*(?:(?:[\"\'\`]?\w+[\"\'\`]?)|(?:\[\s*[\"\'\`]?\w+[\"\'\`]?\s*,\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,\s*)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
+        const beginningToCursor = new Range(rulesContainerRange.start.line, rulesContainerRange.start.character, position.line, position.character);
         const textSoFar = document.getText(beginningToCursor);
         const matches = textSoFar.match(regexp);
         if (matches) {
@@ -73,8 +82,8 @@ export const provider = {
 
             return allRules.map(rule => {
                 // displays (label): rule
-                const item = new CompletionItem(rule, CompletionItemKind.Property);
                 // filtered by user typing (filterText)
+                const item = new CompletionItem(rule, CompletionItemKind.Property);
                 item.filterText = `${openQuote}${rule}`;
                 // item.insertText = new SnippetString(`"${rule}": \${1|"error","warn","off"|},$0`);
                 item.insertText = `"${rule}": `;
@@ -94,3 +103,31 @@ export const provider = {
         }
     }
 };
+
+
+
+function validatePosition(text) {
+    /*
+        {
+            "max": ["error",
+                {
+                    "someConfigThing": 2 
+                },
+                {
+                    "anotherThing": "something",
+                    "anotherProp": true
+                },
+                "anotherRuleProp"
+            ],
+            "rule3": "error",
+            "rule4
+
+
+    IDEA:  use parser in this controller as well
+        modify parsers to give more than just rules
+        try out acorn-loose parser, to see if it is more forgiving and still works the say I need
+        structure something like { extends: {}, plugins: {}, rules: { containers (better name needed): [], allRules: [] } }
+        THEN determine if I am within a rule container
+        THEN (not sure how) determine if I am adding a key or value
+    */
+}
