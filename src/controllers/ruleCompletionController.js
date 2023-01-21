@@ -20,6 +20,10 @@ export function initialize(context) {
 const provider = {
     provideCompletionItems: (document, position, cancelToken, context) => {
         const parser = getParser(document);
+        if (!parser) {
+            return;
+        }
+
         const eslintConfig = parser.getConfig();
 
         const isValid = validatePosition(eslintConfig, position);

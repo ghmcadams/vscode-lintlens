@@ -1,5 +1,6 @@
 import { Position, Range } from 'vscode';
-import { parse, parseExpressionAt } from 'acorn';
+import { basename } from 'path';
+import { parse } from 'acorn';
 import { parse as parseLoose } from 'acorn-loose';
 import { full as walkAST } from 'acorn-walk';
 import { jsonrepair } from 'jsonrepair';
@@ -191,11 +192,11 @@ function getASTBody(document) {
     return ast.body;
 }
 
-function getConfigRoot(body, fileType) {
+function getConfigRoot(body, propertyName = null) {
     const mainExport = getMainExport(body);
 
-    if (fileType === ESLintFileType.PKG) {
-        return getPropertyByName(mainExport, 'eslintConfig');
+    if (propertyName !== null) {
+        return getPropertyByName(mainExport, propertyName);
     }
 
     return mainExport;
@@ -363,19 +364,12 @@ export const ESLintConfigType = {
     Unknown: 'Unknown',
 };
 
-export const ESLintFileType = {
-    JS: 'JS',
-    JSON: 'JSON',
-    PKG: 'PKG',
-};
-
 export default class JSParser extends Parser {
     constructor(document, options = {}) {
         super(document);
 
         // TODO: make sure these are one of the allowed options
         const defaultedOptions = {
-            fileType: options.fileType ?? ESLintFileType.JS,
             configType: options.configType ?? ESLintConfigType.Unknown,
         };
         this.options = defaultedOptions;
@@ -383,8 +377,10 @@ export default class JSParser extends Parser {
 
     parse() {
         const body = getASTBody(this.document);
+        const fileName = basename(this.document.fileName);
+        const configProperty = fileName === 'package.json' ? 'eslintConfig' : null;
 
-        const configRoot = getConfigRoot(body, this.options.fileType);
+        const configRoot = getConfigRoot(body, configProperty);
         if (configRoot === null) {
             return null;
         }

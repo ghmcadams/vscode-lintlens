@@ -31,7 +31,7 @@ export function initialize(context) {
 	}
 }
 
-export function clearAnnotations(editor) {
+function clearAnnotations(editor) {
     if (editor === undefined || editor._disposed === true) {
         return;
     }
@@ -39,12 +39,16 @@ export function clearAnnotations(editor) {
     diagnosticsCollection.clear();
 }
 
-export function addAnnotations(editor, context) {
+function addAnnotations(editor, context) {
     if (editor === undefined || editor._disposed === true || editor.document === undefined) {
         return;
     }
 
     const parser = getParser(editor.document);
+    if (!parser) {
+        return;
+    }
+
     const rules = parser.getRules();
     if (rules.length === 0) {
         return clearAnnotations(editor);
