@@ -1,6 +1,7 @@
 import { Position, Range } from 'vscode';
 import { parse, parseExpressionAt } from 'acorn';
 import { parse as parseLoose } from 'acorn-loose';
+import { full as walkAST } from 'acorn-walk';
 import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
@@ -29,15 +30,15 @@ function getVariableValueFromBody(body, name) {
     return null;
 }
 
-function getPropertyByName(body, object, name) {
-    if (object.type !== 'ObjectExpression') {
+function getPropertyByName(object, name) {
+    if (object?.type !== 'ObjectExpression') {
         return null;
     }
 
-    const realProperties = getRealProperties(body, object.properties);
+    const realProperties = getRealProperties(object.properties);
     for (const prop of realProperties) {
         if (isCorrectProperty(prop, name)) {
-            return getRealValue(body, prop.value);
+            return getRealValue(prop.value);
         }
     }
 
@@ -71,13 +72,13 @@ function isCorrectProperty(prop, name) {
     );
 }
 
-function getRealValue(body, value) {
+function getRealValue(value) {
     if (value.type === 'Identifier') {
-        return getVariableValueFromBody(body, value.name);
+        return getVariableValueFromBody(value.body, value.name);
     } else if (value.type === 'SpreadElement') {
         switch (value.argument.type) {
             case 'Identifier':
-                return getVariableValueFromBody(body, value.argument.name);
+                return getVariableValueFromBody(value.body, value.argument.name);
             case 'MemberExpression':
                 if (!value.argument.object.name) {
                     return null;
@@ -85,10 +86,10 @@ function getRealValue(body, value) {
 
                 // TODO: this does not work when chained objects (ex: obj1.obj2.obj3.val)
                 //  I need to do more to get it - EX: value.argument.object.object.object.name (only gives me obj1)
-                const variableValue = getVariableValueFromBody(body, value.argument.object.name);
+                const variableValue = getVariableValueFromBody(value.body, value.argument.object.name);
 
                 if (variableValue?.type === 'ObjectExpression') {
-                    return getPropertyByName(body, variableValue, value.argument.property.name);
+                    return getPropertyByName(variableValue, value.argument.property.name);
                 }
                 if (variableValue?.type === 'ArrayExpression' && value.argument.property.type === 'Literal') {
                     return variableValue.elements[value.argument.property.value];
@@ -101,28 +102,28 @@ function getRealValue(body, value) {
     return value;
 }
 
-function getRealProperties(body, properties) {
+function getRealProperties(properties) {
     const realProperties = [];
 
     for (const prop of properties) {
-        const realProp = getRealValue(body, prop);
+        const realProp = getRealValue(prop);
         if (realProp?.type === 'ObjectExpression') {
-            realProperties.push(...getRealProperties(body, realProp.properties));
+            realProperties.push(...getRealProperties(realProp.properties));
         } else if (realProp.type === 'Property') {
-            realProperties.push(realProp); // TODO: used to be prop - which is correct?
+            realProperties.push(realProp);
         }
     }
 
     return realProperties;
 }
 
-function getRealElements(body, elements) {
+function getRealElements(elements) {
     const newElements = [];
     elements.forEach(element => {
-        const realElement = getRealValue(body, element);
+        const realElement = getRealValue(element);
         if (realElement !== null) {
             if (element.type === 'SpreadElement' && realElement?.type === 'ArrayExpression') {
-                newElements.push(...getRealElements(body, realElement.elements)); // added the recursion here - is it correct?
+                newElements.push(...getRealElements(realElement.elements)); // added the recursion here - is it correct?
             } else {
                 newElements.push(realElement);
             }
@@ -131,17 +132,17 @@ function getRealElements(body, elements) {
     return newElements;
 }
 
-function getAllContainers(body, container) {
-    const realContainer = getRealValue(body, container);
+function getAllContainers(container) {
+    const realContainer = getRealValue(container);
 
     if (realContainer?.type === 'ObjectExpression') {
         const containers = [realContainer];
 
         // If there are any spreads, get those, too
         for (const prop of realContainer.properties) {
-            const realProp = getRealValue(body, prop);
+            const realProp = getRealValue(prop);
             if (realProp?.type === 'ObjectExpression') {
-                containers.push(...getAllContainers(body, realProp));
+                containers.push(...getAllContainers(realProp));
             }
         }
 
@@ -167,33 +168,38 @@ function getASTBody(document) {
         locations: true
     };
 
-    // TODO: traverse the ast and add references to the root on all nodes
-
     if (languageId === 'json' || languageId === 'jsonc') {
-        return parseExpressionAt(documentText, 0, parseOptions);
+        // return parseExpressionAt(documentText, 0, parseOptions);
+        documentText = `export default ${documentText}`;
+    }
+    
+    let ast;
+    try {
+        ast = parse(documentText, parseOptions);
+    } catch(err) {
+        try {
+            ast = parseLoose(documentText, parseOptions);
+        } catch(err) {
+            return null;
+        }
     }
 
-    try {
-        const ast = parse(documentText, parseOptions);
-        return ast.body;
-    } catch(err) {
-        const ast = parseLoose(documentText, parseOptions);
-        return ast.body;
-    }
+    // TODO: traverse the ast and add references to the root on all nodes
+    walkAST(ast, (node) => {
+        node.body = ast.body;
+    });
+
+    return ast.body;
 }
 
 function getConfigRoot(body, fileType) {
-    let configRoot;
+    const mainExport = getMainExport(body);
 
-    if (fileType === ESLintFileType.JSON) {
-        configRoot = body;
-    } else if (fileType === ESLintFileType.PKG) {
-        configRoot = getPropertyByName(body, body, 'eslintConfig');
-    } else {
-        configRoot = getMainExport(body);
+    if (fileType === ESLintFileType.PKG) {
+        return getPropertyByName(mainExport, 'eslintConfig');
     }
 
-    return configRoot ?? null;
+    return mainExport;
 }
 
 function getMainExport(body) {
@@ -205,24 +211,24 @@ function getMainExport(body) {
                 // module.exports
                 : statement.expression.right;
 
-            return getRealValue(body, attemptedValue);
+            return getRealValue(attemptedValue);
         }
     }
 
     return null;
 }
 
-function getOverrides(body, config) {
-    const realProperties = getRealProperties(body, config.properties);
+function getOverrides(config) {
+    const realProperties = getRealProperties(config.properties);
 
     for (const prop of realProperties) {
         if (isCorrectProperty(prop, 'overrides')) {
-            const realOverrides = getRealValue(body, prop.value);
+            const realOverrides = getRealValue(prop.value);
 
             // TODO: should this be using getRealElements() ?
             const overrides = [];
             for (const element of realOverrides?.elements ?? []) {
-                const value = getRealValue(body, element);
+                const value = getRealValue(element);
                 if (value?.type === 'ObjectExpression') {
                     overrides.push(value);
                 }
@@ -234,16 +240,16 @@ function getOverrides(body, config) {
     return [];
 }
 
-function getRulesContainers(body, config) {
+function getRulesContainers(config) {
     if (!config?.properties || config.properties.length === 0) {
         return [];
     }
 
-    const realProperties = getRealProperties(body, config.properties);
+    const realProperties = getRealProperties(config.properties);
 
     for (const prop of realProperties) {
         if (isCorrectProperty(prop, 'rules')) {
-            return getAllContainers(body, prop.value);
+            return getAllContainers(prop.value);
         }
     }
 
@@ -303,13 +309,13 @@ function readRuleValue(document, bodyAST, ruleValueAST) {
     }
 }
 
-function getRules(document, body, container) {
+function getRules(document, container) {
     return container.properties
         .filter(rule => rule.type === 'Property')
-        .map(rule => getRuleDetails(document, body, rule));
+        .map(rule => getRuleDetails(document, rule));
 }
 
-function getRuleDetails(document, body, rule) {
+function getRuleDetails(document, rule) {
     const range = getRange(document, rule);
     const lineEndingRange = document.validateRange(new Range(rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
 
@@ -343,7 +349,7 @@ function getRuleDetails(document, body, rule) {
     } else if (rule.value.type === 'Literal' || rule.value.type === 'Identifier') {
         severityRange = getRange(document, rule.value);
     }
-    const optionsConfig = readRuleValue(document, body, rule.value);
+    const optionsConfig = readRuleValue(document, rule.value);
 
     return {
         range,
@@ -409,9 +415,9 @@ export default class JSParser extends Parser {
 
         let sections;
         if (this.options.configType === ESLintConfigType.Flat) {
-            sections = getRealElements(body, configRoot.elements);
+            sections = getRealElements(configRoot.elements);
         } else if (this.options.configType === ESLintConfigType.Legacy) {
-            const overrides = getOverrides(body, configRoot);
+            const overrides = getOverrides(configRoot);
 
             // one entry for the main config
             // and one for each overrides
@@ -424,9 +430,9 @@ export default class JSParser extends Parser {
         return sections.map(section => {
             // TODO: Plugins and Extends
 
-            // const extendsContainers = getExtendsContainers(body, section);
-            // const pluginsContainers = getPluginsContainers(body, section);
-            const rulesContainers = getRulesContainers(body, section);
+            // const extendsContainers = getExtendsContainers(section);
+            // const pluginsContainers = getPluginsContainers(section);
+            const rulesContainers = getRulesContainers(section);
 
             // const extendsValue = {
             //     containers: extendsContainers.map(container => getRange(this.document, container)),
@@ -440,7 +446,7 @@ export default class JSParser extends Parser {
             const rulesValue = rulesContainers.map(container => {
                 return {
                     range: getRange(this.document, container),
-                    entries: getRules(this.document, body, container)
+                    entries: getRules(this.document, container)
                 };
             });
 
