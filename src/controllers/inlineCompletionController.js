@@ -34,6 +34,7 @@ export const provider = {
             const range = new Range(position.line, startIndex, position.line, Number.MAX_SAFE_INTEGER);
 
             // TODO: add variables that have been used in this document (to the beginning)
+            //      could the parser return variables used?
             const allSeverities = [
                 "\"error\"",
                 "\"warn\"",

@@ -123,7 +123,7 @@ function getRealElements(elements) {
         const realElement = getRealValue(element);
         if (realElement !== null) {
             if (element.type === 'SpreadElement' && realElement?.type === 'ArrayExpression') {
-                newElements.push(...getRealElements(realElement.elements)); // added the recursion here - is it correct?
+                newElements.push(...getRealElements(realElement.elements));
             } else {
                 newElements.push(realElement);
             }
@@ -184,7 +184,6 @@ function getASTBody(document) {
         }
     }
 
-    // TODO: traverse the ast and add references to the root on all nodes
     walkAST(ast, (node) => {
         node.body = ast.body;
     });
@@ -224,16 +223,7 @@ function getOverrides(config) {
     for (const prop of realProperties) {
         if (isCorrectProperty(prop, 'overrides')) {
             const realOverrides = getRealValue(prop.value);
-
-            // TODO: should this be using getRealElements() ?
-            const overrides = [];
-            for (const element of realOverrides?.elements ?? []) {
-                const value = getRealValue(element);
-                if (value?.type === 'ObjectExpression') {
-                    overrides.push(value);
-                }
-            }
-            return overrides;
+            return getRealElements(realOverrides.elements);
         }
     }
 
@@ -442,7 +432,6 @@ export default class JSParser extends Parser {
             //     containers: pluginsContainers.map(container => getRange(this.document, container)),
             //     entries: null
             // };
-            // TODO: do the comments above like this one
             const rulesValue = rulesContainers.map(container => {
                 return {
                     range: getRange(this.document, container),
