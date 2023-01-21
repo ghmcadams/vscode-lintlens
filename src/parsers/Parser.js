@@ -15,18 +15,19 @@ export default class Parser {
         try {
             const eslintConfig = this.parse();
             if (eslintConfig === null) {
-                return {};
+                return [];
             }
 
-            eslintConfig.forEach(section => {
-                const {
-                    rules: {
-                        entries: rules
-                    } = {}
-                } = section;
+            // TODO: flag duplicates, etc.
+            // eslintConfig.forEach(section => {
+            //     const {
+            //         rules: {
+            //             entries: rules
+            //         } = {}
+            //     } = section;
 
-                flagDuplicates(rules);
-            });
+            //     flagDuplicates(rules);
+            // });
 
             return eslintConfig;
         } catch(err) {
@@ -41,38 +42,11 @@ export default class Parser {
                 return [];
             }
 
-            return eslintConfig.flatMap(section => {
-                const {
-                    rules: {
-                        entries: rules
-                    } = {}
-                } = section;
+            // TODO: flag duplicates, etc.
 
-                flagDuplicates(rules);
-
-                return rules;
-            });
-        } catch(err) {
-            return [];
-        }
-    }
-
-    getRulesContainers() {
-        try {
-            const eslintConfig = this.parse({ containersOnly: true });
-            if (eslintConfig === null) {
-                return [];
-            }
-
-            return eslintConfig.flatMap(section => {
-                const {
-                    rules: {
-                        containers
-                    } = {}
-                } = section;
-
-                return containers;
-            });
+            return eslintConfig
+                .flatMap(section => section.rules)
+                .flatMap(container => container.entries);
         } catch(err) {
             return [];
         }
@@ -94,39 +68,41 @@ function flagDuplicates(rules) {
 
 
 /*
-FUTURE of parsers:
-
-parse(options) should not be run externally
-
-    options:
-        containersOnly: bool
-
-
-
-    [ // all config sections - for legacy, main and each overrides
-        {
-            plugins: {
-                containers: Range[],
+[ // array of sections (configs)
+    {
+        plugins: [ // array of containers
+            {
+                range,
                 entries: [
                     {
-                        key: string   // used in ruleIds
-                        value: string // used in finding the plugin itself (will equal key on legacy configs)
+                        key,
+                        value
                     }
                 ]
-            },
-            rules: {
-                containers: Range[],
+            }
+        ],
+        rules: [ // array of containers
+            {
+                range,
                 entries: [
                     {
-                        name,
-                        keyRange,
-                        severityRange,
-                        optionsRange,
-                        optionsConfig,
+                        range,
+                        key: {
+                            name,
+                            range
+                        },
+                        configuration: {
+                            range,
+                            severityRange,
+                            optionsRange,
+                            value
+                        }
                         lineEndingRange
                     }
                 ]
             }
-        }
-    ]
+        ]
+    }
+]
+
 */

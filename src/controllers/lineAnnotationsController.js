@@ -54,18 +54,18 @@ export function addAnnotations(editor, context) {
         const diagnostics = [];
         const decorations = rules.map(rule => {
             try {
-                const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
+                const ruleInfo = getRuleDetails(editor.document.fileName, rule.key.name);
 
                 // validate rule config options
                 ruleInfo.validationErrors = [];
-                if (rule.optionsConfig !== null && rule.optionsConfig !== undefined) {
-                    const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.optionsConfig);
+                if (rule.configuration?.value !== null && rule.configuration?.value !== undefined) {
+                    const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.configuration.value);
                     if (!severity.valid) {
                         ruleInfo.validationErrors.push(severity.message);
 
                         diagnostics.push({
                             source: 'LintLens',
-                            range: rule.severityRange,
+                            range: rule.configuration.severityRange,
                             severity: DiagnosticSeverity.Error,
                             message: severity.message,
                         });
@@ -75,7 +75,7 @@ export function addAnnotations(editor, context) {
 
                         diagnostics.push(...options.errors.map(error => ({
                             source: 'LintLens',
-                            range: rule.optionsRange,
+                            range: rule.configuration.optionsRange,
                             severity: DiagnosticSeverity.Error,
                             message: error,
                         })));
@@ -86,14 +86,14 @@ export function addAnnotations(editor, context) {
                 if (ruleInfo.isPluginMissing) {
                     diagnostics.push({
                         source: 'LintLens',
-                        range: rule.keyRange,
+                        range: rule.key.range,
                         severity: DiagnosticSeverity.Error,
                         message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
                     });
                 } else if (!ruleInfo.isRuleFound) {
                     diagnostics.push({
                         source: 'LintLens',
-                        range: rule.keyRange,
+                        range: rule.key.range,
                         severity: DiagnosticSeverity.Error,
                         message: `Rule "${rule.name}" not found`,
                     });
@@ -101,7 +101,7 @@ export function addAnnotations(editor, context) {
                 if (rule.duplicate) {
                     diagnostics.push({
                         source: 'LintLens',
-                        range: rule.keyRange,
+                        range: rule.key.range,
                         severity: DiagnosticSeverity.Warning,
                         message: messages.duplicateRule,
                     });
@@ -109,7 +109,7 @@ export function addAnnotations(editor, context) {
                 if (ruleInfo.isDeprecated) {
                     diagnostics.push({
                         source: 'LintLens',
-                        range: rule.keyRange,
+                        range: rule.key.range,
                         severity: DiagnosticSeverity.Warning,
                         message: `Rule "${rule.name}" is deprecated`,
                     });
@@ -203,7 +203,7 @@ function getHoverMessage(rule, ruleInfo) {
 
         if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
             ruleInfo.suggestedRules.slice(0, 3).forEach(item => {
-                let cmd = createReplaceTextCommand(item, rule.keyRange, item, `Click to replace rule with ${item}`);
+                let cmd = createReplaceTextCommand(item, rule.key.range, item, `Click to replace rule with ${item}`);
                 hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;did you mean ${cmd}\n`;
             });
         }
@@ -238,7 +238,7 @@ function getHoverMessage(rule, ruleInfo) {
 
         if (ruleInfo.replacedBy && ruleInfo.replacedBy.length > 0) {
             let replacedByRules = ruleInfo.replacedBy.map(item => {
-                return createReplaceTextCommand(item, rule.keyRange, item, `Click to replace rule with ${item}`);
+                return createReplaceTextCommand(item, rule.key.range, item, `Click to replace rule with ${item}`);
             });
             hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;replaced by ${replacedByRules.join(', ')}\n`;
         }

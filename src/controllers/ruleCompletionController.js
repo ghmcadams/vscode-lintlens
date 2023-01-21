@@ -1,8 +1,7 @@
-import { Range, Position, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
+import { Range, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 import * as vscode from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 import { getAllRuleIds } from '../rules';
-import { match } from '../shared/regex';
 
 
 let extensionContext;
@@ -14,76 +13,19 @@ export function initialize(context) {
 export const provider = {
     provideCompletionItems: (document, position, cancelToken, context) => {
         const parser = getParser(document);
-        const rulesContainers = parser.getRulesContainers();
-        if (rulesContainers.length === 0) {
+        const eslintConfig = parser.getConfig();
+
+        const isValid = validatePosition(eslintConfig, position);
+        if (!isValid) {
             return;
         }
 
-        let rulesContainerRange = null;
-        for (const container of rulesContainers) {
-            if (container.contains(position)) {
-                rulesContainerRange = container;
-                break;
-            }
-        }
-        if (rulesContainerRange === null) {
-            // Not in a rules container
-            return;
-        }
+        // Create completions
 
-        // Determine if user is typing a new object key (assume ESLint rule)
-        /*
-            ^\{(?:\s*(?:(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*)?(?:(?:(?:\.\.\.)?[\"\'\`]?\w+[\"\'\`]?)|(?:\[\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,)?(?:\s*\/\/[^\r\n]*\n)?)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$
-
-            ^                                                               # beginning of string
-            \{                                                              # open object bracket
-            (?<other>                                                       # group (an other thing)
-                \s*                                                         # whitespace (zero or more)
-                (?<keyvalue>                                                # group (key/value pair)
-                    (?<keysep>                                              # group (key and separator)
-                        [\"\'\`]?                                           # quote (zero or one)
-                        @?[\/\w-]+                                          # key string character (one or more)
-                        [\"\'\`]?                                           # quote (zero or one)
-                        \s*:\s*                                             # whitespace (zero or more), colon, whitespace (zero or more)
-                    )?                                                      # close group (keysep)
-                    (?<value>                                               # group (value)
-                        (?<simple>                                          # group (simple value)
-                            (?<spread>\.\.\.)?                              # spread dots (zero or one)
-                            [\"\'\`]?                                       # quote (zero or one)
-                            [\w\.\[\]]+                                     # variable character (one or more)
-                            [\"\'\`]?                                       # quote (zero or one)
-                        )                                                   # close group (simple value)
-                        |                                                   # OR
-                        (?<array>                                           # group (array value)
-                            \[                                              # open array bracket
-                            \s*                                             # whitespace (zero or more)
-                            [^\[\]]*                                        # any character other than open or close array brackets (zero or more)
-                            (?<embedddarray>                                # group (embedded array)
-                                \[                                          # open array bracket
-                                [^\[\]]*                                    # any character other than open or close array brackets (zero or more)
-                                \]                                          # close array bracket
-                            )*                                              # close group (embedded array)
-                            [^\[\]]*                                        # any character other than open or close array brackets (zero or more)
-                            \]                                              # close array bracket
-                        )                                                   # close group (array value)
-                    )                                                       # close group (value)
-                    \s*                                                     # whitespace (zero or more)
-                    ,                                                       # comma
-                )?                                                          # close group (key/value pair)
-                (?<comment>\s*\/\/[^\r\n]*\n)?                              # line comment
-            )*                                                              # close group (zero or more)
-            (?<q>[\"\'\`]?)                                                 # current quote (if exists)
-            (?<r>@?[\/\w-]*)                                                # start of current rule id (if exists)
-            $                                                               # end of string
-
-        */
-        const regexp = /^\{(?:\s*(?:(?:[\"\'\`]?@?[\/\w-]+[\"\'\`]?\s*:\s*)?(?:(?:(?:\.\.\.)?[\"\'\`]?[\w\.\[\]]+[\"\'\`]?)|(?:\[\s*[^\[\]]*(?:\[[^\[\]]*\])*[^\[\]]*\]))\s*,)?(?:\s*\/\/[^\r\n]*\n)?)*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
-        const beginningToCursor = new Range(rulesContainerRange.start.line, rulesContainerRange.start.character, position.line, position.character);
-        const textSoFar = document.getText(beginningToCursor);
-        const matches = match({
-            text: textSoFar,
-            regexp
-        });
+        const regexp = /^(?:.+,)?[\t ]*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
+        const entryRange = new Range(position.line, 0, position.line, position.character);
+        const text = document.getText(entryRange);
+        const matches = text.match(regexp);
         if (matches) {
             const {
                 q: openQuote,
@@ -120,30 +62,36 @@ export const provider = {
     }
 };
 
+function validatePosition(eslintConfig, position) {
+    const rulesContainers = eslintConfig.flatMap(section => section.rules);
 
+    if (rulesContainers.length === 0) {
+        // There are no rules containers in this document
+        return false;
+    }
 
-function validatePosition(text) {
-    /*
-        {
-            "max": ["error",
-                {
-                    "someConfigThing": 2 
-                },
-                {
-                    "anotherThing": "something",
-                    "anotherProp": true
-                },
-                "anotherRuleProp"
-            ],
-            "rule3": "error",
-            "rule4
+    let activeContainer = null;
+    for (const container of rulesContainers) {
+        if (container.range.contains(position)) {
+            activeContainer = container;
+            break;
+        }
+    }
+    if (activeContainer === null) {
+        // Not in a rules container
+        return false;
+    }
 
+    for (const rule of activeContainer.entries) {
+        if (rule.range.contains(position)) {
+            if (!rule.configuration && rule.key.range.contains(position) && rule.key.name === '') {
+                return true;
+            }
 
-    IDEA:  use parser in this controller as well
-        modify parsers to give more than just rules
-        try out acorn-loose parser, to see if it is more forgiving and still works the say I need
-        structure something like { extends: {}, plugins: {}, rules: { containers (better name needed): [], allRules: [] } }
-        THEN determine if I am within a rule container
-        THEN (not sure how) determine if I am adding a key or value
-    */
+            // within a rule (not adding a new one)
+            return false;
+        }
+    }
+
+    return true;
 }

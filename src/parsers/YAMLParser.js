@@ -37,21 +37,28 @@ function getRange(document, statement) {
     return document.validateRange(new Range(startPosition, endPosition));
 }
 
-function getRules(document, containers) {
-    return containers
-        .flatMap(container => container.mappings)
-        .map(rule => getRuleDetails(document, rule));
+function getRules(document, container) {
+    return container.mappings.map(rule => getRuleDetails(document, rule));
 }
 
 function getRuleDetails(document, rule) {
-    const keyStartPosition = document.positionAt(rule.key.startPosition - 1);
-    const keyEndPosition = document.positionAt(rule.key.endPosition - 1);
-    const keyRange = document.validateRange(new Range(keyStartPosition, keyEndPosition));
-    const lineEndingRange = document.validateRange(new Range(keyStartPosition.line, Number.MAX_SAFE_INTEGER, keyStartPosition.line, Number.MAX_SAFE_INTEGER));
+    const range = getRange(document, rule);
+    const keyRange = getRange(document, rule.key);
+
+    const ruleLine = document.positionAt(rule.startPosition - 1).line;
+    const lineEndingRange = document.validateRange(new Range(ruleLine, Number.MAX_SAFE_INTEGER, ruleLine, Number.MAX_SAFE_INTEGER));
 
     return {
-        name: rule.key.value,
-        keyRange,
+        range,
+        key: {
+            name: rule.key.value,
+            range: keyRange
+        },
+        // configuration: {
+        //     severityRange,
+        //     optionsRange,
+        //     value: optionsConfig
+        // },
         lineEndingRange
     };
 }
@@ -61,33 +68,28 @@ export default class YAMLParser extends Parser {
         super(document);
     }
 
-    parse({
-        containersOnly = false
-    } = {}) {
+    parse() {
         const body = getASTBody(this.document);
 
         // get sections (main, overrides)
         const sections = getSections(body);
 
         return sections.map(section => {
+            // TODO: Plugins and Extends
+
             // get rules containers (main.rules, overrides[x].rules)
             const rulesContainers = getRulesContainers(section);
 
-            const rulesValue = {
-                containers: rulesContainers.map(container => getRange(this.document, container)),
-                entries: null
-            };
-
-            if (containersOnly !== true) {
-                rulesValue.entries = getRules(this.document, rulesContainers);
-            }
+            const rulesValue = rulesContainers.map(container => {
+                return {
+                    range: getRange(this.document, container),
+                    entries: getRules(this.document, container)
+                };
+            });
 
             return {
-                // extends: extendsValue,
-                // plugins: pluginsValue,
                 rules: rulesValue
             };
-
         });
     }
 };

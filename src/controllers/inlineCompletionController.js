@@ -1,4 +1,5 @@
 import { Range, InlineCompletionItem, CompletionItemKind, SnippetString } from 'vscode';
+import { getParser } from '../parsers/DocumentParser';
 
 
 let extensionContext;
@@ -9,17 +10,20 @@ export function initialize(context) {
 
 export const provider = {
     provideInlineCompletionItems: async (document, position, context, cancelToken) => {
-        // Check that this is an ESLINT configuration file
-        const eslintConfigFiles = extensionContext?.workspaceState.get('eslintConfigFiles') ?? [];
-        if (!eslintConfigFiles.includes(document.fileName)) {
+        const parser = getParser(document);
+        const eslintConfig = parser.getConfig();
+
+        const isValid = validatePosition(eslintConfig, position);
+        if (!isValid) {
             return;
         }
 
-        // Determine if user is typing after an object key (assume ESLint rule)
-        const regexp = /(?<=[{,])(?<!:\s*\[.+,\s*\{)\s*?(?<q>[\"\'\`]?)@?[\/\w-]+\k<q>?(?<sep>[^\S\r\n]*:[^\S\r\n]*)(?<value>\[?[^:]*)$/;
-        const beginningToCursor = new Range(0, 0, position.line, position.character);
-        const textSoFar = document.getText(beginningToCursor);
-        const matches = textSoFar.match(regexp);
+        // Create completions
+
+        const regexp = /^(?:.+,)?.+(?<sep>[^\S\r\n]*:[^\S\r\n]*)(?<value>\[?[^:]*)$/;
+        const entryRange = new Range(position.line, 0, position.line, position.character);
+        const text = document.getText(entryRange);
+        const matches = text.match(regexp);
         if (matches) {
             const {
                 sep: separator,
@@ -64,3 +68,35 @@ export const provider = {
         }
     },
 };
+
+function validatePosition(eslintConfig, position) {
+    const rulesContainers = eslintConfig.flatMap(section => section.rules);
+
+    if (rulesContainers.length === 0) {
+        // There are no rules containers in this document
+        return false;
+    }
+
+    let activeContainer = null;
+    for (const container of rulesContainers) {
+        if (container.range.contains(position)) {
+            activeContainer = container;
+            break;
+        }
+    }
+    if (activeContainer === null) {
+        // Not in a rules container
+        return false;
+    }
+
+    for (const rule of activeContainer.entries) {
+        if (rule.range.contains(position)) {
+            // within a rule, but not in the key = starting the value
+            return !rule.key.range.contains(position);
+            // return rule.configuration?.range?.contains(position);
+        }
+    }
+
+    // not within a rule value
+    return false;
+}

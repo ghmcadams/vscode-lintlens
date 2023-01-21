@@ -45,6 +45,7 @@
     "dependencies": {
         "@babel/plugin-transform-runtime": "^7.19.6",
         "acorn": "^8.8.1",
+        "acorn-loose": "^8.3.0",
         "ajv": "^6.12.6",
         "findup-sync": "^5.0.0",
         "fuse.js": "^3.2.1",

@@ -1,5 +1,6 @@
 import { Position, Range } from 'vscode';
 import { parse, parseExpressionAt } from 'acorn';
+import { parse as parseLoose } from 'acorn-loose';
 import { jsonrepair } from 'jsonrepair';
 import Parser from './Parser';
 
@@ -151,15 +152,34 @@ function getAllContainers(body, container) {
 }
 
 
-function getASTBody(document, fileType) {
-    const documentText = document.getText();
+function getASTBody(document) {
+    let documentText = document.getText();
+    const languageId = document.languageId;
 
-    if ([ESLintFileType.JSON, ESLintFileType.PKG].includes(fileType)) {
-        return parseExpressionAt(documentText, 0, { locations: true, ecmaVersion: 2020 });
+    const parseOptions = {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        allowReserved: true,
+        allowReturnOutsideFunction: true,
+        allowImportExportEverywhere: true,
+        allowAwaitOutsideFunction: true,
+        allowSuperOutsideMethod: true,
+        locations: true
+    };
+
+    // TODO: traverse the ast and add references to the root on all nodes
+
+    if (languageId === 'json' || languageId === 'jsonc') {
+        return parseExpressionAt(documentText, 0, parseOptions);
     }
 
-    const ast = parse(documentText, { locations: true, sourceType: 'module', ecmaVersion: 2020 });
-    return ast.body;
+    try {
+        const ast = parse(documentText, parseOptions);
+        return ast.body;
+    } catch(err) {
+        const ast = parseLoose(documentText, parseOptions);
+        return ast.body;
+    }
 }
 
 function getConfigRoot(body, fileType) {
@@ -283,16 +303,39 @@ function readRuleValue(document, bodyAST, ruleValueAST) {
     }
 }
 
-function getRules(document, body, containers) {
-    return containers
-        .flatMap(container => container.properties)
+function getRules(document, body, container) {
+    return container.properties
         .filter(rule => rule.type === 'Property')
         .map(rule => getRuleDetails(document, body, rule));
 }
 
 function getRuleDetails(document, body, rule) {
+    const range = getRange(document, rule);
+    const lineEndingRange = document.validateRange(new Range(rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
+
+    // key
+    let name = 'Unknown';
+    if (rule.key.type === 'Literal') {
+        name = rule.key.value;
+    } else if (rule.key.type === 'Identifier') {
+        name = rule.key.name;
+    }
     const keyRange = getRange(document, rule.key);
 
+    // loose parsing allowed invalid syntax
+    if (range.isEqual(keyRange)) {
+        return {
+            range,
+            key: {
+                name,
+                range
+            },
+            lineEndingRange
+        };
+    }
+
+    // configuration
+    const configurationRange = getRange(document, rule.value);
     let severityRange, optionsRange;
     if (rule.value.type === 'ArrayExpression') {
         severityRange = getRange(document, rule.value.elements[0]);
@@ -302,21 +345,18 @@ function getRuleDetails(document, body, rule) {
     }
     const optionsConfig = readRuleValue(document, body, rule.value);
 
-    const lineEndingRange = document.validateRange(new Range(rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.key.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
-
-    let name;
-    if (rule.key.type === 'Literal') {
-        name = rule.key.value;
-    } else if (rule.key.type === 'Identifier') {
-        name = rule.key.name;
-    }
-
     return {
-        name: name ?? 'Unknown',
-        keyRange,
-        severityRange,
-        optionsRange,
-        optionsConfig,
+        range,
+        key: {
+            name,
+            range: keyRange
+        },
+        configuration: {
+            range: configurationRange,
+            severityRange,
+            optionsRange,
+            value: optionsConfig
+        },
         lineEndingRange
     };
 }
@@ -345,10 +385,8 @@ export default class JSParser extends Parser {
         this.options = defaultedOptions;
     }
 
-    parse({
-        containersOnly = false
-    } = {}) {
-        const body = getASTBody(this.document, this.options.fileType);
+    parse() {
+        const body = getASTBody(this.document);
 
         const configRoot = getConfigRoot(body, this.options.fileType);
         if (configRoot === null) {
@@ -398,17 +436,13 @@ export default class JSParser extends Parser {
             //     containers: pluginsContainers.map(container => getRange(this.document, container)),
             //     entries: null
             // };
-            const rulesValue = {
-                containers: rulesContainers.map(container => getRange(this.document, container)),
-                entries: null
-            };
-
-            if (containersOnly !== true) {
-                // const extendsValue = extendsContainers.flatMap(container => getRealProperties(body, container.properties));
-                // const pluginsValue = pluginsContainers.flatMap(container => getRealProperties(body, container.properties));
-
-                rulesValue.entries = getRules(this.document, body, rulesContainers);
-            }
+            // TODO: do the comments above like this one
+            const rulesValue = rulesContainers.map(container => {
+                return {
+                    range: getRange(this.document, container),
+                    entries: getRules(this.document, body, container)
+                };
+            });
 
             return {
                 // extends: extendsValue,
