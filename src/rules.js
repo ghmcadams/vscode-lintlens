@@ -103,6 +103,10 @@ function searchRules(rules, pluginName, ruleId) {
 }
 
 export function getRuleDetails(documentFilePath, ruleName) {
+    if (!ruleName || ruleName.length === 0) {
+        return null;
+    }
+
     const rules = getLinterRules(documentFilePath);
 
     const { pluginName, ruleId } = breakOutRuleName(ruleName);
