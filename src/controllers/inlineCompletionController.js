@@ -1,14 +1,21 @@
-import { Range, InlineCompletionItem, CompletionItemKind, SnippetString } from 'vscode';
+import { languages, Range, InlineCompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 
 
-let extensionContext;
-
 export function initialize(context) {
-    extensionContext = context;
+    const documentSelectors = [
+        { language: 'javascript', scheme: 'file' },
+        { language: 'javascriptreact', scheme: 'file' },
+        { language: 'json', scheme: 'file' },
+        { language: 'jsonc', scheme: 'file' }
+    ];
+
+    documentSelectors.forEach(selector => {
+        context.subscriptions.push(languages.registerInlineCompletionItemProvider(selector, provider));
+    });
 }
 
-export const provider = {
+const provider = {
     provideInlineCompletionItems: async (document, position, context, cancelToken) => {
         const parser = getParser(document);
         const eslintConfig = parser.getConfig();
@@ -94,7 +101,6 @@ function validatePosition(eslintConfig, position) {
         if (rule.range.contains(position)) {
             // within a rule, but not in the key = starting the value
             return !rule.key.range.contains(position);
-            // return rule.configuration?.range?.contains(position);
         }
     }
 

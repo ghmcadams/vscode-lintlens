@@ -1,16 +1,23 @@
-import { Range, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
+import { languages, Range, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 import * as vscode from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 import { getAllRuleIds } from '../rules';
 
 
-let extensionContext;
-
 export function initialize(context) {
-    extensionContext = context;
+    const documentSelectors = [
+        { language: 'javascript', scheme: 'file' },
+        { language: 'javascriptreact', scheme: 'file' },
+        { language: 'json', scheme: 'file' },
+        { language: 'jsonc', scheme: 'file' }
+    ];
+
+    documentSelectors.forEach(selector => {
+        context.subscriptions.push(languages.registerCompletionItemProvider(selector, provider, "'", "`", "\"", "\n"));
+    });
 }
 
-export const provider = {
+const provider = {
     provideCompletionItems: (document, position, cancelToken, context) => {
         const parser = getParser(document);
         const eslintConfig = parser.getConfig();

@@ -6,11 +6,15 @@ import { commands as commandConstants, extensionId, extensionName } from '../con
 import loadingCSS from '../static/loading.css';
 import webPanelScript from '../static/webPanelScript';
 
+
 let extensionContext;
 let webViewPanel;
 
 export function initialize(context) {
     extensionContext = context;
+
+    context.subscriptions.push(commands.registerCommand(commandConstants.openWebViewPanel, openInVSCode));
+    context.subscriptions.push(commands.registerCommand(commandConstants.openInBrowser, openInBrowser));
 }
 
 function processWebviewMessage(message) {
