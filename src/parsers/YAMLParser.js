@@ -49,9 +49,9 @@ function getRuleDetails(document, rule) {
     const lineEndingRange = document.validateRange(new Range(ruleLine, Number.MAX_SAFE_INTEGER, ruleLine, Number.MAX_SAFE_INTEGER));
 
     return {
+        name: rule.key.value,
         range,
         key: {
-            name: rule.key.value,
             range: keyRange
         },
         // configuration: {

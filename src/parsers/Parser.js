@@ -71,7 +71,7 @@ function flagDuplicateRuleConfigurations(rules) {
         // only if we haven't seen this rule before
         if (!rule.duplicate) {
             // this includes the original
-            const duplicates = rules.filter(otherRule => otherRule.key.name === rule.key.name);
+            const duplicates = rules.filter(otherRule => otherRule.name === rule.name);
 
             if (duplicates.length > 1) {
                 duplicates.forEach(duplicateRule => {
@@ -103,9 +103,9 @@ function flagDuplicateRuleConfigurations(rules) {
                 range,
                 entries: [
                     {
+                        name,
                         range,
                         key: {
-                            name,
                             range
                         },
                         configuration: {

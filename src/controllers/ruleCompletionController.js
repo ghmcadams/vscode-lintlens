@@ -95,7 +95,7 @@ function validatePosition(eslintConfig, position) {
 
     for (const rule of activeContainer.entries) {
         if (rule.range.contains(position)) {
-            if (!rule.configuration && rule.key.range.contains(position) && rule.key.name === '') {
+            if (!rule.configuration && rule.key.range.contains(position) && rule.name === '') {
                 return true;
             }
 

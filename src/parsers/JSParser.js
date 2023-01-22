@@ -322,9 +322,9 @@ function getRuleDetails(document, rule) {
     // loose parsing allowed invalid syntax
     if (range.isEqual(keyRange)) {
         return {
+            name,
             range,
             key: {
-                name,
                 range
             },
             lineEndingRange
@@ -343,9 +343,9 @@ function getRuleDetails(document, rule) {
     const optionsConfig = readRuleValue(document, rule.value);
 
     return {
+        name,
         range,
         key: {
-            name,
             range: keyRange
         },
         configuration: {

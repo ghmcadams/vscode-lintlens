@@ -59,10 +59,10 @@ function addAnnotations(editor, context) {
         const decorations = [];
 
         rules
-            .filter(rule => rule?.key?.name)
+            .filter(rule => rule?.name)
             .forEach(rule => {
                 try {
-                    const ruleInfo = getRuleDetails(editor.document.fileName, rule.key.name);
+                    const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
                     if (ruleInfo === null) {
                         return;
                     }
@@ -106,7 +106,7 @@ function addAnnotations(editor, context) {
                             source: 'LintLens',
                             range: rule.key.range,
                             severity: DiagnosticSeverity.Error,
-                            message: `Rule "${rule.key.name}" not found`,
+                            message: `Rule "${rule.name}" not found`,
                         });
                     }
                     if (rule.duplicate) {
@@ -122,7 +122,7 @@ function addAnnotations(editor, context) {
                             source: 'LintLens',
                             range: rule.key.range,
                             severity: DiagnosticSeverity.Warning,
-                            message: `Rule "${rule.key.name}" is deprecated`,
+                            message: `Rule "${rule.name}" is deprecated`,
                         });
                     }
 
