@@ -18,50 +18,67 @@ export default class Parser {
                 return [];
             }
 
-            // TODO: flag duplicates, etc.
-            // eslintConfig.forEach(section => {
-            //     const {
-            //         rules: {
-            //             entries: rules
-            //         } = {}
-            //     } = section;
-
-            //     flagDuplicates(rules);
-            // });
+            augmentConfig(eslintConfig);
 
             return eslintConfig;
         } catch(err) {
-            return {};
+            return [];
         }
     }
 
     getRules() {
         try {
-            const eslintConfig = this.parse();
-            if (eslintConfig === null) {
-                return [];
-            }
+            const eslintConfig = this.getConfig();
 
-            // TODO: flag duplicates, etc.
-
-            return eslintConfig
+            const rules = eslintConfig
                 .flatMap(section => section.rules)
                 .flatMap(container => container.entries);
+
+            return mergeDuplicateRuleEntries(rules);
         } catch(err) {
             return [];
         }
     }
 }
 
-function flagDuplicates(rules) {
-    let ruleNames = rules.map(rule => rule.name);
+function augmentConfig(eslintConfig) {
+    eslintConfig.forEach(section => {
+        const allRules = section.rules.flatMap(container => container.entries);
+        flagDuplicateRuleConfigurations(allRules);
+    });
+}
 
-    rules.forEach((rule, index) => {
-        let otherIndex = ruleNames.indexOf(rule.name, index + 1);
-        if (otherIndex > -1) {
-            // TODO: ?? add something to the object that points to the other rule ??
-            rule.duplicate = true;
-            rules[otherIndex].duplicate = true;
+function mergeDuplicateRuleEntries(rules) {
+    const mergedRules = {};
+
+    rules.forEach(rule => {
+        const key = `${rule.range.start.line}-${rule.range.start.character}-${rule.range.end.line}-${rule.range.end.character}`;
+        mergedRules[key] = {
+            ...(mergedRules[key] ?? {}),
+            ...rule,
+            duplicateEntries: [
+                ...(mergedRules[key] ?? {}).duplicateEntries ?? [],
+                ...rule.duplicateEntries ?? []
+            ]
+        };
+    });
+
+    return Object.values(mergedRules);
+}
+
+function flagDuplicateRuleConfigurations(rules) {
+    rules.forEach(rule => {
+        // only if we haven't seen this rule before
+        if (!rule.duplicate) {
+            // this includes the original
+            const duplicates = rules.filter(otherRule => otherRule.key.name === rule.key.name);
+
+            if (duplicates.length > 1) {
+                duplicates.forEach(duplicateRule => {
+                    duplicateRule.duplicate = true;
+                    duplicateRule.duplicateEntries = duplicates.filter(dup => !dup.range.isEqual(duplicateRule.range));
+                });
+            }
         }
     });
 }
