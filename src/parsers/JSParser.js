@@ -1,7 +1,7 @@
 import { Position, Range } from 'vscode';
 import { basename } from 'path';
 import { parse } from 'acorn';
-import { parse as parseLoose } from 'acorn-loose';
+import { parse as parseLoose, isDummy } from 'acorn-loose';
 import * as walk from 'acorn-walk';
 import { generate } from 'escodegen';
 import deepClone from 'deep-clone';
@@ -332,6 +332,9 @@ function getRuleEntries(container) {
                 return getPointerDetails(entry);
             }
 
+            if (isDummy(entry.value)) {
+                return getEmptyValueDetails(entry);
+            }
             if (entry.key.type === 'Literal' &&
                 entry.start === entry.key.start &&
                 entry.end === entry.key.end
@@ -361,6 +364,18 @@ function getEmptyRuleDetails(entry) {
     return {
         type: EntryType.EmptyRule,
         range
+    }
+}
+
+function getEmptyValueDetails(entry) {
+    const range = getRange(entry);
+
+    // when acorn loose adds a dummy value, the key contains the colon
+    // TODO: make this cleaner (I want ALL the space after the colon, no matter what is there)
+    return {
+        type: EntryType.EmptyValue,
+        range,
+        valueRange: new Range(entry.key.loc.end.line - 1, entry.key.loc.end.column + 1, entry.value.loc.end.line - 1, entry.value.loc.end.column)
     }
 }
 

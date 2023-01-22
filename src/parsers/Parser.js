@@ -87,6 +87,7 @@ function flagDuplicateRuleConfigurations(rules) {
 export const EntryType = {
     Rule: 'Rule',
     EmptyRule: 'EmptyRule',
+    EmptyValue: 'EmptyValue',
     Pointer: 'Pointer',
 };
 

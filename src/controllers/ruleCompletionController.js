@@ -16,6 +16,7 @@ const AreaType = {
     Other: 'Other'
 };
 
+
 export function initialize(context) {
     const documentSelectors = [
         { language: 'javascript', scheme: 'file' },
@@ -38,7 +39,7 @@ const provider = {
 
         const eslintConfig = parser.getConfig();
 
-        const positionInfo = resolvePosition(eslintConfig, position);
+        const positionInfo = getPositionInfo(eslintConfig, position);
         if (positionInfo === null) {
             return;
         }
@@ -52,47 +53,53 @@ const provider = {
 
         // Create completions
 
-        const regexp = /^(?:.+,)?[\t ]*(?<q>[\"\'\`]?)(?<r>@?[\/\w-]*)$/;
-        const entryRange = new Range(position.line, 0, position.line, position.character);
-        const text = document.getText(entryRange);
-        const matches = text.match(regexp);
-        if (matches) {
-            const {
-                q: openQuote,
-                r: ruleId
-            } = matches.groups;
-
-            const startIndex = position.character - ruleId.length - openQuote.length;
-            const range = new Range(position.line, startIndex, position.line, Number.MAX_SAFE_INTEGER);
-
-            const allRules = getAllRuleIds(document.fileName);
-            // const severityOptions = '[${1|"error","warn","off"|}$0],'; // this works for severity in an array
-
-            return allRules.map(rule => {
-                // displays (label): rule
-                // filtered by user typing (filterText)
-                const item = new CompletionItem(rule, CompletionItemKind.Property);
-                item.filterText = `${openQuote}${rule}`;
-                // item.insertText = new SnippetString(`"${rule}": \${1|"error","warn","off"|},$0`);
-                item.insertText = `"${rule}": `;
-                item.range = range;
-
-                // TODO: get rule description (from meta), defaulting to something standard (ESLint Rule ${rule} ??)
-                // const docs = new vscode.MarkdownString(`Inserts the ${rule} ESLint rule`);
-                // item.documentation = docs;
-                // TODO: get URL for rule (from meta)
-                // docs.baseUri = vscode.Uri.parse('http://example.com/a/b/c/');
-
-                // TODO: put this here when config options autocomplete works
-                // item.command = { command: 'editor.action.triggerSuggest' };
-
-                return item;
-            });
+        let entryRange;
+        switch(positionInfo.type) {
+            case AreaType.RulesContainer:
+                entryRange = new Range(position, position);
+                break;
+            case AreaType.Key:
+            case AreaType.EmptyRule:
+                entryRange = new Range(positionInfo.range.start, position);
+                break;
         }
+
+        if (!entryRange) {
+            return;
+        }
+
+        const areaText = document.getText(entryRange);
+        const openQuote = areaText[0] ?? '';
+
+        const range = new Range(entryRange.start.line, entryRange.start.character, position.line, Number.MAX_SAFE_INTEGER);
+
+        const allRules = getAllRuleIds(document.fileName);
+        // const severityOptions = '[${1|"error","warn","off"|}$0],'; // this works for severity in an array
+
+        return allRules.map(rule => {
+            // displays (label): rule
+            // filtered by user typing (filterText)
+            const item = new CompletionItem(rule, CompletionItemKind.Property);
+            item.filterText = `${openQuote}${rule}`;
+            // item.insertText = new SnippetString(`"${rule}": \${1|"error","warn","off"|},$0`);
+            item.insertText = `"${rule}": `;
+            item.range = range;
+
+            // TODO: get rule description (from meta), defaulting to something standard (ESLint Rule ${rule} ??)
+            // const docs = new vscode.MarkdownString(`Inserts the ${rule} ESLint rule`);
+            // item.documentation = docs;
+            // TODO: get URL for rule (from meta)
+            // docs.baseUri = vscode.Uri.parse('http://example.com/a/b/c/');
+
+            // TODO: put this here when config options autocomplete works
+            // item.command = { command: 'editor.action.triggerSuggest' };
+
+            return item;
+        });
     }
 };
 
-function resolvePosition(eslintConfig, position) {
+function getPositionInfo(eslintConfig, position) {
     const rulesContainers = eslintConfig.flatMap(section => section.rules);
 
     if (rulesContainers.length === 0) {
@@ -129,7 +136,7 @@ function resolvePosition(eslintConfig, position) {
                     type = AreaType.Key;
                     range = entry.key.range;
                 } else if (entry.configuration?.range.contains(position)) {
-                    type = AreaType.Key;
+                    type = AreaType.Value;
                     range = entry.configuration.range;
 
                     if (entry.configuration.severityRange?.range.contains(position)) {
@@ -156,6 +163,6 @@ function resolvePosition(eslintConfig, position) {
 
     return {
         type: AreaType.RulesContainer,
-        range: activeContainer
+        range: activeContainer.range
     };
 }
