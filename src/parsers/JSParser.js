@@ -260,13 +260,13 @@ function getRange(document, statement) {
     return document.validateRange(new Range(startPosition, endPosition));
 }
 
-function readRuleValue(document, bodyAST, ruleValueAST) {
+function readRuleValue(document, ruleValueAST) {
     try {
         if (ruleValueAST.type === 'Literal') {
             return ruleValueAST.value;
         }
         if (ruleValueAST.type === 'Identifier') {
-            const variableAST = getVariableValueFromBody(bodyAST, ruleValueAST.name);
+            const variableAST = getVariableValueFromBody(ruleValueAST.body, ruleValueAST.name);
             return variableAST?.value ?? null;
         }
 
@@ -279,7 +279,7 @@ function readRuleValue(document, bodyAST, ruleValueAST) {
                 severity = severityAST.value;
             }
             if (severityAST.type === 'Identifier') {
-                const variableAST = getVariableValueFromBody(bodyAST, severityAST.name);
+                const variableAST = getVariableValueFromBody(ruleValueAST.body, severityAST.name);
                 severity = variableAST?.value ?? null;
             }
 
@@ -378,9 +378,9 @@ export default class JSParser extends Parser {
     parse() {
         const body = getASTBody(this.document);
         const fileName = basename(this.document.fileName);
-        const configProperty = fileName === 'package.json' ? 'eslintConfig' : null;
+        const configPropertyName = fileName === 'package.json' ? 'eslintConfig' : null;
 
-        const configRoot = getConfigRoot(body, configProperty);
+        const configRoot = getConfigRoot(body, configPropertyName);
         if (configRoot === null) {
             return null;
         }
