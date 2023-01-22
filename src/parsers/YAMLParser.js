@@ -1,6 +1,6 @@
 import { Range } from 'vscode';
 import { load } from 'yaml-ast-parser';
-import Parser from './Parser';
+import Parser, { EntryType } from './Parser';
 
 
 function getASTBody(document) {
@@ -49,6 +49,7 @@ function getRuleDetails(document, rule) {
     const lineEndingRange = document.validateRange(new Range(ruleLine, Number.MAX_SAFE_INTEGER, ruleLine, Number.MAX_SAFE_INTEGER));
 
     return {
+        type: EntryType.Rule,
         name: rule.key.value,
         range,
         key: {

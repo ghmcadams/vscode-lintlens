@@ -32,7 +32,8 @@ export default class Parser {
 
             const rules = eslintConfig
                 .flatMap(section => section.rules)
-                .flatMap(container => container.entries);
+                .flatMap(container => container.entries)
+                .filter(entry => entry.type === EntryType.Rule);
 
             return mergeDuplicateRuleEntries(rules);
         } catch(err) {
@@ -83,6 +84,11 @@ function flagDuplicateRuleConfigurations(rules) {
     });
 }
 
+export const EntryType = {
+    Rule: 'Rule',
+    EmptyRule: 'EmptyRule',
+    Pointer: 'Pointer',
+};
 
 /*
 [ // array of sections (configs)
@@ -101,25 +107,46 @@ function flagDuplicateRuleConfigurations(rules) {
         rules: [ // array of containers
             {
                 range,
-                entries: [
-                    {
-                        name,
-                        range,
-                        key: {
-                            range
-                        },
-                        configuration: {
-                            range,
-                            severityRange,
-                            optionsRange,
-                            value
-                        }
-                        lineEndingRange
-                    }
-                ]
+                entries: Entry[]
             }
         ]
     }
 ]
 
+Entry: {
+    type: EntryType
+    range
+} & (Rule | Pointer | EmptyRule)
+
+EntryType: ENUM (Rule, Pointer, EmptyRule)
+
+Rule: {
+    name,
+    key: {
+        range
+    },
+    configuration: {
+        range,
+        severityRange,
+        optionsRange,
+        value
+    }
+    lineEndingRange
+}
+
+Pointer: {
+    name
+}
+
+EmptyRule: {
+
+}
+
+
+TODO: these things
+
+rule severity - could it have type? (pointer, literal)
+- this might enable me to know variables used...
+
+do I need line ending range? (can calculate that in the controller)
 */

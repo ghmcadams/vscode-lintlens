@@ -5,7 +5,7 @@ import { parse as parseLoose } from 'acorn-loose';
 import * as walk from 'acorn-walk';
 import { generate } from 'escodegen';
 import deepClone from 'deep-clone';
-import Parser from './Parser';
+import Parser, { EntryType } from './Parser';
 
 
 const acornParserOptions = {
@@ -325,10 +325,43 @@ function readRuleValue(ruleValueAST) {
     }
 }
 
-function getRules(container) {
+function getRuleEntries(container) {
     return container.properties
-        .filter(rule => rule.type === 'Property')
-        .map(rule => getRuleDetails(rule));
+        .map(entry => {
+            if (entry.type !== 'Property') {
+                return getPointerDetails(entry);
+            }
+
+            if (entry.key.type === 'Literal' &&
+                entry.start === entry.key.start &&
+                entry.end === entry.key.end
+            ) {
+                return getEmptyRuleDetails(entry);
+            }
+
+            return getRuleDetails(entry);
+        });
+}
+
+function getPointerDetails(entry) {
+    const range = getRange(entry);
+    // TODO: use actual document text for pointer name
+    const name = entry.type === 'Identifier' ? entry.key.name : '';
+
+    return {
+        type: EntryType.Pointer,
+        range,
+        name
+    }
+}
+
+function getEmptyRuleDetails(entry) {
+    const range = getRange(entry);
+
+    return {
+        type: EntryType.EmptyRule,
+        range
+    }
 }
 
 function getRuleDetails(rule) {
@@ -344,18 +377,6 @@ function getRuleDetails(rule) {
     }
     const keyRange = getRange(rule.key);
 
-    // loose parsing allowed invalid syntax
-    if (range.isEqual(keyRange)) {
-        return {
-            name,
-            range,
-            key: {
-                range
-            },
-            lineEndingRange
-        };
-    }
-
     // configuration
     const configurationRange = getRange(rule.value);
     let severityRange, optionsRange;
@@ -368,6 +389,7 @@ function getRuleDetails(rule) {
     const optionsConfig = readRuleValue(rule.value);
 
     return {
+        type: EntryType.Rule,
         name,
         range,
         key: {
@@ -443,21 +465,19 @@ export default class JSParser extends Parser {
             // TODO: Plugins and Extends
 
             // const extendsContainers = getExtendsContainers(section);
-            // const pluginsContainers = getPluginsContainers(section);
-            const rulesContainers = getRulesContainers(section);
+            // const extendsValue = 
 
-            // const extendsValue = {
-            //     containers: extendsContainers.map(container => getRange(container)),
-            //     entries: null
-            // };
-            // const pluginsValue = {
-            //     containers: pluginsContainers.map(container => getRange(container)),
-            //     entries: null
-            // };
+            // const pluginsContainers = getPluginsContainers(section);
+            // const pluginsValue = 
+
+            const rulesContainers = getRulesContainers(section);
             const rulesValue = rulesContainers.map(container => {
+                const range = getRange(container);
+                const entries = getRuleEntries(container);
+
                 return {
-                    range: getRange(container),
-                    entries: getRules(container)
+                    range,
+                    entries
                 };
             });
 

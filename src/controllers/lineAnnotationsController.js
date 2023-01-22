@@ -59,7 +59,6 @@ function addAnnotations(editor, context) {
         const decorations = [];
 
         rules
-            .filter(rule => rule?.name)
             .forEach(rule => {
                 try {
                     const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);

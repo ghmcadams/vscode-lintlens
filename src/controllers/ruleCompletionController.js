@@ -1,8 +1,20 @@
 import { languages, Range, CompletionItem, CompletionItemKind, SnippetString } from 'vscode';
 import * as vscode from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
+import { EntryType } from '../parsers/Parser';
 import { getAllRuleIds } from '../rules';
 
+
+const AreaType = {
+    RulesContainer: 'RulesContainer',
+    EmptyRule: 'EmptyRule',
+    Rule: 'Rule',
+    Key: 'Key',
+    Value: 'Value',
+    Severity: 'Severity',
+    Options: 'Options',
+    Other: 'Other'
+};
 
 export function initialize(context) {
     const documentSelectors = [
@@ -26,8 +38,15 @@ const provider = {
 
         const eslintConfig = parser.getConfig();
 
-        const isValid = validatePosition(eslintConfig, position);
-        if (!isValid) {
+        const positionInfo = resolvePosition(eslintConfig, position);
+        if (positionInfo === null) {
+            return;
+        }
+        if (![
+            AreaType.EmptyRule,
+            AreaType.Key,
+            AreaType.RulesContainer
+        ].includes(positionInfo.type)) {
             return;
         }
 
@@ -73,12 +92,12 @@ const provider = {
     }
 };
 
-function validatePosition(eslintConfig, position) {
+function resolvePosition(eslintConfig, position) {
     const rulesContainers = eslintConfig.flatMap(section => section.rules);
 
     if (rulesContainers.length === 0) {
         // There are no rules containers in this document
-        return false;
+        return null;
     }
 
     let activeContainer = null;
@@ -90,19 +109,53 @@ function validatePosition(eslintConfig, position) {
     }
     if (activeContainer === null) {
         // Not in a rules container
-        return false;
+        return null;
     }
 
-    for (const rule of activeContainer.entries) {
-        if (rule.range.contains(position)) {
-            if (!rule.configuration && rule.key.range.contains(position) && rule.name === '') {
-                return true;
+    for (const entry of activeContainer.entries) {
+        // Within an entry
+        if (entry.range.contains(position)) {
+            if (entry.type === EntryType.EmptyRule) {
+                return {
+                    type: AreaType.EmptyRule,
+                    range: entry.range
+                };
+            }
+            if (entry.type === EntryType.Rule) {
+                let type = AreaType.Rule;
+                let range = entry.range;
+
+                if (entry.key.range.contains(position)) {
+                    type = AreaType.Key;
+                    range = entry.key.range;
+                } else if (entry.configuration?.range.contains(position)) {
+                    type = AreaType.Key;
+                    range = entry.configuration.range;
+
+                    if (entry.configuration.severityRange?.range.contains(position)) {
+                        type = AreaType.Severity;
+                        range = entry.configuration.configuration.severityRange;
+                    } else if (entry.configuration.optionsRange?.range.contains(position)) {
+                        type = AreaType.Options;
+                        range = entry.configuration.configuration.optionsRange;
+                    }
+                }
+
+                return {
+                    type,
+                    range
+                };
             }
 
-            // within a rule (not adding a new one)
-            return false;
+            return {
+                type: AreaType.Other,
+                range: entry.range
+            };
         }
     }
 
-    return true;
+    return {
+        type: AreaType.RulesContainer,
+        range: activeContainer
+    };
 }
