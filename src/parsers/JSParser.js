@@ -2,9 +2,22 @@ import { Position, Range } from 'vscode';
 import { basename } from 'path';
 import { parse } from 'acorn';
 import { parse as parseLoose } from 'acorn-loose';
-import { full as walkAST } from 'acorn-walk';
-import { jsonrepair } from 'jsonrepair';
+import * as walk from 'acorn-walk';
+import { generate } from 'escodegen';
+import deepClone from 'deep-clone';
 import Parser from './Parser';
+
+
+const acornParserOptions = {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    allowReserved: true,
+    allowReturnOutsideFunction: true,
+    allowImportExportEverywhere: true,
+    allowAwaitOutsideFunction: true,
+    allowSuperOutsideMethod: true,
+    locations: true
+};
 
 
 function getVariableValueFromBody(body, name) {
@@ -21,6 +34,10 @@ function getVariableValueFromBody(body, name) {
                     // TODO: what other types could there be? (spread?)
                     if (declaration.init.type === 'Identifier') {
                         return getVariableValueFromBody(body, declaration.init.name);
+                    }
+                    if (['CallExpression', 'MemberExpression'].includes(declaration.init.type)) {
+                        // TODO: support MemberExpression, CallExpression
+                        return null;
                     }
                     return declaration.init;
                 }
@@ -154,38 +171,25 @@ function getAllContainers(container) {
 }
 
 
-function getASTBody(document) {
-    let documentText = document.getText();
-    const languageId = document.languageId;
-
-    const parseOptions = {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        allowReserved: true,
-        allowReturnOutsideFunction: true,
-        allowImportExportEverywhere: true,
-        allowAwaitOutsideFunction: true,
-        allowSuperOutsideMethod: true,
-        locations: true
-    };
+function getASTBody(text, languageId) {
+    let documentText = text;
 
     if (languageId === 'json' || languageId === 'jsonc') {
-        // return parseExpressionAt(documentText, 0, parseOptions);
         documentText = `export default ${documentText}`;
     }
     
     let ast;
     try {
-        ast = parse(documentText, parseOptions);
+        ast = parse(documentText, acornParserOptions);
     } catch(err) {
         try {
-            ast = parseLoose(documentText, parseOptions);
+            ast = parseLoose(documentText, acornParserOptions);
         } catch(err) {
             return null;
         }
     }
 
-    walkAST(ast, (node) => {
+    walk.full(ast, (node) => {
         node.body = ast.body;
     });
 
@@ -247,7 +251,7 @@ function getRulesContainers(config) {
     return [];
 }
 
-function getRange(document, statement) {
+function getRange(statement) {
     if (!statement || (Array.isArray(statement) && statement.length === 0)) {
         return null;
     }
@@ -257,10 +261,50 @@ function getRange(document, statement) {
     const startPosition = new Position(statements.at(0).loc.start.line - 1, statements.at(0).loc.start.column);
     const endPosition = new Position(statements.at(-1).loc.end.line - 1, statements.at(-1).loc.end.column);
 
-    return document.validateRange(new Range(startPosition, endPosition));
+    return new Range(startPosition, endPosition);
 }
 
-function readRuleValue(document, ruleValueAST) {
+function unparseAST(ast) {
+    // replace pointers with real values
+    walk.full(ast, (node) => {
+        const realValue = getRealValue(node);
+        if (realValue === null) {
+            node.type = 'Literal';
+            node.value = "";
+            node.raw = "\"\"";
+        } else if (node !== realValue) {
+            for (const [key, value] of Object.entries(realValue)) {
+                node[key] = value;
+            }
+        }
+    });
+
+    // fix unquoted JSON keys
+    walk.simple(ast, {
+        Property({ key }) {
+            if (key.type === 'Identifier') {
+                key.type = 'Literal';
+                key.value = key.name;
+                key.raw = `"${key.value}"`;
+            }
+        }
+    });
+
+    const json = generate(ast, {
+        format: {
+            quotes: 'double',
+            compact: true
+        }
+    });
+
+    try {
+        return JSON.parse(json);
+    } catch (err) {
+        return null;
+    }
+}
+
+function readRuleValue(ruleValueAST) {
     try {
         if (ruleValueAST.type === 'Literal') {
             return ruleValueAST.value;
@@ -271,27 +315,8 @@ function readRuleValue(document, ruleValueAST) {
         }
 
         if (ruleValueAST.type === 'ArrayExpression') {
-            const severityAST = ruleValueAST.elements[0];
-            const optionsAST = ruleValueAST.elements.slice(1);
-
-            let severity;
-            if (severityAST.type === 'Literal') {
-                severity = severityAST.value;
-            }
-            if (severityAST.type === 'Identifier') {
-                const variableAST = getVariableValueFromBody(ruleValueAST.body, severityAST.name);
-                severity = variableAST?.value ?? null;
-            }
-
-            const optionsRange = getRange(document, optionsAST);
-            const optionsText = document.getText(optionsRange);
-            const options = (optionsAST?.length ?? 0) > 0 && JSON.parse(jsonrepair(optionsText));
-            const optionsAsArray = Array.isArray(options) ? options : [options];
-
-            return [
-                severity,
-                ...(options ? optionsAsArray :[])
-            ];
+            const ruleValueCopy = deepClone(ruleValueAST);
+            return unparseAST(ruleValueCopy);
         }
 
         return null;
@@ -300,15 +325,15 @@ function readRuleValue(document, ruleValueAST) {
     }
 }
 
-function getRules(document, container) {
+function getRules(container) {
     return container.properties
         .filter(rule => rule.type === 'Property')
-        .map(rule => getRuleDetails(document, rule));
+        .map(rule => getRuleDetails(rule));
 }
 
-function getRuleDetails(document, rule) {
-    const range = getRange(document, rule);
-    const lineEndingRange = document.validateRange(new Range(rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER));
+function getRuleDetails(rule) {
+    const range = getRange(rule);
+    const lineEndingRange = new Range(rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER);
 
     // key
     let name = 'Unknown';
@@ -317,7 +342,7 @@ function getRuleDetails(document, rule) {
     } else if (rule.key.type === 'Identifier') {
         name = rule.key.name;
     }
-    const keyRange = getRange(document, rule.key);
+    const keyRange = getRange(rule.key);
 
     // loose parsing allowed invalid syntax
     if (range.isEqual(keyRange)) {
@@ -332,15 +357,15 @@ function getRuleDetails(document, rule) {
     }
 
     // configuration
-    const configurationRange = getRange(document, rule.value);
+    const configurationRange = getRange(rule.value);
     let severityRange, optionsRange;
     if (rule.value.type === 'ArrayExpression') {
-        severityRange = getRange(document, rule.value.elements[0]);
-        optionsRange = getRange(document, rule.value.elements.slice(1));
+        severityRange = getRange(rule.value.elements[0]);
+        optionsRange = getRange(rule.value.elements.slice(1));
     } else if (rule.value.type === 'Literal' || rule.value.type === 'Identifier') {
-        severityRange = getRange(document, rule.value);
+        severityRange = getRange(rule.value);
     }
-    const optionsConfig = readRuleValue(document, rule.value);
+    const optionsConfig = readRuleValue(rule.value);
 
     return {
         name,
@@ -376,7 +401,8 @@ export default class JSParser extends Parser {
     }
 
     parse() {
-        const body = getASTBody(this.document);
+        const documentText = this.document.getText();
+        const body = getASTBody(documentText, this.document.languageId);
         const fileName = basename(this.document.fileName);
         const configPropertyName = fileName === 'package.json' ? 'eslintConfig' : null;
 
@@ -421,17 +447,17 @@ export default class JSParser extends Parser {
             const rulesContainers = getRulesContainers(section);
 
             // const extendsValue = {
-            //     containers: extendsContainers.map(container => getRange(this.document, container)),
+            //     containers: extendsContainers.map(container => getRange(container)),
             //     entries: null
             // };
             // const pluginsValue = {
-            //     containers: pluginsContainers.map(container => getRange(this.document, container)),
+            //     containers: pluginsContainers.map(container => getRange(container)),
             //     entries: null
             // };
             const rulesValue = rulesContainers.map(container => {
                 return {
-                    range: getRange(this.document, container),
-                    entries: getRules(this.document, container)
+                    range: getRange(container),
+                    entries: getRules(container)
                 };
             });
 

@@ -48,9 +48,10 @@
         "acorn-loose": "^8.3.0",
         "acorn-walk": "^8.2.0",
         "ajv": "^6.12.6",
+        "deep-clone": "^3.0.3",
+        "escodegen": "^2.0.0",
         "findup-sync": "^5.0.0",
         "fuse.js": "^3.2.1",
-        "jsonrepair": "^3.0.2",
         "open": "^6.4.0",
         "request-light": "^0.6.0",
         "yaml-ast-parser": "0.0.40"
