@@ -95,7 +95,7 @@ function importPlugin(documentFilePath, rules, pluginName, pluginPackageName) {
 function searchRules(rules, pluginName, ruleId) {
     const list = rules.keys[pluginName || 'base'] || [];
     const fuse = new Fuse(list, fuseOptions);
-    let suggestedRules = fuse.search(ruleId);
+    const suggestedRules = fuse.search(ruleId);
 
     return suggestedRules.map(index => {
         return ((pluginName ? pluginName + '/' : '') + list[index]);

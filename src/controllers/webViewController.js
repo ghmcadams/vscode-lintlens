@@ -63,7 +63,7 @@ function getLoadingHtml() {
 }
 
 function prepareHtml(html, baseUrl) {
-    let baseHost = new url.URL(baseUrl).hostname;
+    const baseHost = new url.URL(baseUrl).hostname;
 
     const newHtml = html
         // remove newline characters
@@ -73,7 +73,7 @@ function prepareHtml(html, baseUrl) {
         .replace(
             /(href|src)="([^"]*?)"/gmi,
             function (match, p1, p2) {
-                let newUrl = url.resolve(baseUrl, p2);
+                const newUrl = url.resolve(baseUrl, p2); // TODO: url.resolve is deprecated?
                 return `${p1}="${newUrl}"`;
             }
         )

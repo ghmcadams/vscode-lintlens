@@ -213,7 +213,7 @@ function getHoverMessage(rule, ruleInfo) {
 
         if (ruleInfo.suggestedRules && ruleInfo.suggestedRules.length > 0) {
             ruleInfo.suggestedRules.slice(0, 3).forEach(item => {
-                let cmd = createReplaceTextCommand(item, rule.key.range, item, `Click to replace rule with ${item}`);
+                const cmd = createReplaceTextCommand(item, rule.key.range, item, `Click to replace rule with ${item}`);
                 hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;did you mean ${cmd}\n`;
             });
         }
@@ -247,7 +247,7 @@ function getHoverMessage(rule, ruleInfo) {
         }
 
         if (ruleInfo.replacedBy && ruleInfo.replacedBy.length > 0) {
-            let replacedByRules = ruleInfo.replacedBy.map(item => {
+            const replacedByRules = ruleInfo.replacedBy.map(item => {
                 return createReplaceTextCommand(item, rule.key.range, item, `Click to replace rule with ${item}`);
             });
             hoverMessage += `&nbsp;&nbsp;${glyphs.lightbulbIcon}&nbsp;&nbsp;replaced by ${replacedByRules.join(', ')}\n`;
@@ -288,7 +288,7 @@ function getHoverMessage(rule, ruleInfo) {
     hoverMessage += `\n---\n`;
     hoverMessage += createOpenWebViewPanelCommand(`Click for more information`, ruleInfo.infoUrl, `${ruleInfo.infoPageTitle} - ${extensionName}`);
 
-    let markdown = new MarkdownString(hoverMessage);
+    const markdown = new MarkdownString(hoverMessage);
     markdown.isTrusted = true;
 
     return markdown;
@@ -299,7 +299,7 @@ function getSpaces(count) {
 }
 
 function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
-    let args = [
+    const args = [
         range.start.line,
         range.start.character,
         range.end.line,
@@ -311,13 +311,13 @@ function createReplaceTextCommand(commandText, range, newText, tooltip = '') {
 }
 
 function createOpenWebViewPanelCommand(text, url, title) {
-    let args = {
+    const args = {
         url,
         title
     };
 
-    let textLink = `[${text}](command:${commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode (may be resource intensive)")`;
-    let glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
+    const textLink = `[${text}](command:${commands.openWebViewPanel}?${encodeURIComponent(JSON.stringify(args))} "Open in VSCode (may be resource intensive)")`;
+    const glyphLink = `[\\\[${glyphs.arrowIcon}\\\]](command:${commands.openInBrowser}?${encodeURIComponent(JSON.stringify(url))} "Open in browser")`;
 
     return `${textLink}&nbsp;&nbsp;${glyphLink}`;
 }
