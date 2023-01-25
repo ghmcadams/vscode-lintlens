@@ -8,7 +8,7 @@ export default class Parser {
     }
 
     parse() {
-        throw new Error('parse() must be overridden.');
+        throw new Error('parse() not implemented.');
     }
 
     getConfig() {
@@ -39,6 +39,10 @@ export default class Parser {
         } catch(err) {
             return [];
         }
+    }
+
+    getActiveRange(position) {
+        throw new Error('getRange() not implemented.');
     }
 }
 
@@ -85,10 +89,15 @@ function flagDuplicateRuleConfigurations(rules) {
 }
 
 export const EntryType = {
-    Rule: 'Rule',
-    EmptyRule: 'EmptyRule',
-    EmptyValue: 'EmptyValue',
+    RulesContainer: 'RulesContainer',
     Pointer: 'Pointer',
+    EmptyRule: 'EmptyRule',
+    EmptyRuleValue: 'EmptyRuleValue',
+    Rule: 'Rule',
+    RuleKey: 'RuleKey',
+    RuleValue: 'RuleValue',
+    Comment: 'Comment',
+    Other: 'Other'
 };
 
 /*
@@ -146,7 +155,7 @@ EmptyRule: {
 
 TODO: these things
 
-rule severity - could it have type? (pointer, literal)
+rule severity - should I include a `type` property? (pointer, literal)
 - this might enable me to know variables used...
 
 do I need line ending range? (can calculate that in the controller)

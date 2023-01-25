@@ -3,7 +3,7 @@ import { basename } from 'path';
 import { parse } from 'acorn';
 import { parse as parseLoose, isDummy } from 'acorn-loose';
 import * as walk from 'acorn-walk';
-import { generate } from 'escodegen';
+import { generate } from 'astring';
 import deepClone from 'deep-clone';
 import Parser, { EntryType } from './Parser';
 
@@ -171,19 +171,24 @@ function getAllContainers(container) {
 }
 
 
-function getASTBody(text, languageId) {
+function getASTBody(text, languageId, optionsOverrides = {}) {
     let documentText = text;
 
     if (languageId === 'json' || languageId === 'jsonc') {
         documentText = `export default ${documentText}`;
     }
-    
+
+    const options = {
+        ...acornParserOptions,
+        ...optionsOverrides
+    };
+
     let ast;
     try {
-        ast = parse(documentText, acornParserOptions);
+        ast = parse(documentText, options);
     } catch(err) {
         try {
-            ast = parseLoose(documentText, acornParserOptions);
+            ast = parseLoose(documentText, options);
         } catch(err) {
             return null;
         }
@@ -209,13 +214,11 @@ function getConfigRoot(body, propertyName = null) {
 function getMainExport(body) {
     for (const statement of body) {
         if (statement.type === 'ExportDefaultDeclaration' || isModuleExports(statement)) {
-            const attemptedValue = statement.type === 'ExportDefaultDeclaration'
-                // default export
-                ? statement.declaration
-                // module.exports
-                : statement.expression.right;
+            if (statement.type === 'ExportDefaultDeclaration') {
+                return getRealValue(statement.declaration);
+            }
 
-            return getRealValue(attemptedValue);
+            return getRealValue(statement.expression.right);
         }
     }
 
@@ -251,7 +254,7 @@ function getRulesContainers(config) {
     return [];
 }
 
-function getRange(statement) {
+function getRange(statement, type) {
     if (!statement || (Array.isArray(statement) && statement.length === 0)) {
         return null;
     }
@@ -261,40 +264,68 @@ function getRange(statement) {
     const startPosition = new Position(statements.at(0).loc.start.line - 1, statements.at(0).loc.start.column);
     const endPosition = new Position(statements.at(-1).loc.end.line - 1, statements.at(-1).loc.end.column);
 
-    return new Range(startPosition, endPosition);
+    const range = new Range(startPosition, endPosition);
+    range.type = type;
+
+    return range;
 }
 
-function unparseAST(ast) {
-    // replace pointers with real values
+function repairJSONAST(ast) {
     walk.full(ast, (node) => {
+        // fix quotes
+        if (node.type === 'Literal' && node.value.replace) {
+            const newRaw = node.value
+                .replace(/^[\'\"\`](.*)[\'\"\`]$/, '$1')
+                .replaceAll(/\"/g, '\'');
+            node.raw = `"${newRaw}"`;
+            return;
+        }
+        if (node.type === 'TemplateLiteral') {
+            node.type = 'Literal';
+            node.value = node.quasis.map(item => item.value.raw.replace(/\"/g, '\'')).join('');
+            node.raw = `"${node.value}"`;
+            return;
+        }
+
+        if (node.type === 'Property') {
+            // fix unquoted JSON keys
+            if (node.key?.type === 'Literal' && node.key.value.replace) {
+                const newRaw = node.key.value
+                    .replace(/^[\'\"\`](.*)[\'\"\`]$/, '$1')
+                    .replaceAll(/\"/g, '\'');
+                    node.key.raw = `"${newRaw}"`;
+            } else if (node.key?.type === 'Identifier') {
+                node.key.type = 'Literal';
+                node.key.value = node.key.name;
+                node.key.raw = `"${node.key.name}"`;
+            }
+            return;
+        }
+
+        // replace pointers with real values
         const realValue = getRealValue(node);
         if (realValue === null) {
             node.type = 'Literal';
             node.value = "";
             node.raw = "\"\"";
+            return;
         } else if (node !== realValue) {
             for (const [key, value] of Object.entries(realValue)) {
                 node[key] = value;
             }
+            return;
         }
     });
 
-    // fix unquoted JSON keys
-    walk.simple(ast, {
-        Property({ key }) {
-            if (key.type === 'Identifier') {
-                key.type = 'Literal';
-                key.value = key.name;
-                key.raw = `"${key.value}"`;
-            }
-        }
-    });
+    return ast;
+}
 
-    const json = generate(ast, {
-        format: {
-            quotes: 'double',
-            compact: true
-        }
+function unparseJSON(ast) {
+    const repairedJson = repairJSONAST(ast);
+
+    const json = generate(repairedJson, {
+        indent: '',
+        lineEnd: ''
     });
 
     try {
@@ -306,7 +337,7 @@ function unparseAST(ast) {
 
 function readRuleValue(ruleValueAST) {
     try {
-        if (ruleValueAST.type === 'Literal') {
+        if (ruleValueAST.type === 'Literal' || ruleValueAST.type === 'TemplateLiteral') {
             return ruleValueAST.value;
         }
         if (ruleValueAST.type === 'Identifier') {
@@ -316,7 +347,7 @@ function readRuleValue(ruleValueAST) {
 
         if (ruleValueAST.type === 'ArrayExpression') {
             const ruleValueCopy = deepClone(ruleValueAST);
-            return unparseAST(ruleValueCopy);
+            return unparseJSON(ruleValueCopy);
         }
 
         return null;
@@ -331,13 +362,18 @@ function getRuleEntries(container) {
             if (entry.type !== 'Property') {
                 return getPointerDetails(entry);
             }
-
-            if (isDummy(entry.value)) {
-                return getEmptyValueDetails(entry);
-            }
-            if (entry.key.type === 'Literal' &&
+            if (entry.key &&
+                entry.key.type === 'Identifier' &&
                 entry.start === entry.key.start &&
                 entry.end === entry.key.end
+            ) {
+                return getPointerDetails(entry);
+            }
+
+            if (entry.key.type === 'Literal' &&
+                entry.start === entry.key.start &&
+                entry.end === entry.key.end &&
+                entry.key.value === ''
             ) {
                 return getEmptyRuleDetails(entry);
             }
@@ -348,8 +384,18 @@ function getRuleEntries(container) {
 
 function getPointerDetails(entry) {
     const range = getRange(entry);
-    // TODO: use actual document text for pointer name
-    const name = entry.type === 'Identifier' ? entry.key.name : '';
+
+    let name;
+    if (entry.key?.type === 'Identifier') {
+        name = entry.key.name;
+    }
+    if (entry.type === 'SpreadElement' && entry.argument?.type === 'Identifier') {
+        name = entry.argument.name;
+    }
+
+    // TODO: handle entry.argument.type = MemberExpression
+    // make it work when chained objects (ex: obj1.obj2.obj3.val)
+    //  I need to do more to get it - EX: entry.argument.object.object.object.name (only gives me obj1)
 
     return {
         type: EntryType.Pointer,
@@ -370,7 +416,7 @@ function getEmptyRuleDetails(entry) {
 function getEmptyValueDetails(entry) {
     const range = getRange(entry);
 
-    // when acorn loose adds a dummy value, the key contains the colon
+    // when acorn loose adds a dummy value, sometimes the key contains the colon, sometimes, it does not
     // TODO: make this cleaner (I want ALL the space after the colon, no matter what is there)
     return {
         type: EntryType.EmptyValue,
@@ -398,7 +444,7 @@ function getRuleDetails(rule) {
     if (rule.value.type === 'ArrayExpression') {
         severityRange = getRange(rule.value.elements[0]);
         optionsRange = getRange(rule.value.elements.slice(1));
-    } else if (rule.value.type === 'Literal' || rule.value.type === 'Identifier') {
+    } else if (rule.value.type === 'Literal' || rule.value.type === 'TemplateLiteral' || rule.value.type === 'Identifier') {
         severityRange = getRange(rule.value);
     }
     const optionsConfig = readRuleValue(rule.value);
@@ -437,9 +483,7 @@ export default class JSParser extends Parser {
         this.options = defaultedOptions;
     }
 
-    parse() {
-        const documentText = this.document.getText();
-        const body = getASTBody(documentText, this.document.languageId);
+    getConfigSections(body) {
         const fileName = basename(this.document.fileName);
         const configPropertyName = fileName === 'package.json' ? 'eslintConfig' : null;
 
@@ -476,6 +520,14 @@ export default class JSParser extends Parser {
             ];
         }
 
+        return sections;
+    }
+
+    parse() {
+        const documentText = this.document.getText();
+        const body = getASTBody(documentText, this.document.languageId);
+        const sections = this.getConfigSections(body);
+
         return sections.map(section => {
             // TODO: Plugins and Extends
 
@@ -502,5 +554,98 @@ export default class JSParser extends Parser {
                 rules: rulesValue
             };
         });
+    }
+
+    getActiveRange(position) {
+        const offset = this.document.offsetAt(position);
+
+        const comments = [];
+        const documentText = this.document.getText();
+        const body = getASTBody(documentText, this.document.languageId, { onComment: comments });
+        const sections = this.getConfigSections(body);
+        const rulesContainers = sections.map(section => getRulesContainers(section)).flat();
+
+        // Find active container
+        // TODO: search other containers as well (plugins, etc.)
+        let activeContainer = null;
+        for (const container of rulesContainers) {
+            const start = container.start;
+            const end = container.end;
+
+            if (offset >= start && offset <= end) {
+                activeContainer = container;
+                break;
+            }
+        }
+
+        // If offset is not in any container, then return Other
+        if (activeContainer === null) {
+            // TODO: this fails with an error: baseVisitor[type] does not exist
+            // const node = walk.findNodeAround(body, offset);
+            // return getRange(node, EntryType.Other);
+            return {
+                type: EntryType.Other
+            };
+        }
+
+
+        // If offset is within a comment, return Comment
+        for (const comment of comments) {
+            const start = comment.start;
+            const end = comment.end;
+
+            if (offset >= start && offset <= end) {
+                const range = getRange(comment, EntryType.Comment);
+                range.commentType = comment.type;
+                return range;
+            }
+        }
+
+        // offset is within a container (but where?)
+
+        for (const prop of activeContainer.properties) {
+            const start = prop.start;
+            const end = prop.end;
+
+            // offset is not within this property
+            if (start > offset || end < offset) {
+                continue;
+            }
+
+            if (prop.type !== 'Property') {
+                return getRange(prop, EntryType.Pointer);
+            }
+
+            // Is offset in the key or value?
+
+            if (prop.key &&
+                prop.key.type === 'Identifier' &&
+                prop.start === prop.key.start &&
+                prop.end === prop.key.end
+            ) {
+                return getRange(prop, EntryType.Pointer);
+            }
+
+            if (prop.key &&
+                prop.key.start <= offset &&
+                prop.key.end >= offset
+            ) {
+                return getRange(prop.key, EntryType.RuleKey);
+            }
+
+            // TODO: FIX acorn-loose no prop value issue
+            // acorn-loose issue:  when there is no comma, prop.value depends on what the NEXT property (if any) is
+            if (isDummy(prop.value) || prop.key.loc.end.line !== prop.value.loc.start.line) {
+                const range = new Range(position, position);
+                range.type = EntryType.EmptyRuleValue;
+                return range;
+            }
+
+            // TODO: where in the value? (severity? options?)
+            //      need to do some other things to determine this (steal from getRuleDetails?)
+            return getRange(prop.value, EntryType.RuleValue);
+        }
+
+        return getRange(activeContainer, EntryType.RulesContainer);
     }
 };

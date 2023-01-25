@@ -93,4 +93,9 @@ export default class YAMLParser extends Parser {
             };
         });
     }
+
+    getActiveRange(position) {
+        // TODO: Implement getActiveRange(position) in YAMLParser
+        return null;
+    }
 };
