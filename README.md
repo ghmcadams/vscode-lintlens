@@ -20,7 +20,9 @@ Adds details beside each [ESLint rule](https://eslint.org/docs/rules/) in your c
 
 Displays detailed information (including usage schema information and a link to the official docs page) in a hover container for each rule.
 
-Validates rule options in your config file
+Adds intellisense (autocomplete) for rule IDs and for simple rule values (complex rule value intellisense MIGHT be added in the future)
+
+Adds rule value validation
 
 Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/user-guide/configuring#configuration-file-formats)
 
@@ -66,4 +68,5 @@ In an effort to support all possible plugins and to keep size small, this extens
   - rule option validation does not work when variables are used
   - Beyond that, parsing could be improved
   - Additionally, the language mode must match `javascript` or `javascriptreact`.
-- Rule option validation does not yet work for YAML config files
+- Intellisense does not work for YAML config files
+- Rule option validation does not work for YAML config files
