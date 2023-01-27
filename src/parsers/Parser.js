@@ -89,14 +89,25 @@ function flagDuplicateRuleConfigurations(rules) {
 }
 
 export const EntryType = {
+    Comment: 'Comment',
+
+    PluginsContainer: 'PluginsContainer',
     RulesContainer: 'RulesContainer',
+
     Pointer: 'Pointer',
-    EmptyRule: 'EmptyRule',
-    EmptyRuleValue: 'EmptyRuleValue',
+
+    Plugin: 'Plugin',
+    PluginKey: 'PluginKey',
+    PluginValue: 'PluginValue',
+    EmptyPluginKey: 'EmptyPluginKey',
+    EmptyPluginValue: 'EmptyPluginValue',
+
     Rule: 'Rule',
     RuleKey: 'RuleKey',
     RuleValue: 'RuleValue',
-    Comment: 'Comment',
+    EmptyRuleKey: 'EmptyRuleKey',
+    EmptyRuleValue: 'EmptyRuleValue',
+
     Other: 'Other'
 };
 
@@ -106,29 +117,36 @@ export const EntryType = {
         plugins: [ // array of containers
             {
                 range,
-                entries: [
-                    {
-                        key,
-                        value
-                    }
-                ]
+                entries: PluginsEntry[]
             }
         ],
         rules: [ // array of containers
             {
                 range,
-                entries: Entry[]
+                entries: RulesEntry[]
             }
         ]
     }
 ]
 
-Entry: {
-    type: EntryType
+PluginsEntry: {
+    type: PluginsEntryType
     range
-} & (Rule | Pointer | EmptyRule)
+} & (Plugin | Pointer | EmptyPlugin)
 
-EntryType: ENUM (Rule, Pointer, EmptyRule)
+RulesEntry: {
+    type: RulesEntryType
+    range
+} & (Rule | Pointer | EmptyRuleKey)
+
+PluginsEntryType: ENUM (Plugin, Pointer, EmptyPlugin, ...)
+RulesEntryType: ENUM (Rule, Pointer, EmptyRule, ...)
+
+Plugin: {
+    name,
+    key,
+    value
+}
 
 Rule: {
     name,
@@ -141,15 +159,10 @@ Rule: {
         optionsRange,
         value
     }
-    lineEndingRange
 }
 
 Pointer: {
     name
-}
-
-EmptyRule: {
-
 }
 
 

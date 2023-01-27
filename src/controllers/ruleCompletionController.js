@@ -33,7 +33,7 @@ const ruleIdProvider = {
         }
         if (![
             EntryType.RulesContainer,
-            EntryType.EmptyRule,
+            EntryType.EmptyRuleKey,
             EntryType.RuleKey
         ].includes(positionRange.type)) {
             return;
@@ -46,7 +46,7 @@ const ruleIdProvider = {
             case EntryType.RulesContainer:
                 entryRange = new Range(position, position);
                 break;
-            case EntryType.EmptyRule:
+            case EntryType.EmptyRuleKey:
             case EntryType.RuleKey:
                 entryRange = new Range(positionRange.start, position);
                 break;

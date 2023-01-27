@@ -20,14 +20,23 @@ function getSections(body) {
     return sections;
 }
 
-function getRulesContainers(section) {
+function getContainers(section) {
+    if (!section?.mappings?.length) {
+        return {};
+    }
+
+    const containers = {};
+
     for (const prop of section.mappings) {
         if (prop.key.value === 'rules') {
-            return [prop.value];
+            containers.rules = [prop.value];
+        }
+        if (prop.key.value === 'plugins') {
+            containers.plugins = [prop.value];
         }
     }
 
-    return [];
+    return containers;
 }
 
 function getRange(document, statement) {
@@ -37,6 +46,20 @@ function getRange(document, statement) {
     return document.validateRange(new Range(startPosition, endPosition));
 }
 
+function getPlugins(document, container) {
+    return container.items.map(plugin => getPluginDetails(document, plugin));
+}
+
+function getPluginDetails(document, plugin) {
+    const range = getRange(document, plugin);
+
+    return {
+        type: EntryType.Plugin,
+        name: plugin.value,
+        range
+    };
+}
+
 function getRules(document, container) {
     return container.mappings.map(rule => getRuleDetails(document, rule));
 }
@@ -44,9 +67,6 @@ function getRules(document, container) {
 function getRuleDetails(document, rule) {
     const range = getRange(document, rule);
     const keyRange = getRange(document, rule.key);
-
-    const ruleLine = document.positionAt(rule.startPosition - 1).line;
-    const lineEndingRange = document.validateRange(new Range(ruleLine, Number.MAX_SAFE_INTEGER, ruleLine, Number.MAX_SAFE_INTEGER));
 
     return {
         type: EntryType.Rule,
@@ -59,8 +79,7 @@ function getRuleDetails(document, rule) {
         //     severityRange,
         //     optionsRange,
         //     value: optionsConfig
-        // },
-        lineEndingRange
+        // }
     };
 }
 
@@ -71,15 +90,27 @@ export default class YAMLParser extends Parser {
 
     parse() {
         const body = getASTBody(this.document);
+        if (!body) {
+            return null;
+        }
 
         // get sections (main, overrides)
         const sections = getSections(body);
 
         return sections.map(section => {
-            // TODO: Plugins and Extends
+            const {
+                // (main.plugins, overrides[x].plugins)
+                plugins: pluginsContainers,
+                // (main.rules, overrides[x].rules)
+                rules: rulesContainers
+            } = getContainers(section);
 
-            // get rules containers (main.rules, overrides[x].rules)
-            const rulesContainers = getRulesContainers(section);
+            const pluginsValue = pluginsContainers.map(container => {
+                return {
+                    range: getRange(this.document, container),
+                    entries: getPlugins(this.document, container)
+                };
+            });
 
             const rulesValue = rulesContainers.map(container => {
                 return {
@@ -89,6 +120,7 @@ export default class YAMLParser extends Parser {
             });
 
             return {
+                plugins: pluginsValue,
                 rules: rulesValue
             };
         });

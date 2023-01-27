@@ -1,4 +1,4 @@
-import { window, workspace, languages, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
+import { window, workspace, languages, Range, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 import { getRuleDetails } from '../rules';
 import { glyphs, extensionName, commands, messages } from '../constants';
@@ -128,7 +128,9 @@ function addAnnotations(editor, context) {
                     // Create annotation decoration
                     const contentText = getContentText(rule, ruleInfo);
                     const hoverMessage = getHoverMessage(rule, ruleInfo);
-                    const decoration = getDecorationObject(rule.lineEndingRange, contentText, hoverMessage);
+
+                    const lineEndingRange = new Range(rule.range.start.line, Number.MAX_SAFE_INTEGER, rule.range.start.line, Number.MAX_SAFE_INTEGER);
+                    const decoration = getDecorationObject(lineEndingRange, contentText, hoverMessage);
 
                     decorations.push(decoration);
                 } catch(err) {

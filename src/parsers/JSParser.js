@@ -165,6 +165,18 @@ function getAllContainers(container) {
         }
 
         return [...new Set(containers)];
+    } else if (realContainer?.type === 'ArrayExpression') {
+        const containers = [realContainer];
+
+        // If there are any spreads, get those, too
+        for (const element of realContainer.elements) {
+            const realElement = getRealValue(element);
+            if (realElement?.type === 'ArrayExpression') {
+                containers.push(...getAllContainers(realElement));
+            }
+        }
+
+        return [...new Set(containers)];
     }
 
     return [];
@@ -238,20 +250,26 @@ function getOverrides(config) {
     return [];
 }
 
-function getRulesContainers(config) {
-    if (!config?.properties || config.properties.length === 0) {
-        return [];
+function getContainers(config) {
+    if (!config?.properties?.length) {
+        return {};
     }
+
+    const containers = {};
 
     const realProperties = getRealProperties(config.properties);
 
     for (const prop of realProperties) {
+        if (isCorrectProperty(prop, 'plugins')) {
+            containers.plugins = getAllContainers(prop.value);
+        }
+
         if (isCorrectProperty(prop, 'rules')) {
-            return getAllContainers(prop.value);
+            containers.rules = getAllContainers(prop.value);
         }
     }
 
-    return [];
+    return containers;
 }
 
 function getRange(statement, type) {
@@ -356,6 +374,45 @@ function readRuleValue(ruleValueAST) {
     }
 }
 
+function getPluginEntries(container) {
+    if (container.type === 'ObjectExpression') {
+        return container.properties
+            .map(entry => {
+                if (entry.type !== 'Property') {
+                    return getPointerDetails(entry);
+                }
+                if (entry.key &&
+                    entry.key.type === 'Identifier' &&
+                    entry.start === entry.key.start &&
+                    entry.end === entry.key.end
+                ) {
+                    return getPointerDetails(entry);
+                }
+
+                if (entry.key.type === 'Literal' &&
+                    entry.start === entry.key.start &&
+                    entry.end === entry.key.end &&
+                    entry.key.value === ''
+                ) {
+                    return getEmptyPluginKeyDetails(entry);
+                }
+
+                return getPluginDetails(entry);
+            });
+    } else if (container.type === 'ArrayExpression') {
+        return container.elements
+            .map(entry => {
+                if (!['Literal', 'Identifier'].includes(entry.type)) {
+                    return getPointerDetails(entry);
+                }
+
+                return getPluginDetails(entry);
+            });
+    }
+
+    return [];
+}
+
 function getRuleEntries(container) {
     return container.properties
         .map(entry => {
@@ -375,7 +432,7 @@ function getRuleEntries(container) {
                 entry.end === entry.key.end &&
                 entry.key.value === ''
             ) {
-                return getEmptyRuleDetails(entry);
+                return getEmptyRuleKeyDetails(entry);
             }
 
             return getRuleDetails(entry);
@@ -404,30 +461,50 @@ function getPointerDetails(entry) {
     }
 }
 
-function getEmptyRuleDetails(entry) {
+function getEmptyPluginKeyDetails(entry) {
     const range = getRange(entry);
 
     return {
-        type: EntryType.EmptyRule,
+        type: EntryType.EmptyPluginKey,
         range
     }
 }
 
-function getEmptyValueDetails(entry) {
+function getPluginDetails(plugin) {
+    const pluginKey = plugin.key ? plugin.key : plugin;
+    const pluginValue = plugin.key ? plugin.value : plugin;
+
+    let key, value;
+    if (pluginKey?.type === 'Literal') {
+        key = pluginKey.value;
+    } else if (pluginKey?.type === 'Identifier') {
+        key = pluginKey.name;
+    }
+    if (pluginValue?.type === 'Literal') {
+        value = pluginValue.value;
+    } else if (pluginValue?.type === 'Identifier') {
+        value = pluginValue.name;
+    }
+
+    return {
+        type: EntryType.Plugin,
+        range: getRange(plugin),
+        key,
+        value
+    };
+}
+
+function getEmptyRuleKeyDetails(entry) {
     const range = getRange(entry);
 
-    // when acorn loose adds a dummy value, sometimes the key contains the colon, sometimes, it does not
-    // TODO: make this cleaner (I want ALL the space after the colon, no matter what is there)
     return {
-        type: EntryType.EmptyValue,
-        range,
-        valueRange: new Range(entry.key.loc.end.line - 1, entry.key.loc.end.column + 1, entry.value.loc.end.line - 1, entry.value.loc.end.column)
+        type: EntryType.EmptyRuleKey,
+        range
     }
 }
 
 function getRuleDetails(rule) {
     const range = getRange(rule);
-    const lineEndingRange = new Range(rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER, rule.loc.start.line - 1, Number.MAX_SAFE_INTEGER);
 
     // key
     let name = 'Unknown';
@@ -461,8 +538,7 @@ function getRuleDetails(rule) {
             severityRange,
             optionsRange,
             value: optionsConfig
-        },
-        lineEndingRange
+        }
     };
 }
 
@@ -528,16 +604,26 @@ export default class JSParser extends Parser {
         const body = getASTBody(documentText, this.document.languageId);
         const sections = this.getConfigSections(body);
 
+        if (sections === null) {
+            return null;
+        }
+
         return sections.map(section => {
-            // TODO: Plugins and Extends
+            const {
+                plugins: pluginsContainers,
+                rules: rulesContainers
+            } = getContainers(section);
 
-            // const extendsContainers = getExtendsContainers(section);
-            // const extendsValue = 
+            const pluginsValue = pluginsContainers.map(container => {
+                const range = getRange(container);
+                const entries = getPluginEntries(container);
 
-            // const pluginsContainers = getPluginsContainers(section);
-            // const pluginsValue = 
+                return {
+                    range,
+                    entries
+                };
+            });
 
-            const rulesContainers = getRulesContainers(section);
             const rulesValue = rulesContainers.map(container => {
                 const range = getRange(container);
                 const entries = getRuleEntries(container);
@@ -549,8 +635,7 @@ export default class JSParser extends Parser {
             });
 
             return {
-                // extends: extendsValue,
-                // plugins: pluginsValue,
+                plugins: pluginsValue,
                 rules: rulesValue
             };
         });
@@ -563,7 +648,17 @@ export default class JSParser extends Parser {
         const documentText = this.document.getText();
         const body = getASTBody(documentText, this.document.languageId, { onComment: comments });
         const sections = this.getConfigSections(body);
-        const rulesContainers = sections.map(section => getRulesContainers(section)).flat();
+
+        if (sections === null) {
+            return null;
+        }
+
+        // TODO: Plugins, too
+
+        const rulesContainers = sections.map(section => {
+            const { rules } = getContainers(section);
+            return rules;
+        }).flat();
 
         // Find active container
         // TODO: search other containers as well (plugins, etc.)
