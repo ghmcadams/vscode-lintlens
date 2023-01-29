@@ -129,7 +129,7 @@ function addAnnotations(editor, context) {
                     const contentText = getContentText(rule, ruleInfo);
                     const hoverMessage = getHoverMessage(rule, ruleInfo);
 
-                    const lineEndingRange = new Range(rule.range.start.line, Number.MAX_SAFE_INTEGER, rule.range.start.line, Number.MAX_SAFE_INTEGER);
+                    const lineEndingRange = new Range(rule.key.range.start.line, Number.MAX_SAFE_INTEGER, rule.key.range.start.line, Number.MAX_SAFE_INTEGER);
                     const decoration = getDecorationObject(lineEndingRange, contentText, hoverMessage);
 
                     decorations.push(decoration);
