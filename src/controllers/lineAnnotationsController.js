@@ -58,89 +58,88 @@ function addAnnotations(editor, context) {
         const diagnostics = [];
         const decorations = [];
 
-        rules
-            .forEach(rule => {
-                try {
-                    const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
-                    if (ruleInfo === null) {
-                        return;
-                    }
-
-                    // validate rule config options
-                    ruleInfo.validationErrors = [];
-                    if (rule.configuration?.value !== null && rule.configuration?.value !== undefined) {
-                        const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.configuration.value);
-                        if (!severity.valid) {
-                            ruleInfo.validationErrors.push(severity.message);
-
-                            diagnostics.push({
-                                source: 'LintLens',
-                                range: rule.configuration.severityRange,
-                                severity: DiagnosticSeverity.Error,
-                                message: severity.message,
-                            });
-                        }
-                        if (!options.valid) {
-                            ruleInfo.validationErrors.push(...options.errors);
-
-                            diagnostics.push(...options.errors.map(error => ({
-                                source: 'LintLens',
-                                range: rule.configuration.optionsRange,
-                                severity: DiagnosticSeverity.Error,
-                                message: error,
-                            })));
-                        }
-                    }
-
-                    // add diagnostics as needed
-                    if (ruleInfo.isPluginMissing) {
-                        diagnostics.push({
-                            source: 'LintLens',
-                            range: rule.key.range,
-                            severity: DiagnosticSeverity.Error,
-                            message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
-                        });
-                    } else if (!ruleInfo.isRuleFound) {
-                        diagnostics.push({
-                            source: 'LintLens',
-                            range: rule.key.range,
-                            severity: DiagnosticSeverity.Error,
-                            message: `Rule "${rule.name}" not found`,
-                        });
-                    }
-                    if (rule.duplicate) {
-                        diagnostics.push({
-                            source: 'LintLens',
-                            range: rule.key.range,
-                            severity: DiagnosticSeverity.Warning,
-                            message: messages.duplicateRule,
-                        });
-                    }
-                    if (ruleInfo.isDeprecated) {
-                        diagnostics.push({
-                            source: 'LintLens',
-                            range: rule.key.range,
-                            severity: DiagnosticSeverity.Warning,
-                            message: `Rule "${rule.name}" is deprecated`,
-                        });
-                    }
-
-                    // Create annotation decoration
-                    const contentText = getContentText(rule, ruleInfo);
-                    const hoverMessage = getHoverMessage(rule, ruleInfo);
-
-                    const lineEndingRange = new Range(rule.key.range.start.line, Number.MAX_SAFE_INTEGER, rule.key.range.start.line, Number.MAX_SAFE_INTEGER);
-                    const decoration = getDecorationObject(lineEndingRange, contentText, hoverMessage);
-
-                    decorations.push(decoration);
-                } catch(err) {
-                    if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
-                        throw err;
-                    }
-
-                    // TODO: what should I do with rule decoration errors?
+        rules.forEach(rule => {
+            try {
+                const ruleInfo = getRuleDetails(editor.document.fileName, rule.name);
+                if (ruleInfo === null) {
+                    return;
                 }
-            });
+
+                // validate rule config options
+                ruleInfo.validationErrors = [];
+                if (rule.configuration?.value !== null && rule.configuration?.value !== undefined) {
+                    const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.configuration.value);
+                    if (!severity.valid) {
+                        ruleInfo.validationErrors.push(...severity.errors);
+
+                        diagnostics.push(...severity.errors.map(error => ({
+                            source: 'LintLens',
+                            range: rule.configuration.severityRange,
+                            severity: DiagnosticSeverity.Error,
+                            message: error,
+                        })));
+                    }
+                    if (!options.valid) {
+                        ruleInfo.validationErrors.push(...options.errors);
+
+                        diagnostics.push(...options.errors.map(error => ({
+                            source: 'LintLens',
+                            range: rule.configuration.optionsRange,
+                            severity: DiagnosticSeverity.Error,
+                            message: error,
+                        })));
+                    }
+                }
+
+                // add diagnostics as needed
+                if (ruleInfo.isPluginMissing) {
+                    diagnostics.push({
+                        source: 'LintLens',
+                        range: rule.key.range,
+                        severity: DiagnosticSeverity.Error,
+                        message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
+                    });
+                } else if (!ruleInfo.isRuleFound) {
+                    diagnostics.push({
+                        source: 'LintLens',
+                        range: rule.key.range,
+                        severity: DiagnosticSeverity.Error,
+                        message: `Rule "${rule.name}" not found`,
+                    });
+                }
+                if (rule.duplicate) {
+                    diagnostics.push({
+                        source: 'LintLens',
+                        range: rule.key.range,
+                        severity: DiagnosticSeverity.Warning,
+                        message: messages.duplicateRule,
+                    });
+                }
+                if (ruleInfo.isDeprecated) {
+                    diagnostics.push({
+                        source: 'LintLens',
+                        range: rule.key.range,
+                        severity: DiagnosticSeverity.Warning,
+                        message: `Rule "${rule.name}" is deprecated`,
+                    });
+                }
+
+                // Create annotation decoration
+                const contentText = getContentText(rule, ruleInfo);
+                const hoverMessage = getHoverMessage(rule, ruleInfo);
+
+                const lineEndingRange = new Range(rule.key.range.start.line, Number.MAX_SAFE_INTEGER, rule.key.range.start.line, Number.MAX_SAFE_INTEGER);
+                const decoration = getDecorationObject(lineEndingRange, contentText, hoverMessage);
+
+                decorations.push(decoration);
+            } catch(err) {
+                if (err.name === 'MissingESLintError' || err.name === 'UnsupportedESLintError') {
+                    throw err;
+                }
+
+                // TODO: what should I do with rule decoration errors?
+            }
+        });
 
         editor.setDecorations(annotationDecoration, decorations);
         diagnosticsCollection.set(editor.document.uri, diagnostics);
@@ -227,10 +226,6 @@ function getHoverMessage(rule, ruleInfo) {
         }
         hoverMessage += '\n';
 
-        if (ruleInfo.validationErrors?.length > 0) {
-            hoverMessage += `&nbsp;&nbsp;${glyphs.redXIcon}&nbsp;&nbsp;***${messages.validationError}***\n`;
-        }
-
         if (rule.duplicate === true) {
             hoverMessage += `&nbsp;&nbsp;${glyphs.circledTwo}&nbsp;&nbsp;*${messages.duplicateRule}*\n`;
         }
@@ -264,6 +259,11 @@ function getHoverMessage(rule, ruleInfo) {
 
         if (ruleInfo.schemaDocumentation) {
             hoverMessage += `\n---\n`;
+
+            if (ruleInfo.validationErrors?.length > 0) {
+                hoverMessage += `${glyphs.redXIcon}&nbsp;&nbsp;***${messages.validationError}***\n\n`;
+            }
+
             hoverMessage += '**Rule Options**:\n\n';
 
             // A code block (\\\ <language> , followed by the code, then another line with \\\) with the lintlens language

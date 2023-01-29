@@ -1,4 +1,4 @@
-import ajv from './ajv';
+import { validate } from './ajv';
 
 
 const severityMap = {
@@ -94,8 +94,6 @@ function getEnumDoc({ schema }) {
     if (schema.enum.length === 1) {
         return getConstantText(schema.enum[0]);
     }
-
-    // TODO: consider static(ish) newlines - so I can maintain indent
 
     let ret = schema.enum.map(item => {
         return getConstantText(item);
@@ -222,7 +220,7 @@ function getArrayBodyDoc({ schema, root, indent }) {
     let itemCount = null;
 
     if (schema.hasOwnProperty('items') || schema.hasOwnProperty('prefixItems') || schema.hasOwnProperty('contains')) {
-        const items = schema.contains || schema.items || schema.prefixItems;
+        const items = schema.contains ?? schema.items ?? schema.prefixItems;
         if (schema.hasOwnProperty('contains')) {
             ret += `(contains)\n${getIndent(indent)}`;
         }
@@ -250,28 +248,42 @@ function getArrayBodyDoc({ schema, root, indent }) {
         }
     }
 
-    if (schema.hasOwnProperty('oneOf')) {
+    if (schema.hasOwnProperty('anyOf') || schema.hasOwnProperty('oneOf')) {
         ret += getOneOfDoc({ schema, root, indent, parentType: containerType.array });
-    }
-    if (schema.hasOwnProperty('anyOf')) {
-        ret += getAnyOfDoc({ schema, root, indent, parentType: containerType.array });
+        itemCount = itemCount ?? schema.oneOf.length ?? null;
     }
     if (schema.hasOwnProperty('allOf')) {
         ret += getAllOfDoc({ schema, root, indent, parentType: containerType.array });
+        itemCount = itemCount ?? schema.allOf.length ?? null;
     }
 
     if (itemCount !== 1) {
-        //TODO: infer:  min = 0, max = item count --> optional
-        if (schema.hasOwnProperty('minItems')) {
-            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# min items: ${schema.minItems}`;
+        const comments = [];
+
+        if (schema.hasOwnProperty('minItems') &&
+            schema.hasOwnProperty('maxItems') && 
+            schema.minItems === schema.maxItems
+        ) {
+            comments.push(`required: ${schema.minItems} items`);
+        } else {
+            if (schema.hasOwnProperty('minItems') && schema.minItems > 0) {
+                comments.push(`min items: ${schema.minItems}`);
+            }
+
+            if (schema.hasOwnProperty('maxItems')) {
+                comments.push(`max items: ${schema.maxItems}`);
+            }
         }
 
-        if (schema.hasOwnProperty('maxItems')) {
-            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# max items: ${schema.maxItems}`;
+        if (schema.hasOwnProperty('uniqueItems') && schema.uniqueItems === true) {
+            comments.push(`unique`); // TODO: idea: "items must be unique"
         }
 
-        if (schema.hasOwnProperty('uniqueItems')) {
-            ret += `${ret.length === 0? '' : '\n'}${getIndent(indent)}# unique: ${schema.uniqueItems}`;
+        if (comments.length > 0) {
+            if (ret.length > 0) {
+                ret += '\n';
+            }
+            ret += comments.map(comment => `${getIndent(indent)}# ${comment}`).join('\n');
         }
     }
 
@@ -360,30 +372,27 @@ function getConstDoc({ schema }) {
 }
 
 function getOneOfDoc({ schema, root, indent, parentType }) {
-    const { oneOf: of, ...rest } = schema;
+    const { oneOf, anyOf, ...rest } = schema;
+    const anyOrOneOf = anyOf ?? oneOf;
 
-    const items = of.map((item) => {
+    const items = anyOrOneOf.map((item) => {
         return {
             ...rest,
             ...item
         };
     });
     return items.map(item => {
-        return getSchemaDoc({ schema: item, root, indent, parentType });
-    }).join(' | ');
-}
+        let ret = getSchemaDoc({ schema: item, root, indent, parentType });
 
-function getAnyOfDoc({ schema, root, indent, parentType }) {
-    const { anyOf: of, ...rest } = schema;
+        const lastComment = ret.lastIndexOf('#');
+        if (lastComment > -1) {
+            const lastNewline = ret.toString().lastIndexOf('\n', lastComment);
+            if (lastComment > lastNewline) {
+                ret += '\n';
+            }
+        }
 
-    const items = of.map((item) => {
-        return {
-            ...rest,
-            ...item
-        };
-    });
-    return items.map(item => {
-        return getSchemaDoc({ schema: item, root, indent, parentType });
+        return ret;
     }).join(' | ');
 }
 
@@ -505,11 +514,8 @@ function getSchemaDoc({ schema, root = schema, indent = 0, parentType = containe
         return getBooleanDoc(({ schema: item, root, indent, parentType }));
     }
 
-    if (item.hasOwnProperty('oneOf')) {
+    if (item.hasOwnProperty('anyOf') || item.hasOwnProperty('oneOf')) {
         return getOneOfDoc(({ schema: item, root, indent, parentType }));
-    }
-    if (item.hasOwnProperty('anyOf')) {
-        return getAnyOfDoc(({ schema: item, root, indent, parentType }));
     }
     if (item.hasOwnProperty('allOf')) {
         return getAllOfDoc(({ schema: item, root, indent, parentType }));
@@ -544,9 +550,19 @@ function cleanUpSchema(schema) {
 }
 
 function validateRuleSeverity(config) {
+    const ret = {
+        valid: true,
+        errors: []
+    };
+
     const normSeverity = typeof config === "string" ? severityMap[config.toLowerCase()] : config;
 
-    return [0, 1, 2].includes(normSeverity);
+    ret.valid = [0, 1, 2].includes(normSeverity);
+    if (!ret.valid) {
+        ret.errors = ['Severity must be one of the following: "error" (or 2), "warn" (or 1), "off" (or 0).'];
+    }
+
+    return ret;
 }
 
 function validateRuleOptions(schema, config) {
@@ -555,18 +571,31 @@ function validateRuleOptions(schema, config) {
         errors: []
     };
 
-    if (schema && config) {
-        const cleanedSchemaConfig = cleanUpSchema(schema);
-
-        ret.valid = ajv.validate(cleanedSchemaConfig, config);
-        if (!ret.valid) {
-            ret.errors = ajv.errors.map(error => `Value ${JSON.stringify(error.data)} ${error.message}.`);
+    try {
+        if (schema && config) {
+            const cleanedSchemaConfig = cleanUpSchema(schema);
+            return validate(cleanedSchemaConfig, config);
         }
+    } catch(err) {
+        console.log(err);
     }
 
     return ret;
 }
 
+
+export function validateConfigFromSchema(schema, config) {
+    const severityConfig = Array.isArray(config) ? config[0] : config;
+    const severityValidation = validateRuleSeverity(severityConfig);
+
+    const nonSeverityConfig = Array.isArray(config) ? config.slice(1) : []
+    const nonSeverityValidation = validateRuleOptions(schema, nonSeverityConfig);
+
+    return {
+        severity: severityValidation,
+        options: nonSeverityValidation
+    };
+}
 
 export function getSchemaDocumentation(schema) {
     if (!schema || (Array.isArray(schema) && schema.length === 0) || Object.keys(schema).length === 0) {
@@ -575,23 +604,6 @@ export function getSchemaDocumentation(schema) {
 
     return getSchemaDoc({ schema });
 }
-
-export function validateConfigFromSchema(schema, config) {
-    const severityConfig = Array.isArray(config) ? config[0] : config;
-    const nonSeverityConfig = Array.isArray(config) ? config.slice(1) : []
-
-    const severityIsValid = validateRuleSeverity(severityConfig);
-    const nonSeverityValidation = validateRuleOptions(schema, nonSeverityConfig);
-
-    return {
-        severity: {
-            valid: severityIsValid,
-            ...(!severityIsValid && { message: 'Severity should be one of the following: error (or 2), warn (or 1), off (or 0).' })
-        },
-        options: nonSeverityValidation
-    };
-}
-
 
 
 

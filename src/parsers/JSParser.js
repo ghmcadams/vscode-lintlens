@@ -610,8 +610,8 @@ export default class JSParser extends Parser {
 
         return sections.map(section => {
             const {
-                plugins: pluginsContainers,
-                rules: rulesContainers
+                plugins: pluginsContainers = [],
+                rules: rulesContainers = []
             } = getContainers(section);
 
             const pluginsValue = pluginsContainers.map(container => {

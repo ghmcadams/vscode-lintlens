@@ -100,9 +100,9 @@ export default class YAMLParser extends Parser {
         return sections.map(section => {
             const {
                 // (main.plugins, overrides[x].plugins)
-                plugins: pluginsContainers,
+                plugins: pluginsContainers = [],
                 // (main.rules, overrides[x].rules)
-                rules: rulesContainers
+                rules: rulesContainers = []
             } = getContainers(section);
 
             const pluginsValue = pluginsContainers.map(container => {
