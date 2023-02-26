@@ -14,9 +14,9 @@ export function initialize(context) {
     ];
 
     documentSelectors.forEach(selector => {
-        context.subscriptions.push(languages.registerCompletionItemProvider(selector, ruleIdProvider, "'", "`", "\"", "\n"));
+        context.subscriptions.push(languages.registerCompletionItemProvider(selector, ruleIdProvider, "'", "`", "\""));
         context.subscriptions.push(languages.registerInlineCompletionItemProvider(selector, ruleValueProvider));
-});
+    });
 }
 
 const ruleIdProvider = {
