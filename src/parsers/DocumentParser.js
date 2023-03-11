@@ -11,6 +11,13 @@ export function getParser(document) {
     const fileName = basename(document.fileName);
     const languageId = document.languageId;
 
+    // ESLint and StyleLint config files match closely in structure and are sometimes matched incorrectly
+    // Although any file could be either, for now, if the filename contains stylelint, ignore
+    // TODO: determine non-eslint configs based only on content
+    if (fileName.includes('stylelint')) {
+        return;
+    }
+
     if (languageId === 'yaml') {
         return new YAMLParser(document);
     }

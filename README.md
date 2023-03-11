@@ -70,3 +70,4 @@ In an effort to support all possible plugins and to keep size small, this extens
   - Additionally, the language mode must match `javascript` or `javascriptreact`.
 - Intellisense does not work for YAML config files
 - Rule option validation does not work for YAML config files
+- Mistakenly activates for stylelint config files when filename does not contain `eslint` or `stylelint`
