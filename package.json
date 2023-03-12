@@ -40,7 +40,7 @@
         "rimraf": "^3.0.0",
         "vscode": "^1.1.35",
         "webpack": "^4.39.1",
-        "webpack-cli": "^3.3.6"
+        "webpack-cli": "^3.3.12"
     },
     "dependencies": {
         "@babel/plugin-transform-runtime": "^7.19.6",
