@@ -11,7 +11,11 @@
             "request": "launch",
             "runtimeExecutable": "${execPath}",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}"
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/lintlens"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/**/*.js",
+                "!**/node_modules/**"
             ]
         }
     ]

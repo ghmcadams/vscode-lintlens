@@ -1,10 +1,3 @@
-// some code copied from eslint codebase
-// https://github.com/eslint/eslint/blob/dd58cd4afa6ced9016c091fc99a702c97a3e44f0/lib/shared/ajv.js#L12
-
-import Ajv from 'ajv';
-import metaSchema from 'ajv/lib/refs/json-schema-draft-06.json';
-
-
 const errorKeywordOrder = [
     // (one|any)Of decision has not been made
     'oneOf',
@@ -51,50 +44,33 @@ const errorKeywordOrder = [
 errorKeywordOrder.reverse();
 
 
-const ajv = new Ajv({
-    meta: false,
-    useDefaults: true,
-    validateSchema: false,
-    missingRefs: "ignore",
-    verbose: true,
-    schemaId: "auto",
-    strict: false,
-    allErrors: true
-});
-
-ajv.addMetaSchema(metaSchema);
-ajv.opts.defaultMeta = metaSchema.id;
-
-
-export function validate(schema, data) {
-    if (!ajv.validate(schema, data)) {
-        const isSingleOptionValue = (typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.length === 1);
-        const errors = getErrorMessages(ajv.errors, isSingleOptionValue);
-
-        return {
-            valid: false,
-            errors
-        };
+function getPath(dataVar, instancePath, dataIsSingleValue) {
+    if (dataIsSingleValue && instancePath === '/0') {
+        return dataVar;
     }
 
-    return {
-        valid: true
-    };
+    const pointer = dataIsSingleValue ? instancePath.split('/').slice(2).join('/') : `${dataVar}${instancePath}`;
+    return pointer.replace(/\/(\d+)/g, '[$1]').replace(/\/(\w+)/g, '.$1');
 }
 
-function getErrorMessages(
+export function getErrorMessages(
     errors,
-    isSingleOptionValue,
+    options = {}
 ) {
-    const basePath = 'options';
+    if (!errors || errors.length === 0) {
+        return [];
+    }
+
+    const {
+        dataVar = 'data',
+        data,
+    } = options;
+
     const parsedErrors = parseErrors(errors);
+    const dataIsSingleValue = (typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.length === 1);
 
     return parsedErrors.map((error) => {
-        let path = basePath;
-        if (!isSingleOptionValue || error.instancePath !== '/0') {
-            const realPointer = isSingleOptionValue ? error.instancePath.split('/').slice(2).join('/') : `${basePath}${error.instancePath}`;
-            path = realPointer.replace(/\/(\d+)/g, '[$1]').replace(/\/(\w+)/g, '.$1');
-        }
+        const path = getPath(dataVar, error.instancePath, dataIsSingleValue);
 
         switch (error.keyword) {
             case 'anyOf':
@@ -115,7 +91,7 @@ function getErrorMessages(
             case 'type': {
                 const type = error.params.type;
                 if (Array.isArray(type)) {
-                    if (type.length === 2) {
+                    if (type.length <= 2) {
                         return `${path} must be ${type.join(' or ')}`;
                     }
                     return `${path}' must be one of the following: ${type.join(', ')}`;
