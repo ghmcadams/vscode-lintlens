@@ -13,7 +13,8 @@ const ajv = new Ajv({
     missingRefs: "ignore",
     schemaId: "auto",
     strict: false,
-    allErrors: true
+    allErrors: true,
+    verbose: true,
 });
 
 ajv.addMetaSchema(metaSchema);
