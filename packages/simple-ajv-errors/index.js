@@ -23,7 +23,7 @@ const parentKeywordsOk = [
 ];
 
 
-export function getErrorMessages(errors, options = {}) {
+export function getSimpleErrors(errors, options = {}) {
     if (!errors || errors.length === 0) {
         return [];
     }
@@ -34,13 +34,30 @@ export function getErrorMessages(errors, options = {}) {
 
     const processedErrors = processErrors(errors);
 
-    const errorMessages = processedErrors.map((error) => {
+    const simpleErrors = processedErrors.map((error) => {
         const path = getPath(dataVar, error.instancePath);
         const errorMessage = getMessageForError(error);
-        return `${path} must ${errorMessage}`;
+        const message = `${path} must ${errorMessage}`;
+
+        const {
+            instancePath,
+            schemaPath,
+            schema,
+            parentSchema,
+            data,
+        } = error;
+
+        return {
+            message,
+            instancePath,
+            schemaPath,
+            schema,
+            parentSchema,
+            data,
+        };
     });
 
-    return errorMessages;
+    return simpleErrors;
 };
 
 function getPath(dataVar, instancePath) {

@@ -3,7 +3,7 @@
 
 import Ajv from 'ajv';
 import metaSchema from 'ajv/lib/refs/json-schema-draft-06.json';
-import { getErrorMessages } from 'simple-ajv-errors';
+import { getSimpleErrors } from 'simple-ajv-errors';
 
 
 const ajv = new Ajv({
@@ -26,7 +26,7 @@ export function validate(schema, data) {
         return { valid: true };
     }
 
-    const errors = getErrorMessages(ajv.errors, {
+    const errors = getSimpleErrors(ajv.errors, {
         dataVar: 'options',
         data
     });
