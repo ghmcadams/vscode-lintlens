@@ -80,9 +80,10 @@ function addAnnotations(editor, context) {
                         })));
                     }
                     if (!options.valid) {
-                        ruleInfo.validationErrors.push(...options.errors);
+                        const errorMessages = options.errors.map(error => error.message);
+                        ruleInfo.validationErrors.push(...errorMessages);
 
-                        diagnostics.push(...options.errors.map(error => ({
+                        diagnostics.push(...errorMessages.map(error => ({
                             source: 'LintLens',
                             range: rule.configuration.optionsRange,
                             severity: DiagnosticSeverity.Error,

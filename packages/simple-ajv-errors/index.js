@@ -1,26 +1,18 @@
 import clone from 'clone';
-import levenshtein from 'damerau-levenshtein';
+import pluralize from 'pluralize';
 
-
-const ofErrorKeywords = ['anyOf', 'oneOf'];
-
-// Add parents if one of these keywords
-const parentKeywordsOk = [
-    'minItems',
-    'maxItems',
-    'additionalItems',
-    'uniqueItems',
-    'minProperties',
-    'maxProperties',
-    'additionalProperties',
-    'required',
-    'contains',
-    'dependencies',
-    'propertyNames',
-    'unevaluatedProperties',
-    'unevaluatedItems',
-    'dependentRequired',
-];
+import {
+    ofErrorKeywords,
+    parentKeywordsOk,
+    areErrorsEqual,
+    getCommonPrefix,
+    getDataReferencePath,
+    getOfChoiceIndex,
+    getPropertyMatchScore,
+    getSchemaType,
+    getType,
+    getValueMatchScore,
+} from './util';
 
 
 export function getSimpleErrors(errors, options = {}) {
@@ -29,13 +21,13 @@ export function getSimpleErrors(errors, options = {}) {
     }
 
     const {
-        dataVar = 'data',
+        rootVar = 'data',
     } = options;
 
     const processedErrors = processErrors(errors);
 
     const simpleErrors = processedErrors.map((error) => {
-        const path = getPath(dataVar, error.instancePath);
+        const path = getDataReferencePath(rootVar, error.instancePath);
         const errorMessage = getMessageForError(error);
         const message = `${path} must ${errorMessage}`;
 
@@ -59,15 +51,6 @@ export function getSimpleErrors(errors, options = {}) {
 
     return simpleErrors;
 };
-
-function getPath(dataVar, instancePath) {
-    if (instancePath === '') {
-        return dataVar;
-    }
-
-    const pointer = `${dataVar}${instancePath}`;
-    return pointer.replace(/\/(\d+)/g, '[$1]').replace(/\/(\w+)/g, '.$1');
-}
 
 function processErrors(errors) {
     const clonedErrors = clone(errors);
@@ -117,7 +100,7 @@ function getOfHierarchy(errors) {
                 if (ref === ret) {
                     ref.push(ofError);
                 } else {
-                    const choiceIndex = getParentChoiceIndex(ref, ofError.schemaPath);
+                    const choiceIndex = getOfChoiceIndex(ref, ofError.schemaPath);
                     ref[choiceIndex] = ref[choiceIndex] ?? [];
                     ref[choiceIndex].push(ofError);
                 }
@@ -137,7 +120,7 @@ function getOfHierarchy(errors) {
         if (ref === ret) {
             ref.push(error);
         } else {
-            const choiceIndex = getParentChoiceIndex(ref, error.schemaPath);
+            const choiceIndex = getOfChoiceIndex(ref, error.schemaPath);
             ref[choiceIndex] = ref[choiceIndex] ?? [];
             ref[choiceIndex].push(error);
         }
@@ -167,19 +150,6 @@ function replaceSchemaRefs(errors) {
             }
         });
     });
-}
-
-function getParentChoiceIndex(parent, schemaPath) {
-    let choiceIndex = parent.length;
-    const thisSchemaParts = schemaPath.split('/');
-    for (let i = thisSchemaParts.length - 2; i > 0; i--) {
-        if (ofErrorKeywords.includes(thisSchemaParts[i])) {
-            choiceIndex = parseInt(thisSchemaParts[i + 1], 10);
-            break;
-        }
-    }
-
-    return choiceIndex;
 }
 
 function filterByChosenPath(ofHierarchy) {
@@ -368,21 +338,6 @@ function getChosenPaths(error) {
     return indicesTypeMatch;
 }
 
-function getValueMatchScore(data, values) {
-    const valuesToCheck = Array.isArray(values) ? values : [values];
-    return Math.max(...valuesToCheck.map(value => {
-        if (data === value) {
-            return 1;
-        }
-        if (getType(data) !== 'string' || getType(value) !== 'string') {
-            return 0;
-        }
-
-        const lev = levenshtein(data, value);
-        return lev.similarity;
-    }));
-}
-
 function getChosenPathsWhenObject(error, indices) {
     if (!indices || indices.length === 0) {
         return indices;
@@ -409,36 +364,6 @@ function getChosenPathsWhenObject(error, indices) {
     return indicesWithScore
         .filter(entry => entry[1] === indicesWithScore[0][1])
         .map(entry => entry[0]);
-}
-
-function getPropertyMatchScore(data, schema) {
-    const schemaTypes = getSchemaType(schema);
-    if (!schemaTypes.includes('object')) {
-        return [index, 0];
-    }
-
-    const dataProperties = Object.keys(data);
-
-    const matchScore = dataProperties.reduce((ret, dataKey) => {
-        const dataType = getType(data[dataKey]);
-        const schemaPropertyNames = Object.keys(schema.properties);
-        if (schemaPropertyNames.includes(dataKey)) {
-            const schemaPropertyTypes = getSchemaType(schema.properties[dataKey]);
-            ret += schemaPropertyTypes.includes(dataType) ? 1 : 0;
-        } else {
-            // Get the score for the schema property that most closely matches the data property
-            const keyScore = schemaPropertyNames.reduce((val, key) => {
-                const lev = levenshtein(dataKey, key);
-                return Math.max(val, lev.similarity);
-            }, 0);
-
-            // A score less than 0.7 is not a close enough match
-            ret += keyScore > 0.7 ? keyScore : 0;
-        }
-        return ret;
-    }, 0);
-
-    return matchScore / dataProperties.length;
 }
 
 function getChosenPathsWhenArray(error, indices) {
@@ -550,7 +475,7 @@ function getDistinctAcrossOfErrors(ofError) {
         const path = ofError.ofPaths[i];
         const pathErrors = path.filter(error => {
             const hasMatch = ofError.ofPaths.slice(i + 1).some(errors => {
-                return errors.some(otherError => doErrorsMatch(error, otherError));
+                return errors.some(otherError => areErrorsEqual(error, otherError));
             });
             return !hasMatch;
         });
@@ -570,14 +495,6 @@ function getDistinctAcrossOfErrors(ofError) {
     }];
 }
 
-function doErrorsMatch(a, b) {
-    return (
-        a.instancePath === b.instancePath &&
-        a.keyword === b.keyword &&
-        JSON.stringify(a.params) === JSON.stringify(b.params)
-    );
-}
-
 function getMessageForError(error, omitBe = false) {
     switch (error.keyword) {
         case 'anyOf':
@@ -586,13 +503,13 @@ function getMessageForError(error, omitBe = false) {
         case 'maxItems':
         case 'additionalItems':
         case 'unevaluatedItems':
-            return `not have more than ${error.params.limit} ${getPlural('item', error.params.limit)}`;
+            return `not have more than ${error.params.limit} ${pluralize('item', error.params.limit)}`;
         case 'minItems':
-            return `have at least ${error.params.limit} ${getPlural('item', error.params.limit)}`;
+            return `have at least ${error.params.limit} ${pluralize('item', error.params.limit)}`;
         case 'maxProperties':
-            return `not have more than ${error.params.limit} ${getPlural('property', error.params.limit)}`;
+            return `not have more than ${error.params.limit} ${pluralize('property', error.params.limit)}`;
         case 'minProperties':
-            return `have at least ${error.params.limit} ${getPlural('property', error.params.limit)}`;
+            return `have at least ${error.params.limit} ${pluralize('property', error.params.limit)}`;
         case 'additionalProperties':
             return `not include property '${error.params.additionalProperty}'`;
         case 'unevaluatedProperties':
@@ -637,7 +554,7 @@ function getMessageForError(error, omitBe = false) {
             return `${omitBe ? '' : 'be '}at least ${error.params.limit} characters`;
         }
         case 'maxLength':
-            return `${omitBe ? '' : 'be '}no more than ${error.params.limit} ${getPlural('character', error.params.limit)}`;
+            return `${omitBe ? '' : 'be '}no more than ${error.params.limit} ${pluralize('character', error.params.limit)}`;
         case 'uniqueItems': {
             const { i, j } = error.params;
             return `have all unique items (items ${Math.min(i, j)} and ${Math.max(i, j)} are identical)`;
@@ -646,20 +563,14 @@ function getMessageForError(error, omitBe = false) {
             return `${omitBe ? '' : 'be '}a valid property name`;
         case 'contains': {
             return error.params.maxContains === undefined
-                ? `contain at least ${error.params.minContains} valid ${getPlural('item', error.params.minContains)}`
-                : `contain between ${error.params.minContains} and ${error.params.maxContains} valid ${getPlural('item', error.params.minContains)}`;
+                ? `contain at least ${error.params.minContains} valid ${pluralize('item', error.params.minContains)}`
+                : `contain between ${error.params.minContains} and ${error.params.maxContains} valid ${pluralize('item', error.params.minContains)}`;
         }
         case 'dependencies':
             return `have ${error.params.deps} when ${error.params.property} is included`;
         default:
             return 'match schema';
     }
-}
-
-function getPlural(text, limit) {
-    const baseText = text.endsWith('y') ? text.slice(0, -1) : text;
-    const plural = text.endsWith('y') ? 'ies' : 's';
-    return `${baseText}${limit === 1 ? '' : plural}`;
 }
 
 function getMessageForOf(ofError) {
@@ -685,43 +596,4 @@ function getMessageForOf(ofError) {
     } catch(err) {
         return 'match one of the schema options';
     }
-}
-
-function getType(variable) {
-    return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
-}
-
-function getSchemaType(entry) {
-    if (entry.hasOwnProperty('enum')) {
-        return entry.enum.map(getType);
-    }
-    if (entry.hasOwnProperty('const')) {
-        return [getType(entry.const)];
-    }
-
-    if (!entry.hasOwnProperty('type')) {
-        // INVALID schema: determine type based on other properties
-        if (entry.hasOwnProperty('items')) {
-            return ['array'];
-        }
-    }
-
-    return [schemaTypeMap[entry.type] ?? entry.type];
-}
-
-const schemaTypeMap = {
-    integer: 'number'
-};
-
-function getCommonPrefix(string1, string2) {
-    let sharedPrefix = '';
-    for (let i = 0; i < string1.length && i < string2.length; i++) {
-        if (string1[i] === string2[i]) {
-            sharedPrefix += string1[i];
-        } else {
-            break;
-        }
-    }
-
-    return sharedPrefix;
 }

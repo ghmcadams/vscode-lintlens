@@ -2,7 +2,7 @@ declare module 'simple-ajv-errors' {
     import { ErrorObject } from 'ajv';
 
     interface Options {
-        dataVar: string = 'data';
+        rootVar: string = 'data';
     }
 
     interface SimpleError {
@@ -18,8 +18,7 @@ declare module 'simple-ajv-errors' {
      * Get usable, human readable, simple error messages from ajv errors.
      * @param {ErrorObject[]} errors - The errors created as a result of calling ajv.validate().
      * @param {object=} options - Configuration options to help give the best result.
-     * @param {string} [options.dataVar='data'] - The text to use for the root of the data variable.
-     * @param {*} options.data - The data that was passed to ajv.validate().
+     * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
      * @return {SimpleError[]} An array of simple errors.
      */
     export function getSimpleErrors(

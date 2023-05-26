@@ -27,8 +27,7 @@ export function validate(schema, data) {
     }
 
     const errors = getSimpleErrors(ajv.errors, {
-        dataVar: 'options',
-        data
+        rootVar: 'options',
     });
 
     return {
