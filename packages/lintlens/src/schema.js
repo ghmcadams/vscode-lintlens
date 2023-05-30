@@ -136,7 +136,7 @@ function getObjectDoc({ schema, root, indent }) {
 
 
     if (!propsCheck.some(entry => entry)) {
-        return '';
+        return '{}';
     }
 
     let ret = '{\n';

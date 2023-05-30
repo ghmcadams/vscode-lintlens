@@ -262,7 +262,13 @@ function getHoverMessage(rule, ruleInfo) {
             hoverMessage += `\n---\n`;
 
             if (ruleInfo.validationErrors?.length > 0) {
-                hoverMessage += `${glyphs.redXIcon}&nbsp;&nbsp;***${messages.validationError}***\n\n`;
+                hoverMessage += `${glyphs.redXIcon} **${messages.validationErrors}**:\n`;
+
+                ruleInfo.validationErrors.forEach(error => {
+                    hoverMessage += `> ${error}  \n`;
+                });
+        
+                hoverMessage += `\n---\n`;
             }
 
             hoverMessage += '**Rule Options**:\n\n';
@@ -275,16 +281,6 @@ function getHoverMessage(rule, ruleInfo) {
 
             hoverMessage += `\n\n\`\`\`\n`;
         }
-    }
-
-    if (ruleInfo.validationErrors?.length > 0) {
-        hoverMessage += `\n---\n`;
-
-        hoverMessage += `${glyphs.redXIcon} **Validation Errors**:\n`;
-
-        ruleInfo.validationErrors.forEach(error => {
-            hoverMessage += `> ${error}  \n`;
-        });
     }
 
     hoverMessage += `\n---\n`;

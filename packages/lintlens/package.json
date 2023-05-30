@@ -3,7 +3,7 @@
     "displayName": "LintLens — ESLint rules made easier",
     "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
     "private": true,
-    "version": "7.2.0",
+    "version": "7.2.1",
     "main": "./dist/extension.js",
     "publisher": "ghmcadams",
     "author": {
