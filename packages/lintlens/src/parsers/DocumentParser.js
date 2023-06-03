@@ -3,6 +3,11 @@ import JSParser, { ESLintConfigType } from './JSParser';
 import YAMLParser from './YAMLParser';
 
 
+const fileNameBlockList = [
+    'stylelint',
+    'putout'
+];
+
 export function getParser(document) {
     if (document.uri.scheme !== 'file') {
         return;
@@ -11,10 +16,12 @@ export function getParser(document) {
     const fileName = basename(document.fileName);
     const languageId = document.languageId;
 
-    // ESLint and StyleLint config files match closely in structure and are sometimes matched incorrectly
-    // Although any file could be either, for now, if the filename contains stylelint, ignore
+    // config files for ESLint and some other tools match closely in structure and are sometimes
+    // matched incorrectly.  Although any file could be from either, for now, if the filename contains
+    // words from the block list, ignore
     // TODO: determine non-eslint configs based only on content
-    if (fileName.includes('stylelint')) {
+    const blockedFileName = fileNameBlockList.some(item => fileName.includes(item));
+    if (blockedFileName) {
         return;
     }
 
