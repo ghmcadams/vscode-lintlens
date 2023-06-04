@@ -3,7 +3,7 @@
     "displayName": "LintLens — ESLint rules made easier",
     "description": "Augment your ESLint rules in Visual Studio Code — Adds metadata beside each ESLint rule.",
     "private": true,
-    "version": "7.2.1",
+    "version": "7.3.0",
     "main": "./dist/extension.js",
     "publisher": "ghmcadams",
     "author": {
@@ -30,7 +30,7 @@
         "dev": "npm run clean && webpack --mode development --watch",
         "clean": "rimraf ./dist",
         "build": "npm run clean && webpack --mode development",
-        "release": "vsce publish",
+        "release": "vsce publish --no-dependencies",
         "vscode:prepublish": "npm run clean && webpack --mode production",
         "postinstall": "node ../../node_modules/vscode/bin/install"
     },
