@@ -12,7 +12,7 @@ function getIndent() {
     return ' '.repeat(indentSize * currentIndentCount);
 }
 
-// TODO: fix things to use annotations rather than default
+// TODO: include default, deprecated, annotations
 
 
 // TODO: do I support passing of state object?
@@ -50,6 +50,13 @@ export function object(doc, formatFunc) {
         return `${getIndent()}${prop}`;
     }).join(',\n');
 
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += '\n';
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
+    }
+
     outdent();
 
     ret += `\n${getIndent()}}`;
@@ -69,6 +76,13 @@ export function tuple(doc, formatFunc) {
         const val = formatFunc(item);
         return `${getIndent()}${val}`;
     }).join(',\n');
+
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += '\n';
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
+    }
 
     outdent();
 
@@ -95,12 +109,22 @@ export function array(doc, formatFunc) {
 
     ret += `${getIndent()}${formatFunc(doc.schema)}`;
 
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += '\n';
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
+    }
+
     outdent();
 
     ret += `\n${getIndent()}]`;
 
+    // TODO: consider basing this on doc.schema rather than the whole thing
+    //  THOUGHT: then I could have `string[], # min items: 3, unique`
+
     // simple array of a type (simple, no requirements/annotations)
-    //  doc.schema.schemaType
+    //  TODO: can I use doc.schema.schemaType somehow?
     // TODO: should I allow a little bit more? (EX: string (length >= 0)[] )
     const regex = /\[\n\s+(\w+)\n\s+\]/;
     const matches = ret.match(regex);
@@ -114,9 +138,9 @@ export function array(doc, formatFunc) {
 export function enumeration(doc, formatFunc) {
     let ret = doc.items.map(item => getConstantText(item)).join(' | ');
 
-    if (doc.default !== undefined) {
-        ret += ` (default: ${doc.default})`;
-    }
+    // if (doc.default !== undefined) {
+    //     ret += ` (default: ${doc.default})`;
+    // }
 
     return ret;
 }
@@ -129,15 +153,15 @@ export function constant(doc, formatFunc) {
 export function string(doc, formatFunc) {
     let ret = 'string';
 
-    if (doc.requirements.length > 0 || doc.default !== undefined) {
-        const mods = [...doc.requirements];
+    // if (doc.requirements.length > 0 || doc.default !== undefined) {
+    //     const mods = [...doc.requirements];
 
-        if (doc.default !== undefined) {
-            mods.push(`default: ${doc.default}`);
-        }
+    //     if (doc.default !== undefined) {
+    //         mods.push(`default: ${doc.default}`);
+    //     }
 
-        ret += ` (${mods.join(', ')})`;
-    }
+    //     ret += ` (${mods.join(', ')})`;
+    // }
 
     return ret;
 }
@@ -145,15 +169,15 @@ export function string(doc, formatFunc) {
 export function numeric(doc, formatFunc) {
     let ret = doc.numericType;
 
-    if (doc.requirements.length > 0 || doc.default !== undefined) {
-        const mods = [...doc.requirements];
+    // if (doc.requirements.length > 0 || doc.default !== undefined) {
+    //     const mods = [...doc.requirements];
 
-        if (doc.default !== undefined) {
-            mods.push(`default: ${doc.default}`);
-        }
+    //     if (doc.default !== undefined) {
+    //         mods.push(`default: ${doc.default}`);
+    //     }
 
-        ret += ` (${mods.join(', ')})`;
-    }
+    //     ret += ` (${mods.join(', ')})`;
+    // }
 
     return ret;
 }
@@ -161,9 +185,9 @@ export function numeric(doc, formatFunc) {
 export function boolean(doc, formatFunc) {
     let ret = 'boolean';
 
-    if (doc.default !== undefined) {
-        ret += ` (default: ${doc.default})`;
-    }
+    // if (doc.default !== undefined) {
+    //     ret += ` (default: ${doc.default})`;
+    // }
 
     return ret;
 }
@@ -223,9 +247,9 @@ export function multiType(doc, formatFunc) {
 
     ret += doc.types.join(' | ');
 
-    if (doc.default !== undefined) {
-        ret += ` (default: ${doc.default})`;
-    }
+    // if (doc.default !== undefined) {
+    //     ret += ` (default: ${doc.default})`;
+    // }
 
     ret += ')';
 
