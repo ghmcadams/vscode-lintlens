@@ -1,8 +1,8 @@
 import Fuse from 'fuse.js';
+import { getSchemaDocumentation } from 'json-schema-docs';
 import { MissingPluginError } from './errors';
 import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL, eslintPluginPrefix } from './constants';
 import { getLinterRules } from './eslint';
-import { getSchemaDocumentation } from './schema';
 import { getPackagePathForDocument } from './workspace';
 
 
