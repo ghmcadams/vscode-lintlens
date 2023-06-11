@@ -19,74 +19,92 @@ declare module 'json-schema-docs' {
 
 
 /*
-data included:
+types:
+
+Requirements {
+    [string]: {
+        [string]: Scalar;
+        message: string;
+    };
+}
+
+Annotations: Record<string, unknown>;
+
+Schema: union of all of the below (named XSchema - EX: ObjectSchema)
+
+Property: Record<string, Schema>
+
+Scalar: string | number | boolean;
+
+usage
+-------------------
 
 any
-    annotations: Annotation[]
+    annotations: Annotations
 
 not
     schema: Schema
-    annotations: Annotation[]
+    annotations: Annotations
 
 nullvalue
-    annotations: Annotation[]
+    annotations: Annotations
 
 object
     properties: Property[]
-    requirements?: Requirement[]
-    annotations: Annotation[]
+    requirements?: Requirements
+    annotations: Annotations
 
 array
     schema: Schema
-    requirements?: Requirement[]
-    annotations: Annotation[]
+    requirements?: Requirements
+    annotations: Annotations
 
 tuple
     items: Schema[]
     additionalItems?: Schema
-    requirements?: Requirement[]
-    annotations: Annotation[]
+    requirements?: Requirements
+    annotations: Annotations
 
 enumeration
-    items: scalar[]
-    annotations: Annotation[]
+    items: Scalar[]
+    annotations: Annotations
 
 constant
-    value: scalar
-    annotations: Annotation[]
+    value: Scalar
+    annotations: Annotations
 
 string
-    requirements?: Requirement[]
-    annotations: Annotation[]
+    requirements?: Requirements
+    annotations: Annotations
 
 numeric
     numericType: string
-    requirements?: Requirement[]
-    annotations: Annotation[]
+    requirements?: Requirements
+    annotations: Annotations
 
 boolean
-    annotations: Annotation[]
+    annotations: Annotations
 
 anyOf
     items: Schema[]
-    annotations: Annotation[]
+    annotations: Annotations
 
 oneOf
     items: Schema[]
-    annotations: Annotation[]
+    annotations: Annotations
 
 allOf
     items: Schema[]
-    annotations: Annotation[]
+    annotations: Annotations
 
 ifThenElse
     if: Schema
     then: Schema
     else?: Schema
-    annotations: Annotation[]
+    annotations: Annotations
 
 multiType
     types: string[]
-    annotations: Annotation[]
+    annotations: Annotations
 
 */

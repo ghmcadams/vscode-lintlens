@@ -24,14 +24,11 @@ const schemaTypes = {
 
 
 // TODO: test by showing old way vs new at the same time for comparison
+
 // TODO: root is being passed around so I can use it in getRef - that's it
 //  IDEA: expando?
 
-// TODO: consider making requirements and annotations a key:value instead of an array of strings
-//   THOUGHT: maybe a compiled string AND its parts
-//      { length: { minLength: 0, maxLength: 4, message: length <= 4 }  }
-
-// TODO: document object properties for all types
+// TODO: separate default and deprecated from annotations
 
 // TODO: outer array - do I want it?
 
@@ -173,20 +170,31 @@ function getObjectDoc({ schema, root }) {
         annotations: getAnnotations(schema),
     };
 
-    const requirements = [];
+    const requirements = {};
 
-    if (schema.hasOwnProperty('minProperties')) {
-        requirements.push({
-            minProperties: schema.minProperties
-        });
-    }
-    if (schema.hasOwnProperty('maxProperties')) {
-        requirements.push({
-            maxProperties: schema.maxProperties
-        });
+    if (schema.hasOwnProperty('minProperties') || schema.hasOwnProperty('maxProperties')) {
+        requirements.size = {
+            minProperties: schema.minProperties,
+            maxProperties: schema.maxProperties,
+            message: '',
+        };
+
+        if (schema.hasOwnProperty('minProperties') && schema.hasOwnProperty('maxProperties') &&
+            schema.minProperties > 0 && schema.maxProperties > 0
+        ) {
+            if (schema.minProperties === schema.maxProperties) {
+                requirements.size.message = `required: ${schema.minProperties} properties`;
+            } else {
+                requirements.size.message = `required: ${schema.minProperties} to ${schema.maxProperties} properties`;
+            }
+        } else if (schema.hasOwnProperty('minProperties') && schema.minProperties > 0) {
+            requirements.size.message = `min properties: ${schema.minProperties}`;
+        } else if (schema.hasOwnProperty('maxProperties') && schema.maxProperties > 0) {
+            requirements.size.message = `max properties: ${schema.maxProperties}`;
+        }
     }
 
-    if (requirements.length > 0) {
+    if (Object.keys(requirements).length > 0) {
         ret.requirements = requirements;
     }
 
@@ -307,28 +315,38 @@ function getArrayDoc({ schema, root }) {
 
 
     // requirements
-    const requirements = [];
+    const requirements = {};
 
-    if (schema.hasOwnProperty('minItems') &&
-        schema.hasOwnProperty('maxItems') && 
-        schema.minItems === schema.maxItems
-    ) {
-        requirements.push(`required: ${schema.minItems} items`);
-    } else {
-        if (schema.hasOwnProperty('minItems') && schema.minItems > 0) {
-            requirements.push(`min items: ${schema.minItems}`);
-        }
+    if (schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) {
+        requirements.length = {
+            minItems: schema.minItems,
+            maxItems: schema.maxItems,
+            message: '',
+        };
 
-        if (schema.hasOwnProperty('maxItems')) {
-            requirements.push(`max items: ${schema.maxItems}`);
+        if (schema.hasOwnProperty('minItems') && schema.hasOwnProperty('maxItems') &&
+            schema.minItems > 0 && schema.maxItems > 0
+        ) {
+            if (schema.minItems === schema.maxItems) {
+                requirements.length.message = `required: ${schema.minItems} items`;
+            } else {
+                requirements.length.message = `required: ${schema.minItems} to ${schema.maxItems} items`;
+            }
+        } else if (schema.hasOwnProperty('minItems') && schema.minItems > 0) {
+            requirements.length.message = `min items: ${schema.minItems}`;
+        } else if (schema.hasOwnProperty('maxItems') && schema.maxItems > 0) {
+            requirements.length.message = `max items: ${schema.maxItems}`;
         }
     }
 
     if (schema.hasOwnProperty('uniqueItems') && schema.uniqueItems === true) {
-        requirements.push(`unique`);
+        requirements.uniqueItems = {
+            value: schema.uniqueItems,
+            message: 'unique',
+        };
     }
 
-    if (requirements.length > 0) {
+    if (Object.keys(requirements).length > 0) {
         ret.requirements = requirements;
     }
 
@@ -342,28 +360,36 @@ function getStringDoc({ schema }) {
         annotations: getAnnotations(schema),
     };
 
-    const requirements = [];
+    const requirements = {};
 
     if (schema.hasOwnProperty('minLength') || schema.hasOwnProperty('maxLength')) {
-        let mod = `length: `;
+        requirements.length = {
+            minLength: schema.minLength,
+            maxLength: schema.maxLength,
+            message: '',
+        };
 
         if (!schema.hasOwnProperty('minLength')) {
-            mod += `≤ ${schema.maxLength}`;
+            requirements.length.message = `length: ≤ ${schema.maxLength}`;
         } else if (!schema.hasOwnProperty('maxLength')) {
-            mod += `≥ ${schema.minLength}`;
+            requirements.length.message = `length: ≥ ${schema.minLength}`;
         } else {
-            mod += `${schema.minLength} to ${schema.maxLength}`;
+            requirements.length.message = `length: ${schema.minLength} to ${schema.maxLength}`;
         }
-
-        requirements.push(mod);
     }
 
     if (schema.hasOwnProperty('pattern')) {
-        requirements.push(`regex: /${schema.pattern}/`);
+        requirements.pattern = {
+            value: schema.pattern,
+            message: `regex: /${schema.pattern}/`,
+        };
     }
 
     if (schema.hasOwnProperty('format')) {
-        requirements.push(`format: ${schema.format}`);
+        requirements.format = {
+            value: schema.format,
+            message: `format: ${schema.format}`,
+        };
     }
 
     if (requirements.length > 0) {
@@ -380,24 +406,39 @@ function getNumericDoc({ schema }) {
         annotations: getAnnotations(schema),
     };
 
-    const requirements = [];
+    const requirements = {};
 
     if (schema.hasOwnProperty('minimum') || schema.hasOwnProperty('exclusiveMinimum') || schema.hasOwnProperty('maximum') || schema.hasOwnProperty('exclusiveMaximum')) {
+        requirements.range = {
+            minimum: schema.minimum,
+            maximum: schema.maximumn,
+            exclusiveMinimum: schema.exclusiveMinimum,
+            exclusiveMaximum: schema.exclusiveMaximum,
+            message: '',
+        };
+
+        const messages = [];
+
         if (schema.hasOwnProperty('minimum')) {
-            requirements.push(`x ≥ ${schema.minimum}`);
+            messages.push(`x ≥ ${schema.minimum}`);
         } else if (schema.hasOwnProperty('exclusiveMinimum')) {
-            requirements.push(`x > ${schema.exclusiveMinimum}`);
+            messages.push(`x > ${schema.exclusiveMinimum}`);
         }
 
         if (schema.hasOwnProperty('maximum')) {
-            requirements.push(`x ≤ ${schema.maximum}`);
+            messages.push(`x ≤ ${schema.maximum}`);
         } else if (schema.hasOwnProperty('exclusiveMaximum')) {
-            requirements.push(`x < ${schema.exclusiveMaximum}`);
+            messages.push(`x < ${schema.exclusiveMaximum}`);
         }
+
+        requirements.range.message = messages.join(', ');
     }
 
     if (schema.hasOwnProperty('multipleOf')) {
-        requirements.push(`multiple of: ${schema.multipleOf}`);
+        requirements.multipleOf = {
+            value: schema.multipleOf,
+            message: `multiple of: ${schema.multipleOf}`,
+        };
     }
 
     if (requirements.length > 0) {
@@ -607,41 +648,31 @@ function getRef(schema, refName) {
 }
 
 function getAnnotations(schema) {
-    const annotations = [];
+    const annotations = {};
 
     //   default (boolean)
     if (schema.hasOwnProperty('default')) {
-        annotations.push({
-            default: schema.default
-        });
+        annotations.default = schema.default;
     }
 
     //   title (string)
     if (schema.hasOwnProperty('title')) {
-        annotations.push({
-            title: schema.title
-        });
+        annotations.title = schema.title;
     }
 
     //   description (string)
     if (schema.hasOwnProperty('description')) {
-        annotations.push({
-            description: schema.description
-        });
+        annotations.description = schema.description;
     }
 
     //   examples (array)
     if (schema.hasOwnProperty('examples')) {
-        annotations.push({
-            examples: schema.examples
-        });
+        annotations.examples = schema.examples;
     }
 
     //   deprecated (boolean)
-    if (schema.hasOwnProperty('deprecated') && schema.deprecated === true) {
-        annotations.push({
-            deprecated: true
-        });
+    if (schema.hasOwnProperty('deprecated')) {
+        annotations.deprecated = schema.deprecated;
     }
 
     return annotations;
