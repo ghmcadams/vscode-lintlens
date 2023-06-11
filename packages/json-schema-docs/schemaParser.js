@@ -28,8 +28,6 @@ const schemaTypes = {
 // TODO: root is being passed around so I can use it in getRef - that's it
 //  IDEA: expando?
 
-// TODO: separate default and deprecated from annotations
-
 // TODO: outer array - do I want it?
 
 export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
@@ -107,22 +105,34 @@ function getSchemaDoc({ schema, root = schema }) {
 function getAnyDoc({ schema, root }) {
     return {
         schemaType: schemaTypes.any,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
 function getNullDoc({ schema }) {
     return {
         schemaType: schemaTypes.nullvalue,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
-function getMultiTypeDoc({ schema }) {
+function getMultiTypeDoc({ schema, root }) {
+    if (schema.type.length === 2 && schema.type.includes('null')) {
+        return getSchemaDoc({ schema: {
+            oneOf: [
+                {
+                    ...schema,
+                    type: schema.type.find(i => i !== 'null')
+                },
+                { type: "null" }
+            ]
+        }, root })
+    }
+
     return {
         schemaType: schemaTypes.multiType,
         types: schema.type,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -137,7 +147,7 @@ function getEnumDoc({ schema }) {
     return {
         schemaType: schemaTypes.enumeration,
         items: schema.enum,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -145,7 +155,7 @@ function getConstDoc({ schema }) {
     return {
         schemaType: schemaTypes.constant,
         value: schema.const,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -167,7 +177,7 @@ function getObjectDoc({ schema, root }) {
     const ret = {
         schemaType: schemaTypes.object,
         properties: [],
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 
     const requirements = {};
@@ -250,7 +260,7 @@ function getArrayDoc({ schema, root }) {
 
     const ret = {
         schemaType: schemaTypes.array,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 
     // if there is nothing but array, then show empty one
@@ -314,7 +324,6 @@ function getArrayDoc({ schema, root }) {
     // minContains and maxContains can be used with contains to further specify how many times a schema matches a contains constraint (>= 0).
 
 
-    // requirements
     const requirements = {};
 
     if (schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) {
@@ -356,8 +365,7 @@ function getArrayDoc({ schema, root }) {
 function getStringDoc({ schema }) {
     const ret = {
         schemaType: schemaTypes.string,
-        requirements: [],
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 
     const requirements = {};
@@ -392,7 +400,7 @@ function getStringDoc({ schema }) {
         };
     }
 
-    if (requirements.length > 0) {
+    if (Object.keys(requirements).length > 0) {
         ret.requirements = requirements;
     }
 
@@ -403,7 +411,7 @@ function getNumericDoc({ schema }) {
     const ret = {
         schemaType: schemaTypes.numeric,
         numericType: schema.type, // may be integer, number
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 
     const requirements = {};
@@ -441,7 +449,7 @@ function getNumericDoc({ schema }) {
         };
     }
 
-    if (requirements.length > 0) {
+    if (Object.keys(requirements).length > 0) {
         ret.requirements = requirements;
     }
 
@@ -451,7 +459,7 @@ function getNumericDoc({ schema }) {
 function getBooleanDoc({ schema }) {
     return {
         schemaType: schemaTypes.boolean,
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -473,7 +481,7 @@ function getOneOfDoc({ schema, root }) {
             };
             return getSchemaDoc({ schema: combinedItem, root });
         }),
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -495,7 +503,7 @@ function getAllOfDoc({ schema, root }) {
             };
             return getSchemaDoc({ schema: combinedItem, root });
         }),
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -514,7 +522,7 @@ function getNotDoc({ schema, root }) {
     // return {
     //     schemaType: schemaTypes.not,
     //     schema: getSchemaDoc({ schema: adjustedSchema, root }),
-    //     annotations: getAnnotations(schema),
+    //     ...getAnnotations(schema),
     // };
 }
 
@@ -524,7 +532,7 @@ function getIfThenElseDoc({ schema, root }) {
         if: getSchemaDoc({ schema: schema.if, root }),
         then: getSchemaDoc({ schema: schema.then, root }),
         else: getSchemaDoc({ schema: schema.else, root }),
-        annotations: getAnnotations(schema),
+        ...getAnnotations(schema),
     };
 }
 
@@ -649,10 +657,16 @@ function getRef(schema, refName) {
 
 function getAnnotations(schema) {
     const annotations = {};
+    const ret = {};
 
     //   default (boolean)
     if (schema.hasOwnProperty('default')) {
-        annotations.default = schema.default;
+        ret.default = schema.default;
+    }
+
+    //   deprecated (boolean)
+    if (schema.hasOwnProperty('deprecated')) {
+        ret.deprecated = schema.deprecated;
     }
 
     //   title (string)
@@ -670,12 +684,11 @@ function getAnnotations(schema) {
         annotations.examples = schema.examples;
     }
 
-    //   deprecated (boolean)
-    if (schema.hasOwnProperty('deprecated')) {
-        annotations.deprecated = schema.deprecated;
+    if (Object.keys(annotations).length > 0) {
+        ret.annotations = annotations;
     }
 
-    return annotations;
+    return ret;
 }
 
 

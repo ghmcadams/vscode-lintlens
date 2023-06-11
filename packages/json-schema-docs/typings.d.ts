@@ -28,7 +28,17 @@ Requirements {
     };
 }
 
-Annotations: Record<string, unknown>;
+Annotations {
+    title: string;
+    description: string;
+    examples: unknown[]; // TODO: can I make this better with generics?
+}
+
+BaseSchema {
+    default?: boolean;
+    deprecated?: boolean;
+    annotations?: Annotations;
+}
 
 Schema: union of all of the below (named XSchema - EX: ObjectSchema)
 
@@ -36,75 +46,59 @@ Property: Record<string, Schema>
 
 Scalar: string | number | boolean;
 
-usage
+schemas (all are based on BaseSchema)
 -------------------
 
 any
-    annotations: Annotations
 
 not
     schema: Schema
-    annotations: Annotations
 
 nullvalue
-    annotations: Annotations
 
 object
     properties: Property[]
     requirements?: Requirements
-    annotations: Annotations
 
 array
     schema: Schema
     requirements?: Requirements
-    annotations: Annotations
 
 tuple
     items: Schema[]
     additionalItems?: Schema
     requirements?: Requirements
-    annotations: Annotations
 
 enumeration
     items: Scalar[]
-    annotations: Annotations
 
 constant
     value: Scalar
-    annotations: Annotations
 
 string
     requirements?: Requirements
-    annotations: Annotations
 
 numeric
     numericType: string
     requirements?: Requirements
-    annotations: Annotations
 
 boolean
-    annotations: Annotations
 
 anyOf
     items: Schema[]
-    annotations: Annotations
 
 oneOf
     items: Schema[]
-    annotations: Annotations
 
 allOf
     items: Schema[]
-    annotations: Annotations
 
 ifThenElse
     if: Schema
     then: Schema
     else?: Schema
-    annotations: Annotations
 
 multiType
     types: string[]
-    annotations: Annotations
 
 */

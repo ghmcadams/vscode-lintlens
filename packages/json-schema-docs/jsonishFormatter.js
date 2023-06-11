@@ -12,7 +12,9 @@ function getIndent() {
     return ' '.repeat(indentSize * currentIndentCount);
 }
 
-// TODO: include default, deprecated, annotations
+// TODO: include deprecated flag
+// TODO: include annotations (title, description, maybe examples)
+// TODO: consider changing comments starter from # to //
 
 
 // TODO: do I support passing of state object?
@@ -31,7 +33,6 @@ export function any(doc, formatFunc) {
 }
 
 export function not(doc, formatFunc) {
-    // schema
     return '';
 }
 
@@ -40,7 +41,6 @@ export function nullvalue(doc, formatFunc) {
 }
 
 export function object(doc, formatFunc) {
-    // properties, requirements (?), minProperties, maxProperties
     let ret = '{\n';
 
     indent();
@@ -64,10 +64,7 @@ export function object(doc, formatFunc) {
     return ret;
 }
 
-// TODO: finish tuple() formatter
 export function tuple(doc, formatFunc) {
-    // items, additionalItems, requirements, annotations
-
     let ret = '[\n';
 
     indent();
@@ -91,15 +88,9 @@ export function tuple(doc, formatFunc) {
     return ret;
 }
 
-// TODO: finish array() formatter
 export function array(doc, formatFunc) {
-    // schema, requirements, annotations
-
     // simple plain array
-    if (!doc.schema &&
-        (!doc.requirements || doc.requirements.length === 0) &&
-        (!doc.annotations || doc.annotations.length === 0)
-    ) {
+    if (!doc.schema && (!doc.requirements || doc.requirements.length === 0)) {
         return '[]';
     }
 
@@ -138,30 +129,29 @@ export function array(doc, formatFunc) {
 export function enumeration(doc, formatFunc) {
     let ret = doc.items.map(item => getConstantText(item)).join(' | ');
 
-    // if (doc.default !== undefined) {
-    //     ret += ` (default: ${doc.default})`;
-    // }
+    if (doc.default !== undefined) {
+        ret += ` (default: ${doc.default})`;
+    }
 
     return ret;
 }
 
 export function constant(doc, formatFunc) {
-    // value
     return getConstantText(doc.value);
 }
 
 export function string(doc, formatFunc) {
     let ret = 'string';
 
-    // if (doc.requirements.length > 0 || doc.default !== undefined) {
-    //     const mods = [...doc.requirements];
+    if (doc.requirements !==undefined || doc.default !== undefined) {
+        const mods = Object.values(doc.requirements).map(req => req.message);
 
-    //     if (doc.default !== undefined) {
-    //         mods.push(`default: ${doc.default}`);
-    //     }
+        if (doc.default !== undefined) {
+            mods.push(`default: ${doc.default}`);
+        }
 
-    //     ret += ` (${mods.join(', ')})`;
-    // }
+        ret += ` (${mods.join(', ')})`;
+    }
 
     return ret;
 }
@@ -169,15 +159,15 @@ export function string(doc, formatFunc) {
 export function numeric(doc, formatFunc) {
     let ret = doc.numericType;
 
-    // if (doc.requirements.length > 0 || doc.default !== undefined) {
-    //     const mods = [...doc.requirements];
+    if (doc.requirements !==undefined || doc.default !== undefined) {
+        const mods = Object.values(doc.requirements).map(req => req.message);
 
-    //     if (doc.default !== undefined) {
-    //         mods.push(`default: ${doc.default}`);
-    //     }
+        if (doc.default !== undefined) {
+            mods.push(`default: ${doc.default}`);
+        }
 
-    //     ret += ` (${mods.join(', ')})`;
-    // }
+        ret += ` (${mods.join(', ')})`;
+    }
 
     return ret;
 }
@@ -185,32 +175,28 @@ export function numeric(doc, formatFunc) {
 export function boolean(doc, formatFunc) {
     let ret = 'boolean';
 
-    // if (doc.default !== undefined) {
-    //     ret += ` (default: ${doc.default})`;
-    // }
+    if (doc.default !== undefined) {
+        ret += ` (default: ${doc.default})`;
+    }
 
     return ret;
 }
 
 // TODO: should I do something different for anyOf vs oneOf?
 export function anyOf(doc, formatFunc) {
-    // items
     return doc.items.map(item => formatFunc(item)).join(' | ');
 }
 
 export function oneOf(doc, formatFunc) {
-    // items
     return doc.items.map(item => formatFunc(item)).join(' | ');
 }
 
 export function allOf(doc, formatFunc) {
-    // items
     // TODO: allOf formatter
     return doc.items.map(item => formatFunc(item)).join(' & ');
 }
 
 export function ifThenElse(doc, formatFunc) {
-    // if, then, else
     let ret = `if (${formatFunc(doc.if)})`;
 
     indent();
@@ -227,31 +213,11 @@ export function ifThenElse(doc, formatFunc) {
 }
 
 export function multiType(doc, formatFunc) {
-    // TODO: Do I still want to change multi-type to oneOf? (rather than just making it another type)
-    // if (schema.type.length === 2 && schema.type.includes('null')) {
-    //     return getSchemaDoc({ schema: {
-    //         oneOf: [
-    //             {
-    //                 ...schema,
-    //                 type: schema.type.find(i => i !== 'null')
-    //             },
-    //             { type: "null" }
-    //         ]
-    //     }, root })
-    // }
+    let ret = doc.types.join(' | ');
 
-
-
-    // types, default
-    let ret = '(';
-
-    ret += doc.types.join(' | ');
-
-    // if (doc.default !== undefined) {
-    //     ret += ` (default: ${doc.default})`;
-    // }
-
-    ret += ')';
+    if (doc.default !== undefined) {
+        ret += ` (default: ${doc.default})`;
+    }
 
     return ret;
 }
