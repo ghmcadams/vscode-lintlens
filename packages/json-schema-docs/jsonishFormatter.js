@@ -1,5 +1,5 @@
 const indentSize = 2;
-let currentIndentCount = 0; // TODO: not threadsafe (is that ok?)
+let currentIndentCount = 0;
 
 
 function indent() {
@@ -13,11 +13,14 @@ function getIndent() {
 }
 
 // TODO: include deprecated flag
+// TODO: consider moving requirements (array, object) to the top
 // TODO: include annotations (title, description, maybe examples)
 // TODO: consider changing comments starter from # to //
+//   would need to change language things in lintlens
 
 
 // TODO: do I support passing of state object?
+//      this would solve the indent problem (indent doesn't clear on error - when moving to the next schema)
 
 /*
 Rules for functions:
@@ -25,6 +28,7 @@ Rules for functions:
     * never start with an indent
     * never end with a newline
     * when a newline is used within, insert indent
+    * when children are added, increase indent before and decrease after
 */
 
 
@@ -33,6 +37,8 @@ export function any(doc, formatFunc) {
 }
 
 export function not(doc, formatFunc) {
+    // TODO: NOT formatter
+
     return '';
 }
 
@@ -41,23 +47,39 @@ export function nullvalue(doc, formatFunc) {
 }
 
 export function object(doc, formatFunc) {
+    if (doc.properties.length === 0 &&
+        !doc.indexProperties &&
+        (!doc.requirements || Object.keys(doc.requirements).length === 0)
+    ) {
+        return '{}';
+    }
+
     let ret = '{\n';
 
     indent();
 
-    ret += doc.properties.map(property => {
-        const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
-        return `${getIndent()}${prop}`;
-    }).join(',\n');
+    try {
+        ret += doc.properties.map(property => {
+            const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
+            return `${getIndent()}${prop}`;
+        }).join(',\n');
 
-    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += '\n';
-        ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
-        }).join('\n');
+        if (doc.indexProperties) {
+            ret += doc.indexProperties.map(property => {
+                const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
+                return `${getIndent()}${prop}`;
+            }).join(',\n');
+        }
+
+        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+            ret += '\n';
+            ret += Object.values(doc.requirements).map(({ message }) => {
+                return `${getIndent()}# ${message}`;
+            }).join('\n');
+        }
+    } finally {
+        outdent();
     }
-
-    outdent();
 
     ret += `\n${getIndent()}}`;
 
@@ -65,23 +87,28 @@ export function object(doc, formatFunc) {
 }
 
 export function tuple(doc, formatFunc) {
+    // TODO: handle additionalItems in tuple
+    // TODO: handle when tuple has additionalItems that is an array
+
     let ret = '[\n';
 
     indent();
 
-    ret += doc.items.map(item => {
-        const val = formatFunc(item);
-        return `${getIndent()}${val}`;
-    }).join(',\n');
+    try {
+        ret += doc.items.map(item => {
+            const val = formatFunc(item);
+            return `${getIndent()}${val}`;
+        }).join(',\n');
 
-    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += '\n';
-        ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
-        }).join('\n');
+        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+            ret += '\n';
+            ret += Object.values(doc.requirements).map(({ message }) => {
+                return `${getIndent()}# ${message}`;
+            }).join('\n');
+        }
+    } finally {
+        outdent();
     }
-
-    outdent();
 
     ret += `\n${getIndent()}]`;
 
@@ -90,7 +117,7 @@ export function tuple(doc, formatFunc) {
 
 export function array(doc, formatFunc) {
     // simple plain array
-    if (!doc.schema && (!doc.requirements || doc.requirements.length === 0)) {
+    if (!doc.schema && (!doc.requirements || Object.keys(doc.requirements).length === 0)) {
         return '[]';
     }
 
@@ -98,25 +125,26 @@ export function array(doc, formatFunc) {
 
     indent();
 
-    ret += `${getIndent()}${formatFunc(doc.schema)}`;
+    try {
+        ret += `${getIndent()}${formatFunc(doc.schema)}`;
 
-    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += '\n';
-        ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
-        }).join('\n');
+        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+            ret += '\n';
+            ret += Object.values(doc.requirements).map(({ message }) => {
+                return `${getIndent()}# ${message}`;
+            }).join('\n');
+        }
+    } finally {
+        outdent();
     }
-
-    outdent();
 
     ret += `\n${getIndent()}]`;
 
     // TODO: consider basing this on doc.schema rather than the whole thing
-    //  THOUGHT: then I could have `string[], # min items: 3, unique`
+    //  THOUGHT: then I could have `string[], // min items: 3, unique`
 
     // simple array of a type (simple, no requirements/annotations)
     //  TODO: can I use doc.schema.schemaType somehow?
-    // TODO: should I allow a little bit more? (EX: string (length >= 0)[] )
     const regex = /\[\n\s+(\w+)\n\s+\]/;
     const matches = ret.match(regex);
     if (matches) {
@@ -130,7 +158,7 @@ export function enumeration(doc, formatFunc) {
     let ret = doc.items.map(item => getConstantText(item)).join(' | ');
 
     if (doc.default !== undefined) {
-        ret += ` (default: ${doc.default})`;
+        ret += ` (default: ${getConstantText(doc.default)})`;
     }
 
     return ret;
@@ -143,11 +171,15 @@ export function constant(doc, formatFunc) {
 export function string(doc, formatFunc) {
     let ret = 'string';
 
-    if (doc.requirements !==undefined || doc.default !== undefined) {
-        const mods = Object.values(doc.requirements).map(req => req.message);
+    if (doc.requirements !== undefined || doc.default !== undefined) {
+        const mods = [];
+
+        if (doc.requirements !== undefined) {
+            mods.push(...Object.values(doc.requirements).map(req => req.message));
+        }
 
         if (doc.default !== undefined) {
-            mods.push(`default: ${doc.default}`);
+            mods.push(`default: "${doc.default}"`);
         }
 
         ret += ` (${mods.join(', ')})`;
@@ -201,13 +233,15 @@ export function ifThenElse(doc, formatFunc) {
 
     indent();
 
-    ret += `\n${getIndent()}then ${formatFunc(doc.then)})`;
+    try {
+        ret += `\n${getIndent()}then ${formatFunc(doc.then)})`;
 
-    if (doc.else !== undefined) {
-        ret += `\n${getIndent()}else ${formatFunc(doc.else)})`;
+        if (doc.else !== undefined) {
+            ret += `\n${getIndent()}else ${formatFunc(doc.else)})`;
+        }
+    } finally {
+        outdent();
     }
-
-    outdent();
 
     return ret;
 }

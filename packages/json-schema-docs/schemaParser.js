@@ -23,12 +23,12 @@ const schemaTypes = {
 
 
 
-// TODO: test by showing old way vs new at the same time for comparison
-
 // TODO: root is being passed around so I can use it in getRef - that's it
 //  IDEA: expando?
 
-// TODO: outer array - do I want it?
+// TODO: handle NOT (seems to exist with something else)
+
+// TODO: error handling (for invalid schemas)
 
 export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
     if (!schema) {
@@ -63,37 +63,36 @@ function getSchemaDoc({ schema, root = schema }) {
 
     const schemaType = getSchemaType(item);
 
-    // TODO: reorder this to be most efficient (most likely comes first)
     switch (schemaType) {
-        case schemaTypes.any:
-            return getAnyDoc(({ schema: item, root }));
-        case schemaTypes.not:
-            return getNotDoc(({ schema: item, root }));
-        case schemaTypes.nullvalue:
-            return getNullDoc(({ schema: item, root }));
         case schemaTypes.object:
             return getObjectDoc(({ schema: item, root }));
         case schemaTypes.array:
             return getArrayDoc(({ schema: item, root }));
+        case schemaTypes.anyOf:
+        case schemaTypes.oneOf:
+            return getOneOfDoc(({ schema: item, root }));
+        case schemaTypes.allOf:
+            return getAllOfDoc(({ schema: item, root }));
+        case schemaTypes.multiType:
+            return getMultiTypeDoc(({ schema: item, root }));
         case schemaTypes.enumeration:
             return getEnumDoc(({ schema: item, root }));
-        case schemaTypes.constant:
-            return getConstDoc(({ schema: item, root }));
         case schemaTypes.string:
             return getStringDoc(({ schema: item, root }));
         case schemaTypes.numeric:
             return getNumericDoc(({ schema: item, root }));
         case schemaTypes.boolean:
             return getBooleanDoc(({ schema: item, root }));
-        case schemaTypes.anyOf:
-        case schemaTypes.oneOf:
-            return getOneOfDoc(({ schema: item, root }));
-        case schemaTypes.allOf:
-            return getAllOfDoc(({ schema: item, root }));
+        case schemaTypes.constant:
+            return getConstDoc(({ schema: item, root }));
+        case schemaTypes.any:
+            return getAnyDoc(({ schema: item, root }));
+        case schemaTypes.not:
+            return getNotDoc(({ schema: item, root }));
+        case schemaTypes.nullvalue:
+            return getNullDoc(({ schema: item, root }));
         case schemaTypes.ifThenElse:
             return getIfThenElseDoc(({ schema: item, root }));
-        case schemaTypes.multiType:
-            return getMultiTypeDoc(({ schema: item, root }));
 
         case schemaTypes.invalid:
         default:
@@ -180,6 +179,54 @@ function getObjectDoc({ schema, root }) {
         ...getAnnotations(schema),
     };
 
+    if (schema.hasOwnProperty('properties')) {
+        const requiredKeys = schema.required || [];
+        const properties = Object.entries(schema.properties).map(([key, value]) => {
+            return {
+                key,
+                required: requiredKeys.includes(key),
+                value: getSchemaDoc({ schema: value, root }),
+            };
+        });
+        ret.properties.push(...properties);
+    }
+
+    // separate other property types (to represent as index properties) so that they can be formatted differently
+    if (schema.hasOwnProperty('patternProperties') || schema.hasOwnProperty('additionalProperties')) {
+        ret.indexProperties = [];
+
+        if (schema.hasOwnProperty('patternProperties')) {
+            const patternProperties = Object.entries(schema.patternProperties).map(([key, value]) => {
+                return {
+                    key: `[/${key}/]`,
+                    required: false,
+                    value: getSchemaDoc({ schema: value, root }),
+                };
+            });
+            ret.indexProperties.push(...patternProperties);
+        }
+
+        // TODO: By default any additional properties are allowed.
+        // TODO: unevaluatedProperties should be considered the same as additionalProperties
+        if (schema.hasOwnProperty('additionalProperties')) {
+            if (getType(schema.additionalProperties) === 'boolean') {
+                if (schema.additionalProperties === true) {
+                    ret.indexProperties.push({
+                        key: '[any]',
+                        required: false,
+                        value: getSchemaDoc({ schema: {}, root }),
+                    });
+                }
+            } else {
+                ret.indexProperties.push({
+                    key: '[any]',
+                    required: false,
+                    value: getSchemaDoc({ schema: schema.additionalProperties, root }),
+                });
+            }
+        }
+    }
+
     const requirements = {};
 
     if (schema.hasOwnProperty('minProperties') || schema.hasOwnProperty('maxProperties')) {
@@ -193,7 +240,7 @@ function getObjectDoc({ schema, root }) {
             schema.minProperties > 0 && schema.maxProperties > 0
         ) {
             if (schema.minProperties === schema.maxProperties) {
-                requirements.size.message = `required: ${schema.minProperties} properties`;
+                requirements.size.message = `required: ${schema.minProperties} ${schema.minProperties === 1 ? 'property' : 'properties'}`;
             } else {
                 requirements.size.message = `required: ${schema.minProperties} to ${schema.maxProperties} properties`;
             }
@@ -208,50 +255,6 @@ function getObjectDoc({ schema, root }) {
         ret.requirements = requirements;
     }
 
-
-    if (schema.hasOwnProperty('properties')) {
-        const requiredKeys = schema.required || [];
-        const properties = Object.entries(schema.properties).map(([key, value]) => {
-            return {
-                key,
-                required: requiredKeys.includes(key),
-                value: getSchemaDoc({ schema: value, root }),
-            };
-        });
-        ret.properties.push(...properties);
-    }
-
-    if (schema.hasOwnProperty('patternProperties')) {
-        const patternProperties = Object.entries(schema.patternProperties).map(([key, value]) => {
-            return {
-                key: `[/${key}/]`,
-                required: false,
-                value: getSchemaDoc({ schema: value, root }),
-            };
-        });
-        ret.properties.push(...patternProperties);
-    }
-
-    // TODO: By default any additional properties are allowed.
-    // TODO: unevaluatedProperties should be considered the same as additionalProperties
-    if (schema.hasOwnProperty('additionalProperties')) {
-        if (getType(schema.additionalProperties) === 'boolean') {
-            if (schema.additionalProperties === true) {
-                ret.properties.push({
-                    key: '[any]',
-                    required: false,
-                    value: getSchemaDoc({ schema: {}, root }),
-                });
-            }
-        } else {
-            ret.properties.push({
-                key: '[any]',
-                required: false,
-                value: getSchemaDoc({ schema: schema.additionalProperties, root }),
-            });
-        }
-    }
-
     return ret;
 }
 
@@ -263,9 +266,7 @@ function getArrayDoc({ schema, root }) {
         ...getAnnotations(schema),
     };
 
-    // if there is nothing but array, then show empty one
     if (Object.keys(schema).length == 1 && schema.hasOwnProperty('type')) {
-        // TODO: think about how I can show that this is a simple array ( `[]` )
         return ret;
     }
 
@@ -275,8 +276,6 @@ function getArrayDoc({ schema, root }) {
 
         if (schema.hasOwnProperty('additionalItems') || schema.hasOwnProperty('items')) {
             const additionalItems = schema.additionalItems ?? schema.items;
-
-            // TODO: handle when tuple has additionalItems that is an array ??
 
             if (getType(additionalItems) === 'boolean') {
                 if (additionalItems === true) {
@@ -301,10 +300,7 @@ function getArrayDoc({ schema, root }) {
             ret.schemaType = schemaTypes.tuple;
             ret.items = items.map(item => getSchemaDoc({ schema: item, root }));
 
-            // TODO: combine additionalItems from both places
             if (schema.hasOwnProperty('additionalItems')) {
-                // TODO: handle when tuple has additionalItems that is an array ??
-
                 if (getType(schema.additionalItems) === 'boolean') {
                     if (schema.additionalItems === true) {
                         ret.additionalItems = getSchemaDoc({ schema: {}, root });
@@ -326,7 +322,9 @@ function getArrayDoc({ schema, root }) {
 
     const requirements = {};
 
-    if (schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) {
+    if ((schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) &&
+        (schema.minItems > 0 || schema.maxItems > 0)
+    ) {
         requirements.length = {
             minItems: schema.minItems,
             maxItems: schema.maxItems,
@@ -337,7 +335,7 @@ function getArrayDoc({ schema, root }) {
             schema.minItems > 0 && schema.maxItems > 0
         ) {
             if (schema.minItems === schema.maxItems) {
-                requirements.length.message = `required: ${schema.minItems} items`;
+                requirements.length.message = `required: ${schema.minItems} ${schema.minItems === 1 ? 'item' : 'items'}`;
             } else {
                 requirements.length.message = `required: ${schema.minItems} to ${schema.maxItems} items`;
             }
@@ -463,7 +461,6 @@ function getBooleanDoc({ schema }) {
     };
 }
 
-// TODO: rename the function to be either in one
 // TODO: do I combine allOf here as well?
 function getOneOfDoc({ schema, root }) {
     // https://json-schema.org/understanding-json-schema/reference/combining.html
@@ -550,10 +547,6 @@ function getSchemaType(item = {}) {
         return schemaTypes.any;
     }
 
-    if (item.hasOwnProperty('not')) {
-        return schemaTypes.not;
-    }
-
     if (item.hasOwnProperty('const')) {
         return schemaTypes.constant;
     }
@@ -621,13 +614,16 @@ function getSchemaType(item = {}) {
         return schemaTypes.ifThenElse;
     }
 
+    // TODO: when it has a not, usually it would exist as part of something else
+    if (item.hasOwnProperty('not')) {
+        return schemaTypes.not;
+    }
+
     console.log('invalid schema type');
     return schemaTypes.invalid;
 }
 
 function getRef(schema, refName) {
-    // TODO: rewrite getRef() (there are errors, and make sure it does what is intended)
-
     // path
     if (refName.includes('/')) {
         try {
@@ -648,7 +644,7 @@ function getRef(schema, refName) {
     try {
         const id = refName;
         // remove # character
-        definition.shift();
+        id.shift();
         return Object.values(schema.definitions).find(def => def.$id === id) || {};
     } catch (err) {
         return {};

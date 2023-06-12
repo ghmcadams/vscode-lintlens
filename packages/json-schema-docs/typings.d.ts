@@ -42,7 +42,7 @@ BaseSchema {
 
 Schema: union of all of the below (named XSchema - EX: ObjectSchema)
 
-Property: Record<string, Schema>
+Property: Record<string, Schema> // TODO: this is not correct (has required, anything else?)
 
 Scalar: string | number | boolean;
 
@@ -58,6 +58,7 @@ nullvalue
 
 object
     properties: Property[]
+    indexProperties: Property[]
     requirements?: Requirements
 
 array
