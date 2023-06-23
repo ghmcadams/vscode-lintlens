@@ -47,18 +47,12 @@ export function nullvalue(doc, formatFunc) {
 }
 
 export function object(doc, formatFunc) {
-    if (doc.properties.length === 0 &&
-        !doc.indexProperties &&
-        (!doc.requirements || Object.keys(doc.requirements).length === 0)
-    ) {
-        return '{}';
-    }
-
     let ret = '{\n';
 
     indent();
 
     try {
+        let innards = '';
         const props = [];
 
         props.push(...doc.properties.map(property => {
@@ -73,13 +67,19 @@ export function object(doc, formatFunc) {
             }));
         }
 
-        ret += props.join(',\n');
+        innards += props.join(',\n');
 
         if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-            ret += '\n';
-            ret += Object.values(doc.requirements).map(({ message }) => {
+            innards += '\n';
+            innards += Object.values(doc.requirements).map(({ message }) => {
                 return `${getIndent()}# ${message}`;
             }).join('\n');
+        }
+
+        if (innards !== '') {
+            ret += innards;
+        } else {
+            ret += `${getIndent()}[any]: any`;
         }
     } finally {
         outdent();
