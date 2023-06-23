@@ -12,8 +12,11 @@ function getIndent() {
     return ' '.repeat(indentSize * currentIndentCount);
 }
 
+
+// TODO: handle all errors (what do I return?)
+
 // TODO: include deprecated flag
-// TODO: consider moving requirements (array, object) to the top
+// TODO: consider moving requirements (in arrays & objects) to the top
 // TODO: include annotations (title, description, maybe examples)
 // TODO: consider changing comments starter from # to //
 //   would need to change language things in lintlens
@@ -148,7 +151,6 @@ export function array(doc, formatFunc) {
     //  THOUGHT: then I could have `string[], // min items: 3, unique`
 
     // simple array of a type (simple, no requirements/annotations)
-    //  TODO: can I use doc.schema.schemaType somehow?
     const regex = /\[\n\s+(\w+)\n\s+\]/;
     const matches = ret.match(regex);
     if (matches) {
