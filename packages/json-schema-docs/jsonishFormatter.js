@@ -59,17 +59,21 @@ export function object(doc, formatFunc) {
     indent();
 
     try {
-        ret += doc.properties.map(property => {
+        const props = [];
+
+        props.push(...doc.properties.map(property => {
             const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
             return `${getIndent()}${prop}`;
-        }).join(',\n');
+        }));
 
         if (doc.indexProperties) {
-            ret += doc.indexProperties.map(property => {
+            props.push(...doc.indexProperties.map(property => {
                 const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
                 return `${getIndent()}${prop}`;
-            }).join(',\n');
+            }));
         }
+
+        ret += props.join(',\n');
 
         if (doc.requirements && Object.keys(doc.requirements).length > 0) {
             ret += '\n';
