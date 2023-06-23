@@ -22,13 +22,10 @@ const schemaTypes = {
 };
 
 
-
 // TODO: root is being passed around so I can use it in getRef - that's it
 //  IDEA: expando?
 
 // TODO: handle NOT (seems to exist with something else)
-
-// TODO: error handling (for invalid schemas)
 
 export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
     if (!schema) {
@@ -93,10 +90,9 @@ function getSchemaDoc({ schema, root = schema }) {
             return getNullDoc(({ schema: item, root }));
         case schemaTypes.ifThenElse:
             return getIfThenElseDoc(({ schema: item, root }));
-
         case schemaTypes.invalid:
         default:
-            throw new Error('Unknown schema type');
+            return getInvalidDoc(({ schema: item, root }));
     }
 }
 
@@ -533,6 +529,13 @@ function getIfThenElseDoc({ schema, root }) {
     };
 }
 
+function getInvalidDoc({ schema, root }) {
+    return {
+        schemaType: schemaTypes.invalid,
+        schema,
+    };
+}
+
 
 function getType(variable) {
     return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
@@ -619,7 +622,6 @@ function getSchemaType(item = {}) {
         return schemaTypes.not;
     }
 
-    console.log('invalid schema type');
     return schemaTypes.invalid;
 }
 
@@ -706,13 +708,13 @@ function formatDoc(formatter, doc) {
         case schemaTypes.allOf:
         case schemaTypes.ifThenElse:
         case schemaTypes.multiType:
+        case schemaTypes.invalid:
             if (!formatter.hasOwnProperty(doc.schemaType)) {
                 throw new Error(`Missing formatter: ${doc.schemaType}`);
             }
             const formatFunc = formatDoc.bind(undefined, formatter);
             return formatter[doc.schemaType](doc, formatFunc);
 
-        case schemaTypes.invalid:
         default:
             throw new Error(`Unknown schema type: ${doc.schemaType}`);
     }

@@ -260,6 +260,10 @@ export function multiType(doc, formatFunc) {
     return ret;
 }
 
+export function invalid(doc, formatFunc) {
+    return '<Unknown: invalid schema>';
+}
+
 function getConstantText(text) {
     if (typeof text === 'string') {
         return `"${text}"`;
