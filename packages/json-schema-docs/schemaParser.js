@@ -146,13 +146,6 @@ function getMultiTypeDoc({ schema, root }) {
 }
 
 function getEnumDoc({ schema }) {
-    if (schema.enum.length === 1) {
-        return getConstDoc({ schema: {
-            ...schema,
-            const: schema.enum[0],
-        } });
-    }
-
     return {
         schemaType: schemaTypes.enumeration,
         items: schema.enum,
