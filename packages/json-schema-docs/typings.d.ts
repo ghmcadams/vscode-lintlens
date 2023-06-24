@@ -1,105 +1,113 @@
 declare module 'json-schema-docs' {
-    interface FormatProvider {
-        // TODO: fill in all required functions
-    }
+    type BaseFormatFunction = (doc: Schema) => string;
+    type FormatterFunction<T extends Schema> = (doc: T, formatFunc: BaseFormatFunction) => string;
 
-    // TODO: fill in jsdocs flowerbox
+    type Scalar = string | number | boolean;
+
+    type Property = {
+        key: string;
+        value: Schema;
+        required: boolean;
+    };
+
+    type Annotations = {
+        title: string;
+        description: string;
+        examples: unknown[];
+    };
+
+    type Requirement = {
+        [string]: {
+            [string]: Scalar;
+            message: string;
+        };
+    };
+
+    type FormatProvider = {
+        any: FormatterFunction<AnySchema>;
+        not: FormatterFunction<NotSchema>;
+        nullvalue: FormatterFunction<NullvalueSchema>;
+        object: FormatterFunction<ObjectSchema>;
+        tuple: FormatterFunction<TupleSchema>;
+        array: FormatterFunction<ArraySchema>;
+        enumeration: FormatterFunction<EnumerationSchema>;
+        constant: FormatterFunction<ConstantSchema>;
+        string: FormatterFunction<StringSchema>;
+        numeric: FormatterFunction<NumericSchema>;
+        boolean: FormatterFunction<BooleanSchema>;
+        anyOf: FormatterFunction<AnyOfSchema>;
+        oneOf: FormatterFunction<OneOfSchema>;
+        allOf: FormatterFunction<AllOfSchema>;
+        ifThenElse: FormatterFunction<IfThenElseSchema>;
+        multiType: FormatterFunction<MultiTypeSchema>;
+        invalid: FormatterFunction<InvalidSchema>;
+    };
+
+    type BaseSchema = {
+        default?: boolean;
+        deprecated?: boolean;
+        annotations?: Annotations;
+    };
+
+    type AnySchema = BaseSchema & {};
+    type NotSchema = BaseSchema & {};
+    type NullvalueSchema = BaseSchema & {};
+    type ObjectSchema = BaseSchema & {
+        properties: Property[];
+        indexProperties?: Property[];
+        requirements?: Requirement[];
+    };
+    type TupleSchema = BaseSchema & {
+        items: Schema[];
+        additionalItems?: Schema;
+    };
+    type ArraySchema = BaseSchema & {
+        schema: Schema;
+    };
+    type EnumerationSchema = BaseSchema & {
+        items: Scalar[];
+    };
+    type ConstantSchema = BaseSchema & {
+        value: Scalar;
+    };
+    type StringSchema = BaseSchema & {
+        requirements?: Requirement[];
+    };
+    type NumericSchema = BaseSchema & {
+        numericType: string;
+        requirements?: Requirement[];
+    };
+    type BooleanSchema = BaseSchema & {};
+    type OneOfSchema = BaseSchema & {
+        items: Schema[];
+    };
+    type AnyOfSchema = BaseSchema & {
+        items: Schema[];
+    };
+    type AllOfSchema = BaseSchema & {
+        items: Schema[];
+    };
+    type IfThenElseSchema = BaseSchema & {
+        if: Schema;
+        then: Schema;
+        else: Schema;
+    };
+    type MultiTypeSchema = BaseSchema & {
+        types: string[];
+    };
+    type InvalidSchema = BaseSchema & {
+        schema: Schema;
+    };
+
+    type Schema = AnySchema | NotSchema | NullvalueSchema | ObjectSchema | TupleSchema | ArraySchema | EnumerationSchema | ConstantSchema | StringSchema | NumericSchema | BooleanSchema | AnyOfSchema | OneOfSchema | AllOfSchema | IfThenElseSchema | MultiTypeSchema | InvalidSchema;
+
     /**
-     * Get usable, human readable, simple error messages from ajv errors.
-     * @param {ErrorObject[]} errors - The errors created as a result of calling ajv.validate().
-     * @param {object=} options - Configuration options to help give the best result.
-     * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
-     * @return {SimpleError[]} An array of simple errors.
+     * Get human readable documentation from a JSON schema object
+     * @param {object} schema - a valid JSON schema
+     * @param {FormatProvider} [formatter=jsonishFormatter] - The specified format provider
      */
     export function getSchemaDocumentation(
         schema: object,
         formatter?: FormatProvider,
     ): string;
 }
-
-
-/*
-types:
-
-Requirements {
-    [string]: {
-        [string]: Scalar;
-        message: string;
-    };
-}
-
-Annotations {
-    title: string;
-    description: string;
-    examples: unknown[]; // TODO: can I make this better with generics?
-}
-
-BaseSchema {
-    default?: boolean;
-    deprecated?: boolean;
-    annotations?: Annotations;
-}
-
-Schema: union of all of the below (named XSchema - EX: ObjectSchema)
-
-Property: Record<string, Schema> // TODO: this is not correct (has required, anything else?)
-
-Scalar: string | number | boolean;
-
-schemas (all are based on BaseSchema)
--------------------
-
-any
-
-not
-    schema: Schema
-
-nullvalue
-
-object
-    properties: Property[]
-    indexProperties: Property[]
-    requirements?: Requirements
-
-array
-    schema: Schema
-    requirements?: Requirements
-
-tuple
-    items: Schema[]
-    additionalItems?: Schema
-    requirements?: Requirements
-
-enumeration
-    items: Scalar[]
-
-constant
-    value: Scalar
-
-string
-    requirements?: Requirements
-
-numeric
-    numericType: string
-    requirements?: Requirements
-
-boolean
-
-anyOf
-    items: Schema[]
-
-oneOf
-    items: Schema[]
-
-allOf
-    items: Schema[]
-
-ifThenElse
-    if: Schema
-    then: Schema
-    else?: Schema
-
-multiType
-    types: string[]
-
-*/
