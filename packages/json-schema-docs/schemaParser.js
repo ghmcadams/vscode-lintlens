@@ -44,20 +44,6 @@ function getSchemaDoc({ schema, root = schema }) {
         return getEmptyDoc({ schema, root });
     }
 
-    const varType = getType(schema);
-
-    if (!['object', 'array'].includes(varType)) {
-        return getInvalidDoc({ schema, root });
-    }
-
-    if (varType === 'array' && schema.length === 0) {
-        return getEmptyDoc({ schema, root });
-    }
-
-    if (varType === 'object' && Object.keys(schema).length === 0) {
-        return getEmptyDoc({ schema, root });
-    }
-
     let item = schema;
     // TODO: what if item.$ref[0] !== '#'?
     if (schema.hasOwnProperty('$ref') && item.$ref[0] === '#') {
@@ -203,11 +189,10 @@ function getObjectDoc({ schema, root }) {
             ret.indexProperties.push(...patternProperties);
         }
 
-        // TODO: By default any additional properties are allowed.
-        // TODO: unevaluatedProperties should be considered the same as additionalProperties
-        if (schema.hasOwnProperty('additionalProperties')) {
-            if (getType(schema.additionalProperties) === 'boolean') {
-                if (schema.additionalProperties === true) {
+        if (schema.hasOwnProperty('additionalProperties') || schema.hasOwnProperty('unevaluatedProperties')) {
+            const additionalProperties = schema.additionalProperties ?? schema.unevaluatedProperties;
+            if (getType(additionalProperties) === 'boolean') {
+                if (additionalProperties === true) {
                     ret.indexProperties.push({
                         key: '[any]',
                         required: false,
@@ -218,9 +203,15 @@ function getObjectDoc({ schema, root }) {
                 ret.indexProperties.push({
                     key: '[any]',
                     required: false,
-                    value: getSchemaDoc({ schema: schema.additionalProperties, root }),
+                    value: getSchemaDoc({ schema: additionalProperties, root }),
                 });
             }
+        } else {
+            ret.indexProperties.push({
+                key: '[any]',
+                required: false,
+                value: getSchemaDoc({ schema: {}, root }),
+            });
         }
     }
 
@@ -577,7 +568,13 @@ function getType(variable) {
 }
 
 function getSchemaType(schema = {}) {
-    if (Array.isArray(schema)) {
+    const varType = getType(schema);
+
+    if (!['object', 'array'].includes(varType)) {
+        return schemaTypes.invalid;
+    }
+
+    if (varType === 'array') {
         return schemaTypes.array;
     }
 
