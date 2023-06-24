@@ -106,12 +106,13 @@ declare module 'json-schema-docs' {
     type Schema = EmptySchema | AnySchema | NotSchema | NullvalueSchema | ObjectSchema | TupleSchema | ArraySchema | EnumerationSchema | ConstantSchema | StringSchema | NumericSchema | BooleanSchema | AnyOfSchema | OneOfSchema | AllOfSchema | IfThenElseSchema | MultiTypeSchema | InvalidSchema;
 
     /**
-     * Get human readable documentation from a JSON schema object
-     * @param {object} schema - a valid JSON schema
-     * @param {FormatProvider} [formatter=jsonishFormatter] - The specified format provider
+     * Get human readable documentation from a JSON schema object.
+     * @param {object} schema - a valid JSON schema.
+     * @param {FormatProvider} [formatter=jsonishFormatter] - The specified format provider (If not provided, jsonishFormatter is used).
+     * @returns {string} Schema documentation, formatted via the specified format provider.
      */
     export function getSchemaDocumentation(
         schema: object,
         formatter?: FormatProvider,
-    ): string | Schema;
+    ): string;
 }

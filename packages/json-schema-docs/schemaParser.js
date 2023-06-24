@@ -1,3 +1,6 @@
+import * as jsonishFormatter from './jsonishFormatter';
+
+
 const schemaTypes = {
     any: 'any',
     not: 'not',
@@ -25,10 +28,10 @@ const schemaTypes = {
 
 // TODO: handle all errors (what do I return?)
 
-export function getSchemaDocumentation(schema, formatter) {
+export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
     const doc = getSchemaDoc({ schema });
 
-    if (formatter) {
+    if (formatter !== null) {
         return formatDoc(formatter, doc);
     }
 
