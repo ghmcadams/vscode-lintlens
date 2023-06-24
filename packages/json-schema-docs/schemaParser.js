@@ -126,6 +126,7 @@ function getNullDoc({ schema }) {
 }
 
 function getMultiTypeDoc({ schema, root }) {
+    // Allows requirements on other type
     if (schema.type.length === 2 && schema.type.includes('null')) {
         return getSchemaDoc({ schema: {
             oneOf: [
@@ -721,7 +722,12 @@ function formatDoc(formatter, doc) {
                 throw new Error(`Missing formatter: ${doc.schemaType}`);
             }
             const formatFunc = formatDoc.bind(undefined, formatter);
-            return formatter[doc.schemaType](doc, formatFunc);
+
+            try {
+                return formatter[doc.schemaType](doc, formatFunc);
+            } catch(err) {
+                throw new Error(`Error formatting ${doc.schemaType} schema: ${err.message ?? err}`);
+            }
 
         default:
             throw new Error(`Unknown schema type: ${doc.schemaType}`);
