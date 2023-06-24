@@ -1,6 +1,3 @@
-import * as jsonishFormatter from './jsonishFormatter';
-
-
 const schemaTypes = {
     any: 'any',
     not: 'not',
@@ -19,6 +16,7 @@ const schemaTypes = {
     ifThenElse: 'ifThenElse',
     multiType: 'multiType',
     invalid: 'invalid',
+    empty: 'empty',
 };
 
 
@@ -27,31 +25,37 @@ const schemaTypes = {
 
 // TODO: handle NOT (seems to exist with something else)
 
-export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
+// TODO: handle all errors (what do I return?)
+
+export function getSchemaDocumentation(schema, formatter) {
+    const doc = getSchemaDoc({ schema });
+
+    if (formatter) {
+        return formatDoc(formatter, doc);
+    }
+
+    return doc;
+}
+
+function getSchemaDoc({ schema, root = schema }) {
     if (!schema) {
-        return '';
+        return getEmptyDoc({ schema, root: schema });
     }
 
     const varType = getType(schema);
 
     if (!['object', 'array'].includes(varType)) {
-        return '';
+        return getInvalidDoc({ schema, root: schema });
     }
 
     if (varType === 'array' && schema.length === 0) {
-        return '';
+        return getEmptyDoc({ schema, root: schema });
     }
 
     if (varType === 'object' && Object.keys(schema).length === 0) {
-        return '';
+        return getEmptyDoc({ schema, root: schema });
     }
 
-    const doc = getSchemaDoc({ schema });
-
-    return formatDoc(formatter, doc);
-}
-
-function getSchemaDoc({ schema, root = schema }) {
     let item = schema;
     // TODO: what if item.$ref[0] !== '#'?
     if (schema.hasOwnProperty('$ref') && item.$ref[0] === '#') {
@@ -62,40 +66,49 @@ function getSchemaDoc({ schema, root = schema }) {
 
     switch (schemaType) {
         case schemaTypes.object:
-            return getObjectDoc(({ schema: item, root }));
+            return getObjectDoc({ schema: item, root });
         case schemaTypes.array:
-            return getArrayDoc(({ schema: item, root }));
+            return getArrayDoc({ schema: item, root });
         case schemaTypes.anyOf:
         case schemaTypes.oneOf:
-            return getOneOfDoc(({ schema: item, root }));
+            return getOneOfDoc({ schema: item, root });
         case schemaTypes.allOf:
-            return getAllOfDoc(({ schema: item, root }));
+            return getAllOfDoc({ schema: item, root });
         case schemaTypes.multiType:
-            return getMultiTypeDoc(({ schema: item, root }));
+            return getMultiTypeDoc({ schema: item, root });
         case schemaTypes.enumeration:
-            return getEnumDoc(({ schema: item, root }));
+            return getEnumDoc({ schema: item, root });
         case schemaTypes.string:
-            return getStringDoc(({ schema: item, root }));
+            return getStringDoc({ schema: item, root });
         case schemaTypes.numeric:
-            return getNumericDoc(({ schema: item, root }));
+            return getNumericDoc({ schema: item, root });
         case schemaTypes.boolean:
-            return getBooleanDoc(({ schema: item, root }));
+            return getBooleanDoc({ schema: item, root });
         case schemaTypes.constant:
-            return getConstDoc(({ schema: item, root }));
+            return getConstDoc({ schema: item, root });
         case schemaTypes.any:
-            return getAnyDoc(({ schema: item, root }));
+            return getAnyDoc({ schema: item, root });
         case schemaTypes.not:
-            return getNotDoc(({ schema: item, root }));
+            return getNotDoc({ schema: item, root });
         case schemaTypes.nullvalue:
-            return getNullDoc(({ schema: item, root }));
+            return getNullDoc({ schema: item, root });
         case schemaTypes.ifThenElse:
-            return getIfThenElseDoc(({ schema: item, root }));
+            return getIfThenElseDoc({ schema: item, root });
+        case schemaTypes.empty:
+            return getEmptyDoc({ schema: item, root });
         case schemaTypes.invalid:
         default:
-            return getInvalidDoc(({ schema: item, root }));
+            return getInvalidDoc({ schema: item, root });
     }
 }
 
+
+function getEmptyDoc({ schema, root }) {
+    return {
+        schemaType: schemaTypes.empty,
+        schema,
+    };
+}
 
 function getAnyDoc({ schema, root }) {
     return {
@@ -708,6 +721,7 @@ function formatDoc(formatter, doc) {
         case schemaTypes.allOf:
         case schemaTypes.ifThenElse:
         case schemaTypes.multiType:
+        case schemaTypes.empty:
         case schemaTypes.invalid:
             if (!formatter.hasOwnProperty(doc.schemaType)) {
                 throw new Error(`Missing formatter: ${doc.schemaType}`);

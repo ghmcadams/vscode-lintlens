@@ -35,6 +35,10 @@ Rules for functions:
 */
 
 
+export function empty(doc, formatFunc) {
+    return '';
+}
+
 export function any(doc, formatFunc) {
     return 'any';
 }
