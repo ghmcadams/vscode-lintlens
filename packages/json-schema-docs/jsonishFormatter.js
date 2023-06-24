@@ -13,14 +13,12 @@ function getIndent() {
 }
 
 
-// TODO: handle all errors (what do I return?)
-
 // TODO: include deprecated flag
 // TODO: consider moving requirements (in arrays & objects) to the top
 // TODO: include annotations (title, description, maybe examples)
-// TODO: consider changing comments starter from # to //
-//   would need to change language things in lintlens
 
+// TODO: change comments starter from # to //
+//   would need to change language things in lintlens
 
 // TODO: do I support passing of state object?
 //      this would solve the indent problem (indent doesn't clear on error - when moving to the next schema)
@@ -47,6 +45,8 @@ export function not(doc, formatFunc) {
     // TODO: NOT formatter
 
     return '';
+
+    // return `! ${formatFunc(item)}`;
 }
 
 export function nullvalue(doc, formatFunc) {
@@ -58,39 +58,37 @@ export function object(doc, formatFunc) {
 
     indent();
 
-    try {
-        let innards = '';
-        const props = [];
+    let innards = '';
+    const props = [];
 
-        props.push(...doc.properties.map(property => {
-            const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
+    props.push(...doc.properties.map(property => {
+        const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
+        return `${getIndent()}${prop}`;
+    }));
+
+    if (doc.indexProperties) {
+        props.push(...doc.indexProperties.map(property => {
+            const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
             return `${getIndent()}${prop}`;
         }));
-
-        if (doc.indexProperties) {
-            props.push(...doc.indexProperties.map(property => {
-                const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
-                return `${getIndent()}${prop}`;
-            }));
-        }
-
-        innards += props.join(',\n');
-
-        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-            innards += '\n';
-            innards += Object.values(doc.requirements).map(({ message }) => {
-                return `${getIndent()}# ${message}`;
-            }).join('\n');
-        }
-
-        if (innards !== '') {
-            ret += innards;
-        } else {
-            ret += `${getIndent()}[any]: any`;
-        }
-    } finally {
-        outdent();
     }
+
+    innards += props.join(',\n');
+
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        innards += '\n';
+        innards += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
+    }
+
+    if (innards !== '') {
+        ret += innards;
+    } else {
+        ret += `${getIndent()}[any]: any`;
+    }
+
+    outdent();
 
     ret += `\n${getIndent()}}`;
 
@@ -98,28 +96,26 @@ export function object(doc, formatFunc) {
 }
 
 export function tuple(doc, formatFunc) {
-    // TODO: handle additionalItems in tuple
-    // TODO: handle when tuple has additionalItems that is an array
-
     let ret = '[\n';
 
     indent();
 
-    try {
-        ret += doc.items.map(item => {
-            const val = formatFunc(item);
-            return `${getIndent()}${val}`;
-        }).join(',\n');
+    ret += doc.items.map(item => {
+        const val = formatFunc(item);
+        return `${getIndent()}${val}`;
+    }).join(',\n');
 
-        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-            ret += '\n';
-            ret += Object.values(doc.requirements).map(({ message }) => {
-                return `${getIndent()}# ${message}`;
-            }).join('\n');
-        }
-    } finally {
-        outdent();
+    // TODO: handle additionalItems in tuple
+    //   what if additionalItems is an array?
+
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += '\n';
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
     }
+
+    outdent();
 
     ret += `\n${getIndent()}]`;
 
@@ -136,18 +132,16 @@ export function array(doc, formatFunc) {
 
     indent();
 
-    try {
-        ret += `${getIndent()}${formatFunc(doc.schema)}`;
+    ret += `${getIndent()}${formatFunc(doc.schema)}`;
 
-        if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-            ret += '\n';
-            ret += Object.values(doc.requirements).map(({ message }) => {
-                return `${getIndent()}# ${message}`;
-            }).join('\n');
-        }
-    } finally {
-        outdent();
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += '\n';
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent()}# ${message}`;
+        }).join('\n');
     }
+
+    outdent();
 
     ret += `\n${getIndent()}]`;
 
@@ -202,7 +196,11 @@ export function numeric(doc, formatFunc) {
     let ret = doc.numericType;
 
     if (doc.requirements !==undefined || doc.default !== undefined) {
-        const mods = Object.values(doc.requirements).map(req => req.message);
+        const mods = [];
+
+        if (doc.requirements !== undefined) {
+            mods.push(...Object.values(doc.requirements).map(req => req.message));
+        }
 
         if (doc.default !== undefined) {
             mods.push(`default: ${doc.default}`);
@@ -234,7 +232,6 @@ export function oneOf(doc, formatFunc) {
 }
 
 export function allOf(doc, formatFunc) {
-    // TODO: allOf formatter
     return doc.items.map(item => formatFunc(item)).join(' & ');
 }
 
@@ -243,15 +240,15 @@ export function ifThenElse(doc, formatFunc) {
 
     indent();
 
-    try {
+    if (doc.then !== undefined) {
         ret += `\n${getIndent()}then ${formatFunc(doc.then)})`;
-
-        if (doc.else !== undefined) {
-            ret += `\n${getIndent()}else ${formatFunc(doc.else)})`;
-        }
-    } finally {
-        outdent();
     }
+
+    if (doc.else !== undefined) {
+        ret += `\n${getIndent()}else ${formatFunc(doc.else)})`;
+    }
+
+    outdent();
 
     return ret;
 }
