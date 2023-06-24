@@ -23,8 +23,6 @@ const schemaTypes = {
 // TODO: root is being passed around so I can use it in getRef - that's it
 //  IDEA: expando?
 
-// TODO: handle NOT (seems to exist with something else)
-
 // TODO: handle all errors (what do I return?)
 
 export function getSchemaDocumentation(schema, formatter) {
@@ -514,7 +512,7 @@ function getAllOfDoc({ schema, root }) {
 }
 
 function getNotDoc({ schema, root }) {
-    // TODO: How do I handle NOT
+    // TODO: handle NOTs (seems to exist with something else)
 
     return {
         schemaType: schemaTypes.not,
