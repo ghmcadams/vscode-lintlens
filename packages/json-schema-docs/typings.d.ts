@@ -45,7 +45,7 @@ declare module 'json-schema-docs' {
     };
 
     type BaseSchema = {
-        default?: boolean;
+        default?: unknown;
         deprecated?: boolean;
         annotations?: Annotations;
     };
