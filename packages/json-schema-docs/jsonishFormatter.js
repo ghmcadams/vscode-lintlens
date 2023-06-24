@@ -14,11 +14,16 @@ function getIndent() {
 
 
 // TODO: include deprecated flag
-// TODO: consider moving requirements (in arrays & objects) to the top
 // TODO: include annotations (title, description, maybe examples)
+    // if (doc.deprecated === true) {
+    //     innards += `${getIndent()}# deprecated\n`;
+    // }
+    // // annotations (just description for now)
+    // if (doc.annotations?.description !== undefined) {
+    //     innards += `${getIndent()}# ${doc.annotations.description}\n`;
+    // }
 
-// TODO: change comments starter from # to //
-//   would need to change language things in lintlens
+// TODO: consider moving requirements (in arrays & objects) to the top
 
 // TODO: do I support passing of state object?
 //      this would solve the indent problem (indent doesn't clear on error - when moving to the next schema)
@@ -78,7 +83,7 @@ export function object(doc, formatFunc) {
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
         innards += '\n';
         innards += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
+            return `${getIndent()}// ${message}`;
         }).join('\n');
     }
 
@@ -111,7 +116,7 @@ export function tuple(doc, formatFunc) {
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
         ret += '\n';
         ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
+            return `${getIndent()}// ${message}`;
         }).join('\n');
     }
 
@@ -137,7 +142,7 @@ export function array(doc, formatFunc) {
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
         ret += '\n';
         ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}# ${message}`;
+            return `${getIndent()}// ${message}`;
         }).join('\n');
     }
 

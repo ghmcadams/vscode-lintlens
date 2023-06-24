@@ -69,7 +69,7 @@
 		"comments": {
 			"patterns": [
 				{
-					"match": "(\\# .*)",
+					"match": "(\\/\\/ .*)",
 					"name": "comment.lintlens"
 				}
 			]
