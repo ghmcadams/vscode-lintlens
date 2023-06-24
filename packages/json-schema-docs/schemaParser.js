@@ -334,6 +334,7 @@ function getArrayDoc({ schema, root }) {
     // TODO: contains
     // While the items schema must be valid for every item in the array, the contains schema only needs to validate against one or more items in the array.
     // minContains and maxContains can be used with contains to further specify how many times a schema matches a contains constraint (>= 0).
+    // idea: treat contains like additionalItems: any (contains, then that)
 
 
     const requirements = {};
@@ -477,7 +478,6 @@ function getBooleanDoc({ schema }) {
     };
 }
 
-// TODO: do I combine allOf here as well?
 function getOneOfDoc({ schema, root }) {
     // https://json-schema.org/understanding-json-schema/reference/combining.html
 
