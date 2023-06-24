@@ -225,6 +225,12 @@ function getHoverMessage(rule, ruleInfo) {
             const categoryText = `[${ruleInfo.type ?? ruleInfo.category}${ruleInfo.type && ruleInfo.category ? ` (${ruleInfo.category})` : ''}]`;
             hoverMessage += `&nbsp;&nbsp;&nbsp;\\${categoryText}`;
         }
+
+        const titleBarLength = ruleInfo.ruleName.length + (ruleInfo.type?.length ?? 0) + (ruleInfo.category?.length ?? 0);
+        if (titleBarLength <= 75) {
+            hoverMessage += '&nbsp;'.repeat(75 - titleBarLength);
+        }
+
         hoverMessage += '\n';
 
         if (rule.duplicate === true) {
@@ -276,9 +282,12 @@ function getHoverMessage(rule, ruleInfo) {
             // A code block (\\\ <language> , followed by the code, then another line with \\\) with the lintlens language
             hoverMessage += `\n\`\`\`lintlens\n`;
 
-            const documentation = ruleInfo.schemaDocumentation.replaceAll('\n', `${getSpaces(3)}\n`);
-            hoverMessage += `${documentation}\n`;
+            const lines = ruleInfo.schemaDocumentation.split('\n');
+            const maxLength = Math.max(...lines.map(line => line.length));
 
+            hoverMessage += `${ruleInfo.schemaDocumentation}\n`;
+
+            hoverMessage += getSpaces(maxLength + 10);
             hoverMessage += `\n\n\`\`\`\n`;
         }
     }
