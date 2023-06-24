@@ -248,12 +248,33 @@ function getObjectDoc({ schema, root }) {
         }
     }
 
-    //TODO: propertyNames
-    //  (validates the name of the properties - assumes type: string)
-    //     minLength
-    //     maxLength
-    //     format
-    //     pattern (regex)
+    if (schema.hasOwnProperty('propertyNames')) {
+        requirements.propertyNames = {
+            ...schema.propertyNames,
+            message: '',
+        };
+
+        const messageParts = [];
+        if (schema.propertyNames.hasOwnProperty('minLength') || schema.propertyNames.hasOwnProperty('maxLength')) {
+            if (!schema.propertyNames.hasOwnProperty('minLength')) {
+                messageParts.push(`length: ≤ ${schema.propertyNames.maxLength}`);
+            } else if (!schema.propertyNames.hasOwnProperty('maxLength')) {
+                messageParts.push(`length: ≥ ${schema.propertyNames.minLength}`);
+            } else {
+                messageParts.push(`length: ${schema.propertyNames.minLength} to ${schema.propertyNames.maxLength}`);
+            }
+        }
+
+        if (schema.propertyNames.hasOwnProperty('pattern')) {
+            messageParts.push(`regex: /${schema.propertyNames.pattern}/`);
+        }
+
+        if (schema.propertyNames.hasOwnProperty('format')) {
+            messageParts.push(`format: ${schema.propertyNames.format}`);
+        }
+
+        requirements.propertyNames.message = `Property names: ${messageParts.join(', ')}`;
+    }
 
     if (Object.keys(requirements).length > 0) {
         ret.requirements = requirements;
