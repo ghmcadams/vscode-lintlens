@@ -129,7 +129,7 @@ export function tuple(doc, formatFunc) {
 export function array(doc, formatFunc) {
     // simple plain array
     if (!doc.schema && (!doc.requirements || Object.keys(doc.requirements).length === 0)) {
-        return '[]';
+        return 'any[]';
     }
 
     let ret = '[\n';
