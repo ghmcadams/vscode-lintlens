@@ -15,12 +15,13 @@ function getIndent() {
 
 // TODO: include deprecated flag
 // TODO: include annotations (title, description, maybe examples)
+// IMPORTANT THOUGHT:  not sure how to display these - object vs object param's value, array vs array item, numeric, etc.
     // if (doc.deprecated === true) {
-    //     innards += `${getIndent()}// deprecated\n`;
+    //     ret += `${getIndent()}// deprecated\n`;
     // }
     // // annotations (just description for now)
     // if (doc.annotations?.description !== undefined) {
-    //     innards += `${getIndent()}// ${doc.annotations.description}\n`;
+    //     ret += `${getIndent()}// ${doc.annotations.description}\n`;
     // }
 
 // TODO: consider moving requirements (in arrays & objects) to the top
@@ -81,7 +82,9 @@ export function object(doc, formatFunc) {
     innards += props.join(',\n');
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        innards += '\n';
+        if (innards !== '') {
+            innards += '\n';
+        }
         innards += Object.values(doc.requirements).map(({ message }) => {
             return `${getIndent()}// ${message}`;
         }).join('\n');

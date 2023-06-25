@@ -585,6 +585,9 @@ function getSchemaType(schema = {}) {
     }
 
     if (varType === 'array') {
+        if (schema.length === 0) {
+            return schemaTypes.empty;
+        }
         return schemaTypes.array;
     }
 
