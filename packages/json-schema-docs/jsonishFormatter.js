@@ -1,15 +1,14 @@
 const indentSize = 2;
-let currentIndentCount = 0;
 
 
-function indent() {
-    currentIndentCount++;
+function indent(state) {
+    state.currentIndentCount++;
 }
-function outdent() {
-    currentIndentCount--;
+function outdent(state) {
+    state.currentIndentCount--;
 }
-function getIndent() {
-    return ' '.repeat(indentSize * currentIndentCount);
+function getIndent(state) {
+    return ' '.repeat(indentSize * state.currentIndentCount);
 }
 
 
@@ -17,17 +16,14 @@ function getIndent() {
 // TODO: include annotations (title, description, maybe examples)
 // IMPORTANT THOUGHT:  not sure how to display these - object vs object param's value, array vs array item, numeric, etc.
     // if (doc.deprecated === true) {
-    //     ret += `${getIndent()}// deprecated\n`;
+    //     ret += `${getIndent(state)}// deprecated\n`;
     // }
     // // annotations (just description for now)
     // if (doc.annotations?.description !== undefined) {
-    //     ret += `${getIndent()}// ${doc.annotations.description}\n`;
+    //     ret += `${getIndent(state)}// ${doc.annotations.description}\n`;
     // }
 
 // TODO: consider moving requirements (in arrays & objects) to the top
-
-// TODO: do I support passing of state object?
-//      this would solve the indent problem (indent doesn't clear on error - when moving to the next schema)
 
 /*
 Rules for functions:
@@ -39,47 +35,53 @@ Rules for functions:
 */
 
 
-export function externalRef(doc, formatFunc) {
+export function getInitialState() {
+    return {
+        currentIndentCount: 0,
+    };
+}
+
+export function externalRef(doc, formatFunc, state) {
     return `<Unknown: external schema (${doc.baseUri}${doc.baseUri.endsWith('/') ? '' : '/'}${doc.reference})>`;
 }
 
-export function empty(doc, formatFunc) {
+export function empty(doc, formatFunc, state) {
     return '';
 }
 
-export function any(doc, formatFunc) {
+export function any(doc, formatFunc, state) {
     return 'any';
 }
 
-export function not(doc, formatFunc) {
+export function not(doc, formatFunc, state) {
     // TODO: NOT formatter
 
     return '';
 
-    // return `! ${formatFunc(item)}`;
+    // return `! ${formatFunc(doc.schema)}`;
 }
 
-export function nullvalue(doc, formatFunc) {
+export function nullvalue(doc, formatFunc, state) {
     return 'null';
 }
 
-export function object(doc, formatFunc) {
+export function object(doc, formatFunc, state) {
     let ret = '{\n';
 
-    indent();
+    indent(state);
 
     let innards = '';
     const props = [];
 
     props.push(...doc.properties.map(property => {
         const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
-        return `${getIndent()}${prop}`;
+        return `${getIndent(state)}${prop}`;
     }));
 
     if (doc.indexProperties) {
         props.push(...doc.indexProperties.map(property => {
             const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
-            return `${getIndent()}${prop}`;
+            return `${getIndent(state)}${prop}`;
         }));
     }
 
@@ -90,38 +92,38 @@ export function object(doc, formatFunc) {
             innards += '\n';
         }
         innards += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}// ${message}`;
+            return `${getIndent(state)}// ${message}`;
         }).join('\n');
     }
 
     if (innards !== '') {
         ret += innards;
     } else {
-        ret += `${getIndent()}[any]: any`;
+        ret += `${getIndent(state)}[any]: any`;
     }
 
-    outdent();
+    outdent(state);
 
-    ret += `\n${getIndent()}}`;
+    ret += `\n${getIndent(state)}}`;
 
     return ret;
 }
 
-export function tuple(doc, formatFunc) {
+export function tuple(doc, formatFunc, state) {
     let ret = '[\n';
 
-    indent();
+    indent(state);
 
     ret += doc.items.map(item => {
         const val = formatFunc(item);
-        return `${getIndent()}${val}`;
+        return `${getIndent(state)}${val}`;
     }).join(',\n');
 
     if (doc.additionalItems !== undefined) {
         if (doc.items) {
             ret += ',\n';
         }
-        ret += `${getIndent()}...${formatFunc(doc.additionalItems)}`;
+        ret += `${getIndent(state)}...${formatFunc(doc.additionalItems)}`;
     }
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
@@ -129,18 +131,18 @@ export function tuple(doc, formatFunc) {
             ret += '\n';
         }
         ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}// ${message}`;
+            return `${getIndent(state)}// ${message}`;
         }).join('\n');
     }
 
-    outdent();
+    outdent(state);
 
-    ret += `\n${getIndent()}]`;
+    ret += `\n${getIndent(state)}]`;
 
     return ret;
 }
 
-export function array(doc, formatFunc) {
+export function array(doc, formatFunc, state) {
     // simple plain array
     if (!doc.schema && (!doc.requirements || Object.keys(doc.requirements).length === 0)) {
         return 'any[]';
@@ -148,20 +150,20 @@ export function array(doc, formatFunc) {
 
     let ret = '[\n';
 
-    indent();
+    indent(state);
 
-    ret += `${getIndent()}${formatFunc(doc.schema)}`;
+    ret += `${getIndent(state)}${formatFunc(doc.schema)}`;
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
         ret += '\n';
         ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent()}// ${message}`;
+            return `${getIndent(state)}// ${message}`;
         }).join('\n');
     }
 
-    outdent();
+    outdent(state);
 
-    ret += `\n${getIndent()}]`;
+    ret += `\n${getIndent(state)}]`;
 
     // TODO: consider basing this on doc.schema rather than the whole thing
     //  THOUGHT: then I could have `string[], // min items: 3, unique`
@@ -176,7 +178,7 @@ export function array(doc, formatFunc) {
     return ret;
 }
 
-export function enumeration(doc, formatFunc) {
+export function enumeration(doc, formatFunc, state) {
     let ret = doc.items.map(item => getConstantText(item)).join(' | ');
 
     if (doc.default !== undefined) {
@@ -186,11 +188,11 @@ export function enumeration(doc, formatFunc) {
     return ret;
 }
 
-export function constant(doc, formatFunc) {
+export function constant(doc, formatFunc, state) {
     return getConstantText(doc.value);
 }
 
-export function string(doc, formatFunc) {
+export function string(doc, formatFunc, state) {
     let ret = 'string';
 
     if (doc.requirements !== undefined || doc.default !== undefined) {
@@ -210,7 +212,7 @@ export function string(doc, formatFunc) {
     return ret;
 }
 
-export function numeric(doc, formatFunc) {
+export function numeric(doc, formatFunc, state) {
     let ret = doc.numericType;
 
     if (doc.requirements !==undefined || doc.default !== undefined) {
@@ -230,7 +232,7 @@ export function numeric(doc, formatFunc) {
     return ret;
 }
 
-export function boolean(doc, formatFunc) {
+export function boolean(doc, formatFunc, state) {
     let ret = 'boolean';
 
     if (doc.default !== undefined) {
@@ -240,37 +242,37 @@ export function boolean(doc, formatFunc) {
     return ret;
 }
 
-export function anyOf(doc, formatFunc) {
+export function anyOf(doc, formatFunc, state) {
     return doc.items.map(item => formatFunc(item)).join(' | ');
 }
 
-export function oneOf(doc, formatFunc) {
+export function oneOf(doc, formatFunc, state) {
     return doc.items.map(item => formatFunc(item)).join(' | ');
 }
 
-export function allOf(doc, formatFunc) {
+export function allOf(doc, formatFunc, state) {
     return doc.items.map(item => formatFunc(item)).join(' & ');
 }
 
-export function ifThenElse(doc, formatFunc) {
+export function ifThenElse(doc, formatFunc, state) {
     let ret = `if (${formatFunc(doc.if)})`;
 
-    indent();
+    indent(state);
 
     if (doc.then !== undefined) {
-        ret += `\n${getIndent()}then ${formatFunc(doc.then)})`;
+        ret += `\n${getIndent(state)}then ${formatFunc(doc.then)})`;
     }
 
     if (doc.else !== undefined) {
-        ret += `\n${getIndent()}else ${formatFunc(doc.else)})`;
+        ret += `\n${getIndent(state)}else ${formatFunc(doc.else)})`;
     }
 
-    outdent();
+    outdent(state);
 
     return ret;
 }
 
-export function multiType(doc, formatFunc) {
+export function multiType(doc, formatFunc, state) {
     let ret = doc.types.join(' | ');
 
     if (doc.default !== undefined) {
@@ -280,7 +282,7 @@ export function multiType(doc, formatFunc) {
     return ret;
 }
 
-export function invalid(doc, formatFunc) {
+export function invalid(doc, formatFunc, state) {
     return '<Unknown: invalid schema>';
 }
 

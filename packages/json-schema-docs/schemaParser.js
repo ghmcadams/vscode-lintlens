@@ -787,17 +787,34 @@ function getAnnotations(schema) {
 }
 
 
-function formatDoc(formatter, doc) {
-    if (!formatter.hasOwnProperty(doc.schemaType)) {
-        throw new Error(`Missing formatter function: ${doc.schemaType}`);
-    }
-    const formatFunc = formatDoc.bind(undefined, formatter);
+function formatDoc(formatter, schemaDoc) {
+    const state = getFormatterInitialState(formatter);
 
-    try {
-        return formatter[doc.schemaType](doc, formatFunc);
-    } catch(err) {
-        throw new Error(`Error formatting ${doc.schemaType} schema: ${err.message ?? err}`);
+    function format(doc) {
+        if (!formatter.hasOwnProperty(doc.schemaType)) {
+            throw new Error(`Missing formatter function: ${doc.schemaType}`);
+        }
+
+        try {
+            return formatter[doc.schemaType](doc, format, state);
+        } catch(err) {
+            throw new Error(`Error formatting ${doc.schemaType} schema: ${err.message ?? err}`);
+        }
     }
+
+    return format(schemaDoc);
+}
+
+function getFormatterInitialState(formatter) {
+    if (formatter.hasOwnProperty('getInitialState')) {
+        try {
+            return formatter.getInitialState();
+        } catch(err) {
+            return {};
+        }
+    }
+
+    return {};
 }
 
 

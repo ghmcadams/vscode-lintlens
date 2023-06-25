@@ -26,6 +26,7 @@ declare module 'json-schema-docs' {
     };
 
     type FormatProvider = {
+        getInitialState: () => {};
         externalRef: FormatterFunction<ExternalRefSchema>;
         empty: FormatterFunction<EmptySchema>;
         any: FormatterFunction<AnySchema>;
