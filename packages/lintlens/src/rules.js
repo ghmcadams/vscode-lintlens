@@ -157,7 +157,17 @@ export function getRuleDetails(documentFilePath, ruleName) {
 
     const ruleSchema = schema ?? ruleMeta.schema ?? [];
 
-    const schemaDocumentation = getSchemaDocumentation(ruleSchema);
+    let ruleSchemaToDocument = ruleSchema;
+    if (Array.isArray(ruleSchemaToDocument) && ruleSchemaToDocument.length === 1) {
+        ruleSchemaToDocument = ruleSchemaToDocument[0];
+    }
+
+    let schemaDocumentation;
+    try {
+        schemaDocumentation = getSchemaDocumentation(ruleSchemaToDocument);
+    } catch(err) {
+        schemaDocumentation = '<Unavailable>';
+    }
 
     return {
         ruleName,
@@ -174,7 +184,7 @@ export function getRuleDetails(documentFilePath, ruleName) {
         replacedBy: ruleMeta.replacedBy,
         description: ruleDocs.description,
         schema: ruleSchema,
-        schemaDocumentation
+        schemaDocumentation,
     };
 }
 
