@@ -561,7 +561,7 @@ function getNotDoc({ schema, root }) {
         schema: {},
     };
 
-    // // TODO: not sure if this code is correct
+    // // not sure if this code is correct
     // const { not, ...rest } = schema;
     // const adjustedSchema = { ...rest, ...not };
 
@@ -681,7 +681,7 @@ function getSchemaType(schema = {}) {
 
     // All of the below schema types can exist along with any of the above, but can also exist by themselves
 
-    // TODO: oneOf, anyOf, and allOf could exist alone, together, or as part of another schema
+    // TODO: oneOf, anyOf, allOf, if/then, and not could exist alone, together, or as part of another schema
 
     if (schema.hasOwnProperty('if')) {
         return schemaTypes.ifThenElse;
@@ -816,77 +816,3 @@ function getFormatterInitialState(formatter) {
 
     return {};
 }
-
-
-
-// TODO: rework this based on new details
-/*
-type (can be an array of these or a single value)
-    string
-        minLength
-        maxLength
-        pattern (regex)
-        default
-
-    number | integer
-        multipleOf
-        minimum
-        maximum
-        exclusiveMinimum
-        exclusiveMaximum
-        default
-
-    object
-        properties
-        required (array of property names)
-        propertyNames (validates the name of the properties)
-            minLength
-            maxLength
-            pattern (regex)
-        minProperties
-        maxProperties
-        dependencies (object:
-            if property with the name <key> is included,
-            then a property with the name <value> is required
-        )
-
-    array (elements CAN be anything at all, but usually have these things)
-        minItems
-        maxItems
-        uniqueItems
-
-        a)
-            items (an object like any other schema object)
-            contains (where items says all items must be this, contains says at least one must be this)
-
-        b)
-            items (an array of schema objects)
-            additionalItems (boolean - in addition to the list in items, are others allowed)
-
-    boolean
-        default
-
-
-other things (can be at any level)
-    allOf
-        value must be valid against all of these things (schema objects)
-    anyOf
-        value can be valid against any of these things (schema objects)
-    oneOf
-        value must be valid against exactly one of these things (schema objects)
-    not
-        value must NOT be valid against this thing (schema object)
-
-    definitions
-    $ref (points to definition)
-
-    const
-        a constant value
-
-    default
-
-    if/then/else
-        if (valid against this thing)
-        then (use this thing (schema object))
-        else (use this thing (schema object))
-*/
