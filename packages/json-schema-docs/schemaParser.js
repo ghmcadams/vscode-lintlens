@@ -51,43 +51,67 @@ function getSchemaDoc({ schema, root = schema }) {
     }
 
     const schemaType = getSchemaType(item);
+    
+    const annotations = getAnnotations(item);
+    let doc;
 
     switch (schemaType) {
         case schemaTypes.object:
-            return getObjectDoc({ schema: item, root });
+            doc = getObjectDoc({ schema: item, root });
+            break;
         case schemaTypes.array:
-            return getArrayDoc({ schema: item, root });
+            doc = getArrayDoc({ schema: item, root });
+            break;
         case schemaTypes.anyOf:
         case schemaTypes.oneOf:
-            return getOneOfDoc({ schema: item, root });
+            doc = getOneOfDoc({ schema: item, root });
+            break;
         case schemaTypes.allOf:
-            return getAllOfDoc({ schema: item, root });
+            doc = getAllOfDoc({ schema: item, root });
+            break;
         case schemaTypes.multiType:
-            return getMultiTypeDoc({ schema: item, root });
+            doc = getMultiTypeDoc({ schema: item, root });
+            break;
         case schemaTypes.enumeration:
-            return getEnumDoc({ schema: item, root });
+            doc = getEnumDoc({ schema: item, root });
+            break;
         case schemaTypes.string:
-            return getStringDoc({ schema: item, root });
+            doc = getStringDoc({ schema: item, root });
+            break;
         case schemaTypes.numeric:
-            return getNumericDoc({ schema: item, root });
+            doc = getNumericDoc({ schema: item, root });
+            break;
         case schemaTypes.boolean:
-            return getBooleanDoc({ schema: item, root });
+            doc = getBooleanDoc({ schema: item, root });
+            break;
         case schemaTypes.constant:
-            return getConstDoc({ schema: item, root });
+            doc = getConstDoc({ schema: item, root });
+            break;
         case schemaTypes.any:
-            return getAnyDoc({ schema: item, root });
+            doc = getAnyDoc({ schema: item, root });
+            break;
         case schemaTypes.not:
-            return getNotDoc({ schema: item, root });
+            doc = getNotDoc({ schema: item, root });
+            break;
         case schemaTypes.nullvalue:
-            return getNullDoc({ schema: item, root });
+            doc = getNullDoc({ schema: item, root });
+            break;
         case schemaTypes.ifThenElse:
-            return getIfThenElseDoc({ schema: item, root });
+            doc = getIfThenElseDoc({ schema: item, root });
+            break;
         case schemaTypes.empty:
-            return getEmptyDoc({ schema: item, root });
+            doc = getEmptyDoc({ schema: item, root });
+            break;
         case schemaTypes.invalid:
         default:
-            return getInvalidDoc({ schema: item, root });
+            doc = getInvalidDoc({ schema: item, root });
+            break;
     }
+
+    return {
+        ...doc,
+        ...annotations,
+    };
 }
 
 
@@ -101,14 +125,12 @@ function getEmptyDoc({ schema, root }) {
 function getAnyDoc({ schema, root }) {
     return {
         schemaType: schemaTypes.any,
-        ...getAnnotations(schema),
     };
 }
 
 function getNullDoc({ schema }) {
     return {
         schemaType: schemaTypes.nullvalue,
-        ...getAnnotations(schema),
     };
 }
 
@@ -129,7 +151,6 @@ function getMultiTypeDoc({ schema, root }) {
     return {
         schemaType: schemaTypes.multiType,
         types: schema.type,
-        ...getAnnotations(schema),
     };
 }
 
@@ -137,7 +158,6 @@ function getEnumDoc({ schema }) {
     return {
         schemaType: schemaTypes.enumeration,
         items: schema.enum,
-        ...getAnnotations(schema),
     };
 }
 
@@ -145,7 +165,6 @@ function getConstDoc({ schema }) {
     return {
         schemaType: schemaTypes.constant,
         value: schema.const,
-        ...getAnnotations(schema),
     };
 }
 
@@ -159,7 +178,6 @@ function getObjectDoc({ schema, root }) {
     const ret = {
         schemaType: schemaTypes.object,
         properties: [],
-        ...getAnnotations(schema),
     };
 
     if (schema.hasOwnProperty('properties')) {
@@ -279,7 +297,6 @@ function getArrayDoc({ schema, root }) {
 
     const ret = {
         schemaType: schemaTypes.array,
-        ...getAnnotations(schema),
     };
 
     if (Object.keys(schema).length == 1 && schema.hasOwnProperty('type')) {
@@ -380,7 +397,6 @@ function getArrayDoc({ schema, root }) {
 function getStringDoc({ schema }) {
     const ret = {
         schemaType: schemaTypes.string,
-        ...getAnnotations(schema),
     };
 
     const requirements = {};
@@ -426,7 +442,6 @@ function getNumericDoc({ schema }) {
     const ret = {
         schemaType: schemaTypes.numeric,
         numericType: schema.type, // may be integer, number
-        ...getAnnotations(schema),
     };
 
     const requirements = {};
@@ -474,7 +489,6 @@ function getNumericDoc({ schema }) {
 function getBooleanDoc({ schema }) {
     return {
         schemaType: schemaTypes.boolean,
-        ...getAnnotations(schema),
     };
 }
 
@@ -494,7 +508,6 @@ function getOneOfDoc({ schema, root }) {
             };
             return getSchemaDoc({ schema: combinedItem, root });
         }),
-        ...getAnnotations(schema),
     };
 }
 
@@ -510,7 +523,6 @@ function getAllOfDoc({ schema, root }) {
             };
             return getSchemaDoc({ schema: combinedItem, root });
         }),
-        ...getAnnotations(schema),
     };
 }
 
@@ -529,7 +541,6 @@ function getNotDoc({ schema, root }) {
     // return {
     //     schemaType: schemaTypes.not,
     //     schema: getSchemaDoc({ schema: adjustedSchema, root }),
-    //     ...getAnnotations(schema),
     // };
 }
 
@@ -541,7 +552,6 @@ function getIfThenElseDoc({ schema, root }) {
     const ret = {
         schemaType: schemaTypes.ifThenElse,
         if: getSchemaDoc({ schema: schema.if, root }),
-        ...getAnnotations(schema),
     };
 
     if (schema.hasOwnProperty('then')) {
