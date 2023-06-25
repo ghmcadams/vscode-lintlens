@@ -55,10 +55,7 @@ export function any(doc, formatFunc, state) {
 
 export function not(doc, formatFunc, state) {
     // TODO: NOT formatter
-
-    return '';
-
-    // return `! ${formatFunc(doc.schema)}`;
+    return `! ${formatFunc(doc.schema)}`;
 }
 
 export function nullvalue(doc, formatFunc, state) {
@@ -168,11 +165,13 @@ export function array(doc, formatFunc, state) {
     // TODO: consider basing this on doc.schema rather than the whole thing
     //  THOUGHT: then I could have `string[], // min items: 3, unique`
 
+    // TODO: handle empty array
+
     // simple array of a type (simple, no requirements/annotations)
-    const regex = /\[\n\s+(\w+)\n\s+\]/;
+    const regex = /\[\n\s+(\w+)?\n\s+\]/;
     const matches = ret.match(regex);
     if (matches) {
-        ret = `${matches[1]}[]`;
+        ret = `${matches[1] ?? ''}[]`;
     }
 
     return ret;

@@ -554,21 +554,14 @@ function getAllOfDoc({ schema, root }) {
 }
 
 function getNotDoc({ schema, root }) {
-    // TODO: handle NOTs (seems to exist with something else)
+    // TODO: handle NOTs (might exist inside of something else)
+    const { not, ...rest } = schema;
+    const adjustedSchema = { ...rest, ...not };
 
     return {
         schemaType: schemaTypes.not,
-        schema: {},
+        schema: getSchemaDoc({ schema: adjustedSchema, root }),
     };
-
-    // // not sure if this code is correct
-    // const { not, ...rest } = schema;
-    // const adjustedSchema = { ...rest, ...not };
-
-    // return {
-    //     schemaType: schemaTypes.not,
-    //     schema: getSchemaDoc({ schema: adjustedSchema, root }),
-    // };
 }
 
 function getIfThenElseDoc({ schema, root }) {
@@ -681,7 +674,7 @@ function getSchemaType(schema = {}) {
 
     // All of the below schema types can exist along with any of the above, but can also exist by themselves
 
-    // TODO: oneOf, anyOf, allOf, if/then, and not could exist alone, together, or as part of another schema
+    // TODO: oneOf, anyOf, allOf, if/then, and not - could exist alone, together, or as part of another schema
 
     if (schema.hasOwnProperty('if')) {
         return schemaTypes.ifThenElse;
