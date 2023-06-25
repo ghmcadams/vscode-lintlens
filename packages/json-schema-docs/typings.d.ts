@@ -26,6 +26,7 @@ declare module 'json-schema-docs' {
     };
 
     type FormatProvider = {
+        externalRef: FormatterFunction<ExternalRefSchema>;
         empty: FormatterFunction<EmptySchema>;
         any: FormatterFunction<AnySchema>;
         not: FormatterFunction<NotSchema>;
@@ -52,6 +53,10 @@ declare module 'json-schema-docs' {
         annotations?: Annotations;
     };
 
+    type ExternalRefSchema = {
+        baseUri: string | undefined;
+        reference: string;
+    };
     type EmptySchema = {
         schema: Schema;
     };
@@ -105,7 +110,7 @@ declare module 'json-schema-docs' {
         schema: Schema;
     };
 
-    type Schema = EmptySchema | AnySchema | NotSchema | NullvalueSchema | ObjectSchema | TupleSchema | ArraySchema | EnumerationSchema | ConstantSchema | StringSchema | NumericSchema | BooleanSchema | AnyOfSchema | OneOfSchema | AllOfSchema | IfThenElseSchema | MultiTypeSchema | InvalidSchema;
+    type Schema = ExternalRefSchema | EmptySchema | AnySchema | NotSchema | NullvalueSchema | ObjectSchema | TupleSchema | ArraySchema | EnumerationSchema | ConstantSchema | StringSchema | NumericSchema | BooleanSchema | AnyOfSchema | OneOfSchema | AllOfSchema | IfThenElseSchema | MultiTypeSchema | InvalidSchema;
 
     /**
      * Get human readable documentation from a JSON schema object.

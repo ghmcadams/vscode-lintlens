@@ -39,6 +39,10 @@ Rules for functions:
 */
 
 
+export function externalRef(doc, formatFunc) {
+    return `<Unknown: external schema (${doc.baseUri}${doc.baseUri.endsWith('/') ? '' : '/'}${doc.reference})>`;
+}
+
 export function empty(doc, formatFunc) {
     return '';
 }

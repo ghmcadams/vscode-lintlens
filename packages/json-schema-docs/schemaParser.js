@@ -20,6 +20,8 @@ const schemaTypes = {
     multiType: 'multiType',
     invalid: 'invalid',
     empty: 'empty',
+    ref: 'ref',
+    externalRef: 'externalRef',
 };
 
 
@@ -44,67 +46,65 @@ function getSchemaDoc({ schema, root = schema }) {
         return getEmptyDoc({ schema, root });
     }
 
-    let item = schema;
-    // TODO: what if item.$ref[0] !== '#'?
-    if (schema.hasOwnProperty('$ref') && item.$ref[0] === '#') {
-        item = getRef(root, item.$ref);
-    }
+    const schemaType = getSchemaType(schema);
 
-    const schemaType = getSchemaType(item);
-
-    const annotations = getAnnotations(item);
+    const annotations = getAnnotations(schema);
     let doc;
 
     switch (schemaType) {
         case schemaTypes.object:
-            doc = getObjectDoc({ schema: item, root });
+            doc = getObjectDoc({ schema, root });
             break;
         case schemaTypes.array:
-            doc = getArrayDoc({ schema: item, root });
+            doc = getArrayDoc({ schema, root });
             break;
         case schemaTypes.anyOf:
         case schemaTypes.oneOf:
-            doc = getOneOfDoc({ schema: item, root });
+            doc = getOneOfDoc({ schema, root });
             break;
         case schemaTypes.allOf:
-            doc = getAllOfDoc({ schema: item, root });
+            doc = getAllOfDoc({ schema, root });
             break;
         case schemaTypes.multiType:
-            doc = getMultiTypeDoc({ schema: item, root });
+            doc = getMultiTypeDoc({ schema, root });
             break;
         case schemaTypes.enumeration:
-            doc = getEnumDoc({ schema: item, root });
+            doc = getEnumDoc({ schema, root });
             break;
         case schemaTypes.string:
-            doc = getStringDoc({ schema: item, root });
+            doc = getStringDoc({ schema, root });
             break;
         case schemaTypes.numeric:
-            doc = getNumericDoc({ schema: item, root });
+            doc = getNumericDoc({ schema, root });
             break;
         case schemaTypes.boolean:
-            doc = getBooleanDoc({ schema: item, root });
+            doc = getBooleanDoc({ schema, root });
             break;
         case schemaTypes.constant:
-            doc = getConstDoc({ schema: item, root });
+            doc = getConstDoc({ schema, root });
             break;
         case schemaTypes.any:
-            doc = getAnyDoc({ schema: item, root });
+            doc = getAnyDoc({ schema, root });
             break;
         case schemaTypes.not:
-            doc = getNotDoc({ schema: item, root });
+            doc = getNotDoc({ schema, root });
             break;
         case schemaTypes.nullvalue:
-            doc = getNullDoc({ schema: item, root });
+            doc = getNullDoc({ schema, root });
             break;
         case schemaTypes.ifThenElse:
-            doc = getIfThenElseDoc({ schema: item, root });
+            doc = getIfThenElseDoc({ schema, root });
             break;
         case schemaTypes.empty:
-            doc = getEmptyDoc({ schema: item, root });
+            doc = getEmptyDoc({ schema, root });
+            break;
+        case schemaTypes.ref:
+        case schemaTypes.externalRef:
+            doc = getRefDoc({ schema, root });
             break;
         case schemaTypes.invalid:
         default:
-            doc = getInvalidDoc({ schema: item, root });
+            doc = getInvalidDoc({ schema, root });
             break;
     }
 
@@ -114,6 +114,28 @@ function getSchemaDoc({ schema, root = schema }) {
     };
 }
 
+
+function getRefDoc({ schema, root }) {
+    // https://json-schema.org/understanding-json-schema/structuring.html#ref
+
+    if (schema.$ref[0] !== '#') {
+        return getExternalRefDoc({ schema , root });
+    }
+
+    const ref = getRef(root, schema.$ref);
+
+    return getSchemaDoc({ schema: ref, root });
+}
+
+function getExternalRefDoc({ schema, root }) {
+    // https://json-schema.org/understanding-json-schema/structuring.html#ref
+
+    return {
+        schemaType: schemaTypes.externalRef,
+        baseUri: root.$id,
+        reference: schema.$ref,
+    };
+}
 
 function getEmptyDoc({ schema, root }) {
     return {
@@ -173,7 +195,12 @@ function getObjectDoc({ schema, root }) {
 
     //TODO: dependencies
     //   dependentRequired - { property: ["otherProperty"] } conditionally requires that certain properties must be present if a given property is present in an object
+    //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentrequired
     //   dependentSchemas - { property: { ...otherSchema } } conditionally applies a subschema when a given property is present
+    //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentschemas
+
+    // TODO: does if, then, else apply only to objects?
+    //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else
 
     const ret = {
         schemaType: schemaTypes.object,
@@ -578,6 +605,10 @@ function getType(variable) {
 }
 
 function getSchemaType(schema = {}) {
+    if (schema.hasOwnProperty('$ref')) {
+        return schemaTypes.ref;
+    }
+
     const varType = getType(schema);
 
     if (!['object', 'array'].includes(varType)) {
@@ -648,6 +679,14 @@ function getSchemaType(schema = {}) {
         return schemaTypes.boolean;
     }
 
+    // All of the below schema types can exist along with any of the above, but can also exist by themselves
+
+    // TODO: oneOf, anyOf, and allOf could exist alone, together, or as part of another schema
+
+    if (schema.hasOwnProperty('if')) {
+        return schemaTypes.ifThenElse;
+    }
+
     if (schema.hasOwnProperty('anyOf')) {
         return schemaTypes.anyOf;
     }
@@ -658,11 +697,6 @@ function getSchemaType(schema = {}) {
         return schemaTypes.allOf;
     }
 
-    if (schema.hasOwnProperty('if')) {
-        return schemaTypes.ifThenElse;
-    }
-
-    // TODO: when it has a not, usually it would exist as part of something else
     if (schema.hasOwnProperty('not')) {
         return schemaTypes.not;
     }
@@ -670,29 +704,37 @@ function getSchemaType(schema = {}) {
     return schemaTypes.invalid;
 }
 
-function getRef(schema, refName) {
-    // path
-    if (refName.includes('/')) {
-        try {
-            const path = refName.split('/');
-            // remove first entry ('#')
-            path.shift();
-            let current = schema;
-            for (let i = 0; i < path.length; i++) {
-                current = current[path[i]];
-            }
-            return current;
-        } catch (err) {
-            return {};
-        }
-    }
+function getRef(schemaRoot, refName, history = []) {
+    // https://json-schema.org/understanding-json-schema/structuring.html#ref
+    //   paths are relative to the root and are that simple
+    //    EX: #/definitions/someSchema
 
-    // identifier
+    // TODO: how do I handle recursive $refs (EX: children are the same type as parent)?
+    //         refName could also be '#', which points to the root of the schema (same concept as the above)
+
     try {
-        const id = refName;
-        // remove # character
-        id.shift();
-        return Object.values(schema.definitions).find(def => def.$id === id) || {};
+        const path = refName.split('/');
+
+        // remove first entry ('#'), which means schema root
+        path.shift();
+
+        let current = schemaRoot;
+        for (let i = 0; i < path.length; i++) {
+            current = current[path[i]];
+        }
+
+        if (current.hasOwnProperty('$ref')) {
+            if (history.includes(refName)) {
+                throw new Error(`Infinite reference loop: ${history[0]}`);
+            }
+
+            return getRef(schemaRoot, current.$ref, [
+                ...history,
+                refName
+            ]);
+        }
+
+        return current;
     } catch (err) {
         return {};
     }
