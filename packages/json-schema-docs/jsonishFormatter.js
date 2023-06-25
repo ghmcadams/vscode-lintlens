@@ -113,11 +113,17 @@ export function tuple(doc, formatFunc) {
         return `${getIndent()}${val}`;
     }).join(',\n');
 
-    // TODO: handle additionalItems in tuple
-    //   what if additionalItems is an array?
+    if (doc.additionalItems !== undefined) {
+        if (doc.items) {
+            ret += ',\n';
+        }
+        ret += `${getIndent()}...${formatFunc(doc.additionalItems)}`;
+    }
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += '\n';
+        if (doc.items || doc.additionalItems) {
+            ret += '\n';
+        }
         ret += Object.values(doc.requirements).map(({ message }) => {
             return `${getIndent()}// ${message}`;
         }).join('\n');

@@ -51,7 +51,7 @@ function getSchemaDoc({ schema, root = schema }) {
     }
 
     const schemaType = getSchemaType(item);
-    
+
     const annotations = getAnnotations(item);
     let doc;
 
