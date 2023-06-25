@@ -14,6 +14,8 @@ declare module 'json-schema-docs' {
         title: string;
         description: string;
         examples: unknown[];
+        readOnly: boolean;
+        writeOnly: boolean;
     };
 
     type Requirement = {

@@ -727,6 +727,16 @@ function getAnnotations(schema) {
         annotations.examples = schema.examples;
     }
 
+    //   readOnly (boolean)
+    if (schema.hasOwnProperty('readOnly')) {
+        annotations.readOnly = schema.readOnly;
+    }
+
+    //   writeOnly (boolean)
+    if (schema.hasOwnProperty('writeOnly')) {
+        annotations.writeOnly = schema.writeOnly;
+    }
+
     if (Object.keys(annotations).length > 0) {
         ret.annotations = annotations;
     }
