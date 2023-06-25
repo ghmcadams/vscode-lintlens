@@ -16,11 +16,11 @@ function getIndent() {
 // TODO: include deprecated flag
 // TODO: include annotations (title, description, maybe examples)
     // if (doc.deprecated === true) {
-    //     innards += `${getIndent()}# deprecated\n`;
+    //     innards += `${getIndent()}// deprecated\n`;
     // }
     // // annotations (just description for now)
     // if (doc.annotations?.description !== undefined) {
-    //     innards += `${getIndent()}# ${doc.annotations.description}\n`;
+    //     innards += `${getIndent()}// ${doc.annotations.description}\n`;
     // }
 
 // TODO: consider moving requirements (in arrays & objects) to the top
@@ -227,7 +227,6 @@ export function boolean(doc, formatFunc) {
     return ret;
 }
 
-// TODO: should I do something different for anyOf vs oneOf?
 export function anyOf(doc, formatFunc) {
     return doc.items.map(item => formatFunc(item)).join(' | ');
 }
