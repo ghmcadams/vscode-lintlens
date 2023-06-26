@@ -96,7 +96,7 @@ export function object(doc, formatFunc, state) {
     if (innards !== '') {
         ret += innards;
     } else {
-        ret += `${getIndent(state)}[any]: any`;
+        ret += `${getIndent(state)}[string]: any`;
     }
 
     outdent(state);

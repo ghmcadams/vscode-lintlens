@@ -239,21 +239,21 @@ function getObjectDoc({ schema, root }) {
             if (getType(additionalProperties) === 'boolean') {
                 if (additionalProperties === true) {
                     ret.indexProperties.push({
-                        key: '[any]',
+                        key: '[string]',
                         required: false,
                         value: getSchemaDoc({ schema: {}, root }),
                     });
                 }
             } else {
                 ret.indexProperties.push({
-                    key: '[any]',
+                    key: '[string]',
                     required: false,
                     value: getSchemaDoc({ schema: additionalProperties, root }),
                 });
             }
         } else {
             ret.indexProperties.push({
-                key: '[any]',
+                key: '[string]',
                 required: false,
                 value: getSchemaDoc({ schema: {}, root }),
             });
