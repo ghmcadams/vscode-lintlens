@@ -162,7 +162,7 @@ export function array(doc, formatFunc, state) {
 
     ret += `\n${getIndent(state)}]`;
 
-    // TODO: consider basing this on doc.schema rather than the whole thing
+    // TODO: consider basing simple arrays on doc.schema rather than the whole thing
     //  THOUGHT: then I could have `string[], // min items: 3, unique`
 
     // TODO: handle empty array

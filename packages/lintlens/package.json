@@ -54,7 +54,7 @@
         "deep-clone": "^3.0.3",
         "findup-sync": "^5.0.0",
         "fuse.js": "^3.2.1",
-        "json-schema-docs": "*",
+        "json-schema-for-humans": "*",
         "open": "^6.4.0",
         "request-light": "^0.6.0",
         "simple-ajv-errors": "*",
