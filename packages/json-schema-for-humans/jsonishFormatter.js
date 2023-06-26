@@ -12,9 +12,6 @@ function getIndent(state) {
 }
 
 
-// TODO: consider moving requirements (in arrays & objects) to the top
-//  ?? add an extra empty line between for readability?
-
 /*
 Rules for functions:
     * never start with a newline
@@ -59,6 +56,15 @@ export function object(doc, formatFunc, state) {
     indent(state);
 
     let innards = '';
+
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        innards += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent(state)}// ${message}`;
+        }).join('\n');
+
+        innards += '\n\n';
+    }
+
     const props = [];
 
     props.push(...doc.properties.map(property => {
@@ -99,15 +105,6 @@ export function object(doc, formatFunc, state) {
 
     innards += props.join(',\n');
 
-    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        if (innards !== '') {
-            innards += '\n';
-        }
-        innards += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent(state)}// ${message}`;
-        }).join('\n');
-    }
-
     // TODO: default for objects
 
     if (innards !== '') {
@@ -128,6 +125,14 @@ export function tuple(doc, formatFunc, state) {
     let ret = '[\n';
 
     indent(state);
+
+    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
+        ret += Object.values(doc.requirements).map(({ message }) => {
+            return `${getIndent(state)}// ${message}`;
+        }).join('\n');
+
+        ret += '\n';
+    }
 
     ret += doc.items.map(item => {
         const itemEntry = [];
@@ -159,15 +164,6 @@ export function tuple(doc, formatFunc, state) {
         ret += `${getIndent(state)}...${formatFunc(doc.additionalItems)}`;
     }
 
-    if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        if (doc.items || doc.additionalItems) {
-            ret += '\n';
-        }
-        ret += Object.values(doc.requirements).map(({ message }) => {
-            return `${getIndent(state)}// ${message}`;
-        }).join('\n');
-    }
-
     // TODO: default for tuples
 
     outdent(state);
@@ -188,21 +184,25 @@ export function array(doc, formatFunc, state) {
 
     indent(state);
 
-    if (doc.schema.deprecated === true) {
-        ret += `${getIndent(state)}// deprecated\n`;
+    if (doc.schema.deprecated === true || doc.schema.annotations?.description) {
+        if (doc.schema.deprecated === true) {
+            ret += `${getIndent(state)}// deprecated\n`;
+        }
+        if (doc.schema.annotations?.description) {
+            ret += `${getIndent(state)}// ${doc.schema.annotations.description}\n`;
+        }
+        ret += '\n';
     }
-    if (doc.schema.annotations?.description) {
-        ret += `${getIndent(state)}// ${doc.schema.annotations.description}\n`;
-    }
-
-    ret += `${getIndent(state)}...${formatFunc(doc.schema)}`;
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += '\n';
         ret += Object.values(doc.requirements).map(({ message }) => {
             return `${getIndent(state)}// ${message}`;
         }).join('\n');
+
+        ret += '\n';
     }
+
+    ret += `${getIndent(state)}...${formatFunc(doc.schema)}`;
 
     // TODO: default for arrays
 
