@@ -78,6 +78,7 @@
 			"begin": "\\{",
 			"end": "\\}",
 			"patterns": [
+				{ "include": "#comments" },
 				{ "include": "#objectkey" },
 				{
 					"begin": ":",
