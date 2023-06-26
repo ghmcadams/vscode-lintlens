@@ -119,22 +119,16 @@ function getRefDoc({ schema, root }) {
     // https://json-schema.org/understanding-json-schema/structuring.html#ref
 
     if (schema.$ref[0] !== '#') {
-        return getExternalRefDoc({ schema , root });
+        return {
+            schemaType: schemaTypes.externalRef,
+            baseUri: root.$id,
+            reference: schema.$ref,
+        };
     }
 
     const ref = getRef(root, schema.$ref);
 
     return getSchemaDoc({ schema: ref, root });
-}
-
-function getExternalRefDoc({ schema, root }) {
-    // https://json-schema.org/understanding-json-schema/structuring.html#ref
-
-    return {
-        schemaType: schemaTypes.externalRef,
-        baseUri: root.$id,
-        reference: schema.$ref,
-    };
 }
 
 function getEmptyDoc({ schema, root }) {
