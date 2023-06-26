@@ -1,6 +1,6 @@
 declare module 'json-schema-for-humans' {
     type BaseFormatFunction = (doc: Schema) => string;
-    type FormatterFunction<T extends Schema> = (doc: T, formatFunc: BaseFormatFunction) => string;
+    type FormatterFunction<T extends Schema> = (doc: T, formatFunc: BaseFormatFunction, state: {}) => string;
 
     type Scalar = string | number | boolean;
 
