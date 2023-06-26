@@ -12,17 +12,6 @@ function getIndent(state) {
 }
 
 
-// TODO: include deprecated flag
-// TODO: include annotations (title, description, maybe examples)
-// IMPORTANT THOUGHT:  not sure how to display these - object vs object param's value, array vs array item, numeric, etc.
-    // if (doc.deprecated === true) {
-    //     ret += `${getIndent(state)}// deprecated\n`;
-    // }
-    // // annotations (just description for now)
-    // if (doc.annotations?.description !== undefined) {
-    //     ret += `${getIndent(state)}// ${doc.annotations.description}\n`;
-    // }
-
 // TODO: consider moving requirements (in arrays & objects) to the top
 
 /*
@@ -63,6 +52,7 @@ export function nullvalue(doc, formatFunc, state) {
 }
 
 export function object(doc, formatFunc, state) {
+    // TODO: deprecated/description for objects (when NOT an item in an array/tuple)
     let ret = '{\n';
 
     indent(state);
@@ -71,14 +61,38 @@ export function object(doc, formatFunc, state) {
     const props = [];
 
     props.push(...doc.properties.map(property => {
+        const propEntry = [];
+
+        if (property.value?.annotations?.deprecated === true) {
+            propEntry.push(`${getIndent(state)}// deprecated`);
+        }
+
+        const description = property.value?.annotations?.description ?? '';
+        if (description.length > 0) {
+            propEntry.push(`${getIndent(state)}// ${description}`);
+        }
         const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
-        return `${getIndent(state)}${prop}`;
+        propEntry.push(`${getIndent(state)}${prop}`);
+
+        return propEntry.join('\n');
     }));
 
     if (doc.indexProperties) {
         props.push(...doc.indexProperties.map(property => {
+            const propEntry = [];
+
+            if (property.value?.annotations?.deprecated === true) {
+                propEntry.push(`${getIndent(state)}// deprecated`);
+            }
+    
+            const description = property.value?.annotations?.description ?? '';
+            if (description.length > 0) {
+                propEntry.push(`${getIndent(state)}// ${description}`);
+            }
             const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
-            return `${getIndent(state)}${prop}`;
+            propEntry.push(`${getIndent(state)}${prop}`);
+    
+            return propEntry.join('\n');
         }));
     }
 
@@ -107,18 +121,37 @@ export function object(doc, formatFunc, state) {
 }
 
 export function tuple(doc, formatFunc, state) {
+    // TODO: deprecated/description for tuples (when NOT the value of an object param)
     let ret = '[\n';
 
     indent(state);
 
     ret += doc.items.map(item => {
+        const itemEntry = [];
+
+        if (item.annotations?.deprecated === true) {
+            propEntry.push(`${getIndent(state)}// deprecated`);
+        }
+
+        const description = item.annotations?.description ?? '';
+        if (description.length > 0) {
+            itemEntry.push(`${getIndent(state)}// ${description}`);
+        }
         const val = formatFunc(item);
-        return `${getIndent(state)}${val}`;
+        itemEntry.push(`${getIndent(state)}${val}`);
+
+        return itemEntry.join('\n');
     }).join(',\n');
 
     if (doc.additionalItems !== undefined) {
         if (doc.items) {
             ret += ',\n';
+        }
+        if (doc.additionalItems.deprecated === true) {
+            ret += `${getIndent(state)}// deprecated\n`;
+        }
+        if (doc.additionalItems.annotations?.description) {
+            ret += `${getIndent(state)}// ${doc.additionalItems.annotations.description}\n`;
         }
         ret += `${getIndent(state)}...${formatFunc(doc.additionalItems)}`;
     }
@@ -145,11 +178,19 @@ export function array(doc, formatFunc, state) {
         return 'any[]';
     }
 
+    // TODO: deprecated/description for arrays (when NOT the value of an object param)
     let ret = '[\n';
 
     indent(state);
 
-    ret += `${getIndent(state)}${formatFunc(doc.schema)}`;
+    if (doc.schema.deprecated === true) {
+        ret += `${getIndent(state)}// deprecated\n`;
+    }
+    if (doc.schema.annotations?.description) {
+        ret += `${getIndent(state)}// ${doc.schema.annotations.description}\n`;
+    }
+
+    ret += `${getIndent(state)}...${formatFunc(doc.schema)}`;
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
         ret += '\n';
@@ -162,13 +203,10 @@ export function array(doc, formatFunc, state) {
 
     ret += `\n${getIndent(state)}]`;
 
-    // TODO: consider basing simple arrays on doc.schema rather than the whole thing
-    //  THOUGHT: then I could have `string[], // min items: 3, unique`
-
-    // TODO: handle empty array
+    // TODO: rethink simple arrays of type
 
     // simple array of a type (simple, no requirements/annotations)
-    const regex = /\[\n\s+(\w+)?\n\s+\]/;
+    const regex = /\[\n\s+\.\.\.(\w+)?\n\s+\]/;
     const matches = ret.match(regex);
     if (matches) {
         ret = `${matches[1] ?? ''}[]`;
