@@ -107,6 +107,8 @@ export function object(doc, formatFunc, state) {
         }).join('\n');
     }
 
+    // TODO: default for objects
+
     if (innards !== '') {
         ret += innards;
     } else {
@@ -165,6 +167,8 @@ export function tuple(doc, formatFunc, state) {
         }).join('\n');
     }
 
+    // TODO: default for tuples
+
     outdent(state);
 
     ret += `\n${getIndent(state)}]`;
@@ -198,6 +202,8 @@ export function array(doc, formatFunc, state) {
             return `${getIndent(state)}// ${message}`;
         }).join('\n');
     }
+
+    // TODO: default for arrays
 
     outdent(state);
 

@@ -696,7 +696,7 @@ function getRef(schemaRoot, refName, history = []) {
     //   paths are relative to the root and are that simple
     //    EX: #/definitions/someSchema
 
-    // TODO: how do I handle recursive $refs (EX: children are the same type as parent)?
+    // TODO: how do I handle recursive $refs (EX: children are the same type as parent) so as to NOT cause an endless loop?
     //         refName could also be '#', which points to the root of the schema (same concept as the above)
 
     try {
