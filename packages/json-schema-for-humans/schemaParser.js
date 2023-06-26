@@ -316,21 +316,38 @@ function getObjectDoc({ schema, root }) {
 function getArrayDoc({ schema, root }) {
     // https://json-schema.org/understanding-json-schema/reference/array.html
 
-    const ret = {
-        schemaType: schemaTypes.array,
-    };
-
     if (Object.keys(schema).length == 1 && schema.hasOwnProperty('type')) {
-        return ret;
+        return {
+            schemaType: schemaTypes.array,
+            schema: getSchemaDoc({ schema: {}, root }),
+        };
     }
 
-    if (schema.hasOwnProperty('prefixItems')) {
+    const ret = {};
+
+    // In Draft 4 - 2019-09, tuple validation was handled by an alternate form of the items keyword
+    //       When items was an array of schemas instead of a single schema, it behaved the way prefixItems behaves.
+    //  translation: if `items` is an array, then it is a tuple
+    if (Array.isArray(schema) ||
+        schema.hasOwnProperty('prefixItems') ||
+        (
+            !schema.hasOwnProperty('prefixItems') &&
+            schema.hasOwnProperty('items') &&
+            Array.isArray(schema.items)
+        )
+    ) {
         ret.schemaType = schemaTypes.tuple;
-        ret.items = schema.prefixItems.map(item => getSchemaDoc({ schema: item, root }));
 
-        if (schema.hasOwnProperty('additionalItems') || schema.hasOwnProperty('items')) {
-            const additionalItems = schema.additionalItems ?? schema.items;
+        const tupleItems = Array.isArray(schema)
+            ? schema
+            : schema.prefixItems ?? schema.items;
+        const additionalItems = schema.hasOwnProperty('prefixItems')
+            ? schema.additionalItems ?? schema.items
+            : schema.additionalItems;
 
+        ret.items = tupleItems.map(item => getSchemaDoc({ schema: item, root }));
+
+        if (additionalItems !== undefined) {
             if (getType(additionalItems) === 'boolean') {
                 if (additionalItems === true) {
                     ret.additionalItems = getSchemaDoc({ schema: {}, root });
@@ -340,33 +357,11 @@ function getArrayDoc({ schema, root }) {
             }
         }
     } else {
-        let items = Array.isArray(schema) ? schema : schema.items;
-        items = (Array.isArray(items) && items.length === 1) ? items[0] : items;
+        // TODO: do I need to do this for other things (like object, numeric, etc.)?
+        const arrayItems = schema.items ?? schema.anyOf ?? schema.oneOf ?? schema.allOf;
 
-        if (items === undefined) {
-            items = schema.anyOf ?? schema.oneOf ?? schema.allOf;
-        }
-
-        // In Draft 4 - 2019-09, tuple validation was handled by an alternate form of the items keyword
-        //       When items was an array of schemas instead of a single schema, it behaved the way prefixItems behaves.
-        //  translation: if `items` is an array, then it is a tuple
-        if (Array.isArray(items)) {
-            ret.schemaType = schemaTypes.tuple;
-            ret.items = items.map(item => getSchemaDoc({ schema: item, root }));
-
-            if (schema.hasOwnProperty('additionalItems')) {
-                if (getType(schema.additionalItems) === 'boolean') {
-                    if (schema.additionalItems === true) {
-                        ret.additionalItems = getSchemaDoc({ schema: {}, root });
-                    }
-                } else {
-                    ret.additionalItems = getSchemaDoc({ schema: schema.additionalItems, root });
-                }
-            }
-        } else {
-            ret.schemaType = schemaTypes.array;
-            ret.schema = getSchemaDoc({ schema: items, root });
-        }
+        ret.schemaType = schemaTypes.array;
+        ret.schema = getSchemaDoc({ schema: arrayItems, root });
     }
 
     // TODO: contains
