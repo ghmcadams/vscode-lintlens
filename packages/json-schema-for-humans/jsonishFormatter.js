@@ -13,6 +13,7 @@ function getIndent(state) {
 
 
 // TODO: consider moving requirements (in arrays & objects) to the top
+//  ?? add an extra empty line between for readability?
 
 /*
 Rules for functions:
