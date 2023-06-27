@@ -174,54 +174,41 @@ export function tuple(doc, formatFunc, state) {
 }
 
 export function array(doc, formatFunc, state) {
-    // simple array of a type
-    // TODO: determine if an array's schema is simple
-    //   also need to get the type (and in the case of numeric, the numeric type)
-    // if (doc.schema) {
-    //     return '[]';
-    // }
-
     // TODO: deprecated/description for arrays (when NOT the value of an object param)
-    let ret = '[\n';
+
+
+    const parts = [];
 
     indent(state);
 
     if (doc.schema.deprecated === true || doc.schema.annotations?.description) {
         if (doc.schema.deprecated === true) {
-            ret += `${getIndent(state)}// deprecated\n`;
+            parts.push(`${getIndent(state)}// deprecated`);
         }
         if (doc.schema.annotations?.description) {
-            ret += `${getIndent(state)}// ${doc.schema.annotations.description}\n`;
+            parts.push(`${getIndent(state)}// ${doc.schema.annotations.description}`);
         }
-        ret += '\n';
     }
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
-        ret += Object.values(doc.requirements).map(({ message }) => {
+        parts.push(...Object.values(doc.requirements).map(({ message }) => {
             return `${getIndent(state)}// ${message}`;
-        }).join('\n');
-
-        ret += '\n';
+        }));
     }
 
-    ret += `${getIndent(state)}...${formatFunc(doc.schema)}`;
+    const schemaText = formatFunc(doc.schema);
+    parts.push(`${getIndent(state)}...${schemaText}`);
 
     // TODO: default for arrays
 
     outdent(state);
 
-    ret += `\n${getIndent(state)}]`;
-
-    // TODO: rethink simple arrays of type
-
-    // simple array of a type (simple, no requirements/annotations)
-    const regex = /\[\n\s+\.\.\.(\w+)?\n\s+\]/;
-    const matches = ret.match(regex);
-    if (matches) {
-        ret = `${matches[1] ?? ''}[]`;
+    // simple array of a type
+    if (parts.length === 1 && schemaText.length <= 15) {
+        return `${schemaText}[]`;
     }
 
-    return ret;
+    return `[\n${parts.join('\n')}\n${getIndent(state)}]`;
 }
 
 export function enumeration(doc, formatFunc, state) {
