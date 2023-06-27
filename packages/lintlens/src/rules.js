@@ -169,6 +169,8 @@ export function getRuleDetails(documentFilePath, ruleName) {
         schemaDocumentation = '<Unavailable>';
     }
 
+    // TODO: Support using schema.example(s) to insert a value as part of autocomplete
+
     return {
         ruleName,
         pluginName,
