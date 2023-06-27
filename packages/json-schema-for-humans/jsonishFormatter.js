@@ -174,10 +174,12 @@ export function tuple(doc, formatFunc, state) {
 }
 
 export function array(doc, formatFunc, state) {
-    // simple plain array
-    if (!doc.schema && (!doc.requirements || Object.keys(doc.requirements).length === 0)) {
-        return 'any[]';
-    }
+    // simple array of a type
+    // TODO: determine if an array's schema is simple
+    //   also need to get the type (and in the case of numeric, the numeric type)
+    // if (doc.schema) {
+    //     return '[]';
+    // }
 
     // TODO: deprecated/description for arrays (when NOT the value of an object param)
     let ret = '[\n';
