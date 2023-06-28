@@ -76,7 +76,7 @@ export function object(doc, formatFunc, state) {
 
         const description = property.value?.annotations?.description ?? '';
         if (description.length > 0) {
-            propEntry.push(`${getIndent(state)}// ${description}`);
+            propEntry.push(...description.split('\n').map(line => `${getIndent(state)}// ${line}`));
         }
         const prop = `${property.required ? '(required) ' : ''}"${property.key}": ${formatFunc(property.value)}`;
         propEntry.push(`${getIndent(state)}${prop}`);
@@ -94,7 +94,7 @@ export function object(doc, formatFunc, state) {
     
             const description = property.value?.annotations?.description ?? '';
             if (description.length > 0) {
-                propEntry.push(`${getIndent(state)}// ${description}`);
+                propEntry.push(...description.split('\n').map(line => `${getIndent(state)}// ${line}`));
             }
             const prop = `${property.required ? '(required) ' : ''}${property.key}: ${formatFunc(property.value)}`;
             propEntry.push(`${getIndent(state)}${prop}`);
@@ -143,7 +143,7 @@ export function tuple(doc, formatFunc, state) {
 
         const description = item.annotations?.description ?? '';
         if (description.length > 0) {
-            itemEntry.push(`${getIndent(state)}// ${description}`);
+            itemEntry.push(...description.split('\n').map(line => `${getIndent(state)}// ${line}`));
         }
         const val = formatFunc(item);
         itemEntry.push(`${getIndent(state)}${val}`);
@@ -158,9 +158,9 @@ export function tuple(doc, formatFunc, state) {
         if (doc.additionalItems.deprecated === true) {
             ret += `${getIndent(state)}// deprecated\n`;
         }
-        if (doc.additionalItems.annotations?.description) {
-            ret += `${getIndent(state)}// ${doc.additionalItems.annotations.description}\n`;
-        }
+        doc.additionalItems.annotations?.description.split('\n').forEach(line => {
+            ret += `${getIndent(state)}// ${line}\n`;
+        });
         ret += `${getIndent(state)}...${formatFunc(doc.additionalItems)}`;
     }
 
@@ -181,13 +181,11 @@ export function array(doc, formatFunc, state) {
 
     indent(state);
 
-    if (doc.schema.deprecated === true || doc.schema.annotations?.description) {
-        if (doc.schema.deprecated === true) {
-            parts.push(`${getIndent(state)}// deprecated`);
-        }
-        if (doc.schema.annotations?.description) {
-            parts.push(`${getIndent(state)}// ${doc.schema.annotations.description}`);
-        }
+    if (doc.schema.deprecated === true) {
+        parts.push(`${getIndent(state)}// deprecated`);
+    }
+    if (doc.schema.annotations?.description) {
+        parts.push(...doc.schema.annotations.description.split('\n').map(line => `${getIndent(state)}// ${line}`));
     }
 
     if (doc.requirements && Object.keys(doc.requirements).length > 0) {
