@@ -210,17 +210,17 @@ export function array(doc, formatFunc, state) {
 }
 
 export function enumeration(doc, formatFunc, state) {
-    let ret = doc.items.map(item => getConstantText(item)).join(' | ');
+    let ret = doc.values.map(value => getConstantText(value, state)).join(' | ');
 
     if (doc.default !== undefined) {
-        ret += ` (default: ${getConstantText(doc.default)})`;
+        ret += ` (default: ${getConstantText(doc.default, state)})`;
     }
 
     return ret;
 }
 
 export function constant(doc, formatFunc, state) {
-    return getConstantText(doc.value);
+    return getConstantText(doc.value, state);
 }
 
 export function string(doc, formatFunc, state) {
@@ -317,10 +317,9 @@ export function invalid(doc, formatFunc, state) {
     return '<Unknown: invalid schema>';
 }
 
-function getConstantText(text) {
-    if (typeof text === 'string') {
-        return `"${text}"`;
-    }
+function getConstantText(value, state) {
+    const stringifiedValue = JSON.stringify(value, null, indentSize);
+    const indentedValue = stringifiedValue.replace(/\n/gi, `\n${getIndent(state)}`);
 
-    return text;
+    return indentedValue;
 }

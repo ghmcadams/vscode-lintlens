@@ -173,7 +173,7 @@ function getMultiTypeDoc({ schema, root }) {
 function getEnumDoc({ schema }) {
     return {
         schemaType: schemaTypes.enumeration,
-        items: schema.enum,
+        values: schema.enum,
     };
 }
 

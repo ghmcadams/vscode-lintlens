@@ -27,8 +27,6 @@ declare module 'json-schema-for-humans' {
 
     type FormatProvider = {
         getInitialState: () => {};
-        externalRef: FormatterFunction<ExternalRefSchema>;
-        empty: FormatterFunction<EmptySchema>;
         any: FormatterFunction<AnySchema>;
         not: FormatterFunction<NotSchema>;
         nullvalue: FormatterFunction<NullvalueSchema>;
@@ -45,6 +43,8 @@ declare module 'json-schema-for-humans' {
         allOf: FormatterFunction<AllOfSchema>;
         ifThenElse: FormatterFunction<IfThenElseSchema>;
         multiType: FormatterFunction<MultiTypeSchema>;
+        externalRef: FormatterFunction<ExternalRefSchema>;
+        empty: FormatterFunction<EmptySchema>;
         invalid: FormatterFunction<InvalidSchema>;
     };
 
@@ -77,10 +77,10 @@ declare module 'json-schema-for-humans' {
         schema: Schema;
     };
     type EnumerationSchema = BaseSchema & {
-        items: Scalar[];
+        values: unknown[];
     };
     type ConstantSchema = BaseSchema & {
-        value: Scalar;
+        value: unknown;
     };
     type StringSchema = BaseSchema & {
         requirements?: Requirement[];
