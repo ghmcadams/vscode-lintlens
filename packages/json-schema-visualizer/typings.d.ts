@@ -1,4 +1,4 @@
-declare module 'json-schema-for-humans' {
+declare module 'json-schema-visualizer' {
     type BaseFormatFunction = (doc: Schema) => string;
     type FormatterFunction<T extends Schema> = (doc: T, formatFunc: BaseFormatFunction, state: {}) => string;
 

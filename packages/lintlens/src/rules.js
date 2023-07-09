@@ -1,5 +1,5 @@
 import Fuse from 'fuse.js';
-import { getSchemaDocumentation } from 'json-schema-for-humans';
+import { getSchemaDocumentation } from 'json-schema-visualizer';
 import { MissingPluginError } from './errors';
 import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL, eslintPluginPrefix } from './constants';
 import { getLinterRules } from './eslint';

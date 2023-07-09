@@ -193,7 +193,7 @@ function getObjectDoc({ schema, root }) {
     //   dependentSchemas - { property: { ...otherSchema } } conditionally applies a subschema when a given property is present
     //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentschemas
 
-    // TODO: does if, then, else apply only to objects?
+    // TODO: does if/then/else apply only to objects?
     //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else
 
     const ret = {
@@ -554,8 +554,12 @@ function getNotDoc({ schema, root }) {
 }
 
 function getIfThenElseDoc({ schema, root }) {
-    if (!schema.hasOwnProperty('if') || !schema.hasOwnProperty('then')) {
+    if (!schema.hasOwnProperty('if')) {
         return getInvalidDoc({ schema, root });
+    }
+
+    if (!schema.hasOwnProperty('then') && !schema.hasOwnProperty('else')) {
+        return getAnyDoc({ schema, root });
     }
 
     const ret = {
@@ -565,10 +569,14 @@ function getIfThenElseDoc({ schema, root }) {
 
     if (schema.hasOwnProperty('then')) {
         ret.then = getSchemaDoc({ schema: schema.then, root });
+    } else {
+        ret.then = getAnyDoc({ schema, root });
     }
 
     if (schema.hasOwnProperty('else')) {
         ret.else = getSchemaDoc({ schema: schema.else, root });
+    } else {
+        ret.else = getAnyDoc({ schema, root });
     }
 
     return ret;
@@ -663,7 +671,7 @@ function getSchemaType(schema = {}) {
 
     // All of the below schema types can exist along with any of the above, but can also exist by themselves
 
-    // TODO: oneOf, anyOf, allOf, if/then, and not - could exist alone, together, or as part of another schema
+    // TODO: oneOf, anyOf, allOf, if/then/else, and not - could exist alone, together, or as part of another schema
 
     if (schema.hasOwnProperty('if')) {
         return schemaTypes.ifThenElse;
