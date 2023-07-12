@@ -6,9 +6,29 @@
 )](https://github.com/sponsors/ghmcadams)
 
 
-Generates simple, customizable, easy to read documentation for JSON schemas.  Made by the creator of [LintLens](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens) to demonstrate the requirements/options of ESLint rules, this powerful, yet simple, documentation generator can now be used in your projects.  It features a provider-based formatting system that allows you to easily create any output style you wish.  The default formatter (the one used by LintLens) displays JSON schemas in a JSON(ish) format that is intuitive and easy to read.
+Generates simple, customizable (with great defaults), easy to read documentation for JSON schemas.  Made by the creator of [LintLens](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens) to document the requirements/options of ESLint rules, this powerful, yet simple, documentation generator can now be used in your projects, too.  It features a provider-based formatting system that allows you to easily create any output style you wish, or use the simple and intuitive default provider.  The default format provider (the one used by LintLens) displays JSON schemas in a JSON(ish) format that is intuitive and easy to read.
 
 Simple to use!  Just pass in your JSON schema and get incredibly easy to read documentation.  Want something different?  Create your own custom formatter and pass that in as the second argument.
+
+## Example (using the default (JSON-ish) format provider):
+
+```jsonc
+{
+  "useAllowList": boolean (default: false),
+  "allowedValues": [
+    // unique
+    ...string
+  ],
+  "suggestedAmount": integer (x > 0) | "none",
+  "sortOrder": [
+    // required: 4 items
+    // unique
+    ..."name" | "position" | "location" | "company"
+  ],
+  "ignoreCase": boolean (default: true)
+}
+```
+
 
 ## Installation
 
@@ -22,12 +42,20 @@ npm install json-schema-visualizer
 
 ```ts
 function getSchemaDocumentation(schema: JSONSchema, formatter?: FormatProvider): string;
+```
 
+### Custom Format Providers API
+
+<details>
+    <summary>Click to expand</summary>
+
+```ts
 type FormatProvider<TState = State> = {
     // A function to initialize a mutable object, which is passed to every formatter function below
     getInitialState: () => TState;
 
-    // A function for each type present in your schema
+    // A function for each type found in a JSON schema
+    // Example:  object(doc, baseFunc, state) { ... }
 
     any: FormatterFunction<AnySchema, TState>;
     not: FormatterFunction<NotSchema, TState>;
@@ -55,6 +83,8 @@ type FormatterFunction<TSchemaDoc, TState = State> = (doc: TSchemaDoc, formatFun
 type BaseFormatFunction = (doc: Schema) => string;
 type State = { [key: string]: unknown };
 ```
+</details>
+<br>
 
 ### Implementation
 
@@ -64,35 +94,7 @@ import { getSchemaDocumentation } from 'json-schema-visualizer';
 const documentation = getSchemaDocumentation(schema);
 ```
 
-#### Output
-
-If no `formatProvider` is specified, the default (`jsonishFormatter`) will be used.  This formatter's output looks similar to JSON, and is the one used by [LintLens](https://marketplace.visualstudio.com/items?itemName=ghmcadams.lintlens).
-
-#### Example:
-
-```jsonc
-{
-  "noStrings": boolean,
-  "allowedStrings": [
-    // unique
-    ...string
-  ],
-  "ignoreProps": boolean,
-  "noAttributeStrings": boolean,
-  "ignoreCase": boolean (default: false),
-  "memberSyntaxSortOrder": [
-    // required: 4 items
-    // unique
-    ..."none" | "all" | "multiple" | "single"
-  ],
-  "ignoreDeclarationSort": boolean (default: false),
-  "ignoreMemberSort": boolean (default: false),
-  "allowSeparatedGroups": boolean (default: false)
-}
-```
-<br>
-
-### Implementation (with a custom format provider)
+### Using a custom format provider
 
 ```ts
 // myFormatProvider.js
@@ -122,20 +124,48 @@ export function invalid(doc, formatFunc, state) { /* ... */ }
 ```ts
 // app.js
 
+import { getSchemaDocumentation } from 'json-schema-visualizer';
 import * as myFormatProvider from './myFormatProvider';
 
 const documentation = getSchemaDocumentation(schema, myFormatProvider);
 ```
 
+### Overriding the default provider
+
+```ts
+// myFormatFunctions.js
+
+export function string(doc, formatFunc, state) { /* ... */ }
+export function constant(doc, formatFunc, state) { /* ... */ }
+export function invalid(doc, formatFunc, state) { /* ... */ }
+```
+
+```ts
+// app.js
+
+import { getSchemaDocumentation, jsonishFormatter } from 'json-schema-visualizer';
+import { string, constant, invalid } from './myFormatFunctions';
+
+const customFormatProvider = {
+    ...jsonishFormatter,
+    string,
+    constant,
+    invalid
+};
+
+const documentation = getSchemaDocumentation(schema, customFormatProvider);
+```
+
 
 ## Custom Format Providers
 
-A format provider is a JS object containing functions for each schema type.  As the schema is crawled, whenever a particular schema type is reached, the formatter function for that type is called with a schema doc (information specific to its type), a base format function (to be called for any children), and a mutable state object you can use for anything you need to keep track of while formatting a schema document (ex: indentation).
+A format provider is a JS object containing a function for each schema type.  As your schema is crawled, whenever a particular schema type is reached, the formatter function for that type is called with a schema doc (information specific to its type), a base format function (to be called for any children), and a mutable state object you can use for anything you need to keep track of while formatting a schema document (ex: indentation).
 
 ### Format Function Signature
 
 ```ts
-(doc: Schema, formatFunc: (doc) => string, state: {}) => string;
+// TSchema is specific to the type represented by this function
+(doc: TSchema, formatFunc: (doc: Schema) => string, state: {}) => string;
 ```
 
 ### Schema document types
@@ -233,11 +263,11 @@ type Requirement = {
 ```
 
 
-## Known Issues
+## Current limitations
 
 - Does not read from external schemas (for now... Later, we will allow multiple schemas to be loaded at once)
 - Does not support non-standard JSON schema keywords/types, etc.
-- Does not support the array contains keyword
-- Does not correctly handle schema composition when used as part of another schema type (anyOf, oneOf, allOf, not)
-- Does not correctly handle if/then/else when used as part of another schema type
-- Does not correctly handle conditional subschemas (dependentRequired, dependentSchemas)
+- Does not support the `contains` keyword (for arrays)
+- Does not handle schema composition when used as part of another schema type (`anyOf`, `oneOf`, `allOf`, `not`)
+- Does not handle `if/then/else` when used as part of another schema type
+- Does not handle conditional object subschemas (`dependentRequired`, `dependentSchemas`)

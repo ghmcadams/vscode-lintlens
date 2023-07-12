@@ -27,7 +27,7 @@ Schema:
 
 Data:
 ```js
-["space", 2]
+["space", "2"]
 ```
 
 ajv errors:
