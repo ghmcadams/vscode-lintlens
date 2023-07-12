@@ -134,6 +134,7 @@ function getRefDoc({ schema, root }) {
 function getEmptyDoc({ schema, root }) {
     return {
         schemaType: schemaTypes.empty,
+        // TODO: should this be typed as unknown/JSONSchema?
         schema,
     };
 }
@@ -585,6 +586,7 @@ function getIfThenElseDoc({ schema, root }) {
 function getInvalidDoc({ schema, root }) {
     return {
         schemaType: schemaTypes.invalid,
+        // TODO: should this be typed as unknown/JSONSchema?
         schema,
     };
 }
