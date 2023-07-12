@@ -797,11 +797,7 @@ function formatDoc(formatter, schemaDoc) {
 
 function getFormatterInitialState(formatter) {
     if (formatter.hasOwnProperty('getInitialState')) {
-        try {
-            return formatter.getInitialState();
-        } catch(err) {
-            return {};
-        }
+        return formatter.getInitialState();
     }
 
     return {};

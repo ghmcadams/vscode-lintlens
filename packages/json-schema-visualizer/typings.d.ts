@@ -1,6 +1,8 @@
 declare module 'json-schema-visualizer' {
+    type State = { [key: string]: unknown };
+
     type BaseFormatFunction = (doc: Schema) => string;
-    type FormatterFunction<T extends Schema> = (doc: T, formatFunc: BaseFormatFunction, state: {}) => string;
+    type FormatterFunction<TSchemaDoc extends Schema, TState = State> = (doc: TSchemaDoc, formatFunc: BaseFormatFunction, state: TState) => string;
 
     type Scalar = string | number | boolean;
 
@@ -25,27 +27,27 @@ declare module 'json-schema-visualizer' {
         };
     };
 
-    type FormatProvider = {
-        getInitialState: () => {};
-        any: FormatterFunction<AnySchema>;
-        not: FormatterFunction<NotSchema>;
-        nullvalue: FormatterFunction<NullvalueSchema>;
-        object: FormatterFunction<ObjectSchema>;
-        tuple: FormatterFunction<TupleSchema>;
-        array: FormatterFunction<ArraySchema>;
-        enumeration: FormatterFunction<EnumerationSchema>;
-        constant: FormatterFunction<ConstantSchema>;
-        string: FormatterFunction<StringSchema>;
-        numeric: FormatterFunction<NumericSchema>;
-        boolean: FormatterFunction<BooleanSchema>;
-        anyOf: FormatterFunction<AnyOfSchema>;
-        oneOf: FormatterFunction<OneOfSchema>;
-        allOf: FormatterFunction<AllOfSchema>;
-        ifThenElse: FormatterFunction<IfThenElseSchema>;
-        multiType: FormatterFunction<MultiTypeSchema>;
-        externalRef: FormatterFunction<ExternalRefSchema>;
-        empty: FormatterFunction<EmptySchema>;
-        invalid: FormatterFunction<InvalidSchema>;
+    type FormatProvider<TState = State> = {
+        getInitialState: () => TState;
+        any: FormatterFunction<AnySchema, TState>;
+        not: FormatterFunction<NotSchema, TState>;
+        nullvalue: FormatterFunction<NullvalueSchema, TState>;
+        object: FormatterFunction<ObjectSchema, TState>;
+        tuple: FormatterFunction<TupleSchema, TState>;
+        array: FormatterFunction<ArraySchema, TState>;
+        enumeration: FormatterFunction<EnumerationSchema, TState>;
+        constant: FormatterFunction<ConstantSchema, TState>;
+        string: FormatterFunction<StringSchema, TState>;
+        numeric: FormatterFunction<NumericSchema, TState>;
+        boolean: FormatterFunction<BooleanSchema, TState>;
+        anyOf: FormatterFunction<AnyOfSchema, TState>;
+        oneOf: FormatterFunction<OneOfSchema, TState>;
+        allOf: FormatterFunction<AllOfSchema, TState>;
+        ifThenElse: FormatterFunction<IfThenElseSchema, TState>;
+        multiType: FormatterFunction<MultiTypeSchema, TState>;
+        externalRef: FormatterFunction<ExternalRefSchema, TState>;
+        empty: FormatterFunction<EmptySchema, TState>;
+        invalid: FormatterFunction<InvalidSchema, TState>;
     };
 
     type BaseSchema = {
@@ -62,7 +64,9 @@ declare module 'json-schema-visualizer' {
         schema: Schema;
     };
     type AnySchema = BaseSchema & {};
-    type NotSchema = BaseSchema & {};
+    type NotSchema = BaseSchema & {
+        schema: Schema;
+    };
     type NullvalueSchema = BaseSchema & {};
     type ObjectSchema = BaseSchema & {
         properties: Property[];
