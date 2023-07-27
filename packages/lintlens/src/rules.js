@@ -3,7 +3,7 @@ import { getSchemaDocumentation } from 'json-schema-visualizer';
 import { MissingPluginError } from './errors';
 import { npmPackageBaseUrl, eslintRulesUrl, MISSING_URL_URL, eslintPluginPrefix } from './constants';
 import { getLinterRules } from './eslint';
-import { getPackagePathForDocument } from './workspace';
+import { getPackageForDocument } from './packages';
 
 
 const fuseOptions = {
@@ -63,16 +63,10 @@ function breakOutRuleName(ruleName) {
 }
 
 function importPlugin(documentFilePath, rules, pluginName, pluginPackageName) {
-    const pluginPackagePath = getPackagePathForDocument(documentFilePath, pluginPackageName);
-
-    if (!pluginPackagePath) {
-        throw new MissingPluginError(pluginName);
-    }
-
     let plugin;
     try {
-        plugin = __non_webpack_require__(pluginPackagePath);
-    } catch(err) {
+        plugin = getPackageForDocument(pluginPackageName, documentFilePath);
+    } catch (err) {
         // console.log(`Error importing ${pluginName}: `, err.message || err);
         throw new MissingPluginError(`Error importing ${pluginName}: ${err.message || err}`);
     }

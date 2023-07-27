@@ -1,23 +1,25 @@
-import { getPackagePathForDocument } from './workspace';
 import { MissingESLintError, UnsupportedESLintError } from './errors';
+import { getPackageForDocument } from './packages';
 
 
 const rulesCache = new Map();
 
 export function getLinterRules(documentFilePath) {
-    const eslintPackagePath = getPackagePathForDocument(documentFilePath, 'eslint');
-    if (!eslintPackagePath) {
+    let eslint;
+    try {
+        eslint = getPackageForDocument('eslint', documentFilePath);
+    } catch (err) {
+        // console.log(`Error importing eslint: `, err.message || err);
         throw new MissingESLintError();
     }
 
-    if (rulesCache.has(eslintPackagePath)) {
-        return rulesCache.get(eslintPackagePath);
-    }
-
-    const eslint = __non_webpack_require__(eslintPackagePath);
     const linter = new eslint.Linter();
     if (!linter.getRules || typeof linter.getRules !== "function") {
         throw new UnsupportedESLintError();
+    }
+
+    if (rulesCache.has(linter.version)) {
+        return rulesCache.get(linter.version);
     }
 
     const builtinRules = linter.getRules();
@@ -30,7 +32,7 @@ export function getLinterRules(documentFilePath) {
         pluginsImported: []
     };
 
-    rulesCache.set(eslintPackagePath, output);
+    rulesCache.set(linter.version, output);
 
-    return rulesCache.get(eslintPackagePath);
+    return rulesCache.get(linter.version);
 }
