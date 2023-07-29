@@ -2,7 +2,7 @@ declare module 'simple-ajv-errors' {
     import { ErrorObject } from 'ajv';
 
     interface Options {
-        rootVar: string = 'data';
+        rootVar?: string;
     }
 
     interface SimpleError {
@@ -23,6 +23,6 @@ declare module 'simple-ajv-errors' {
      */
     export function getSimpleErrors(
         errors: ErrorObject[] | null,
-        options: Options = {},
+        options?: Options,
     ): SimpleError[];
 }

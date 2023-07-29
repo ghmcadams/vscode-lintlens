@@ -1,4 +1,4 @@
-declare module 'json-schema-visualizer' {
+declare module 'jsonschema-doc' {
     type State = { [key: string]: unknown };
 
     /**
@@ -35,8 +35,8 @@ declare module 'json-schema-visualizer' {
     };
 
     type Requirement = {
-        [string]: {
-            [string]: Scalar;
+        [x: string]: {
+            [x: string]: Scalar;
             message: string;
         };
     };

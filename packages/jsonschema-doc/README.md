@@ -1,7 +1,7 @@
 # JSON Schema Visualizer
 
-[![NPM](https://img.shields.io/npm/v/json-schema-visualizer?label=npm%20install&color=red)](https://www.npmjs.com/package/json-schema-visualizer)
-[![SIZE](https://img.shields.io/bundlephobia/min/json-schema-visualizer?label=size&color=blue)](https://www.npmjs.com/package/json-schema-visualizer)
+[![NPM](https://img.shields.io/npm/v/jsonschema-doc?label=npm%20install&color=red)](https://www.npmjs.com/package/jsonschema-doc)
+[![SIZE](https://img.shields.io/bundlephobia/min/jsonschema-doc?label=size&color=blue)](https://www.npmjs.com/package/jsonschema-doc)
 [![SPONSOR](https://img.shields.io/badge/Github-sponsor-blue
 )](https://github.com/sponsors/ghmcadams)
 
@@ -33,7 +33,7 @@ Simple to use!  Just pass in your JSON schema and get incredibly easy to read do
 ## Installation
 
 ```shell
-npm install json-schema-visualizer
+npm install jsonschema-doc
 ```
 
 ## Usage
@@ -89,7 +89,7 @@ type State = { [key: string]: unknown };
 ### Implementation
 
 ```ts
-import { getSchemaDocumentation } from 'json-schema-visualizer';
+import { getSchemaDocumentation } from 'jsonschema-doc';
 
 const documentation = getSchemaDocumentation(schema);
 ```
@@ -124,7 +124,7 @@ export function invalid(doc, formatFunc, state) { /* ... */ }
 ```ts
 // app.js
 
-import { getSchemaDocumentation } from 'json-schema-visualizer';
+import { getSchemaDocumentation } from 'jsonschema-doc';
 import * as myFormatProvider from './myFormatProvider';
 
 const documentation = getSchemaDocumentation(schema, myFormatProvider);
@@ -143,7 +143,7 @@ export function invalid(doc, formatFunc, state) { /* ... */ }
 ```ts
 // app.js
 
-import { getSchemaDocumentation, jsonishFormatter } from 'json-schema-visualizer';
+import { getSchemaDocumentation, jsonishFormatter } from 'jsonschema-doc';
 import { string, constant, invalid } from './myFormatFunctions';
 
 const customFormatProvider = {
