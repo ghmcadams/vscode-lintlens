@@ -195,7 +195,7 @@ getSimpleErrors(errors: ErrorObject[], options?: Options): SimpleError[];
 interface Options {
     // Used in error messages as part of a reference path
     //  EX: `data.someProp[0].prop must not be empty`
-    rootVar: string; // default: 'data'
+    dataVar: string; // default: 'data'
 }
 
 interface SimpleError {
@@ -232,7 +232,7 @@ const data = { /* ... */ };
 const valid = ajv.validate(schema, data);
 if (valid === false) {
     const simpleErrors = getSimpleErrors(ajv.errors, {
-        rootVar: 'root'
+        dataVar: 'root'
     });
 }
 ```

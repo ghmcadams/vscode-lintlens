@@ -23,8 +23,8 @@ export const parentKeywordsOk = [
     'dependentRequired',
 ];
 
-export function getDataReferencePath(rootVar: string, path: string): string {
-    const pointer = `${rootVar}${path}`;
+export function getDataReferencePath(dataVar: string, path: string): string {
+    const pointer = `${dataVar}${path}`;
     return pointer
         // Array items
         .replace(/\/(\d+)/g, '[$1]')

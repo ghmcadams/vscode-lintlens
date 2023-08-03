@@ -29,7 +29,7 @@ import {
 
 
 type Options = {
-    rootVar?: string;
+    dataVar?: string;
 };
 
 type TextOptions = Options & {
@@ -49,8 +49,8 @@ type SimpleError = {
 /**
  * Get usable, human readable, simple error messages from ajv errors.
  * @param {VerboseErrorObject[]} errors - The errors created as a result of calling ajv.validate().
- * @param {object=} options - Configuration options to help give the best result.
- * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
+ * @param {TextOptions=} options - Configuration options to help give the best result.
+ * @param {string} [options.dataVar='data'] - The text to use for the root of the data variable.
  * @param {string} [options.separator=', '] - The text to use for the separator between errors.
  * @return {string} All errors, delimited by the specified separator
  */
@@ -66,8 +66,8 @@ export function getSimpleErrorText(errors: VerboseErrorObject[] | null, options:
 /**
  * Get usable, human readable, simple error messages from ajv errors.
  * @param {VerboseErrorObject[]} errors - The errors created as a result of calling ajv.validate().
- * @param {object=} options - Configuration options to help give the best result.
- * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
+ * @param {Options=} options - Configuration options to help give the best result.
+ * @param {string} [options.dataVar='data'] - The text to use for the root of the data variable.
  * @return {SimpleError[]} An array of simple errors.
  */
 export function getSimpleErrors(errors: VerboseErrorObject[] | null, options: Options = {}): SimpleError[] {
@@ -76,13 +76,13 @@ export function getSimpleErrors(errors: VerboseErrorObject[] | null, options: Op
     }
 
     const {
-        rootVar = 'data',
+        dataVar = 'data',
     } = options;
 
     const processedErrors = processErrors(errors);
 
     const simpleErrors = processedErrors.map((error) => {
-        const path = getDataReferencePath(rootVar, error.instancePath);
+        const path = getDataReferencePath(dataVar, error.instancePath);
         const errorMessage = getMessageForError(error);
         const message = `${path} must ${errorMessage}`;
 
