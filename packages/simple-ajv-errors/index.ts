@@ -1,5 +1,18 @@
-import clone from 'clone';
-import pluralize from 'pluralize';
+import type {
+    SparseArray,
+    SchemaArray,
+    VerboseErrorObject,
+    OfErrorObject,
+    AnyError,
+    OfErrorObjectForObject,
+    OfErrorObjectForArray,
+    OfErrorObjectWithPath,
+    JSONSchemaObject,
+    Schema,
+} from './types';
+
+import * as clone from 'clone';
+import * as pluralize from 'pluralize';
 
 import {
     ofErrorKeywords,
@@ -15,7 +28,32 @@ import {
 } from './util';
 
 
-export function getSimpleErrors(errors, options = {}) {
+type Options = {
+    rootVar?: string;
+};
+
+type SimpleError = {
+    message: string;
+    instancePath: string;
+    schemaPath: string;
+    schema?: any;
+    parentSchema?: object;
+    data?: any;
+};
+
+
+// TODO: change the options type to include an option to return a single string for all errors, with a separator
+//      OR - 
+//      add another function, which just calls func().map(message).join(separator)
+
+/**
+ * Get usable, human readable, simple error messages from ajv errors.
+ * @param {ErrorObject[]} errors - The errors created as a result of calling ajv.validate().
+ * @param {object=} options - Configuration options to help give the best result.
+ * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
+ * @return {SimpleError[]} An array of simple errors.
+ */
+export function getSimpleErrors(errors: VerboseErrorObject[] | null, options: Options = {}): SimpleError[] {
     if (!errors || errors.length === 0) {
         return [];
     }
@@ -52,7 +90,7 @@ export function getSimpleErrors(errors, options = {}) {
     return simpleErrors;
 };
 
-function processErrors(errors) {
+function processErrors(errors: VerboseErrorObject[]) {
     const clonedErrors = clone(errors);
 
     const ofHierarchy = getOfHierarchy(clonedErrors);
@@ -61,33 +99,31 @@ function processErrors(errors) {
     return processedErrors;
 }
 
-function getOfHierarchy(errors) {
-    const ofs = errors.filter(({ keyword }) => ofErrorKeywords.includes(keyword));
+// TODO: add a comment for what an OF hierarchy is
+function getOfHierarchy(errors: VerboseErrorObject[]): AnyError[] {
+    const ofs = errors.filter((err) => isOfError(err)) as OfErrorObject[];
     if (ofs.length === 0) {
         return errors;
     }
 
     replaceSchemaRefs(errors);
 
-    const ret = [];
-    // Loop through non OF errors
-    const nonOfErrors = errors.filter(({ keyword }) => !ofErrorKeywords.includes(keyword));
-    for (const error of nonOfErrors) {
-        // store list of OF schema paths for this error
-        const schemaOfs = [];
-        const schemaParts = error.schemaPath.split('/');
-        schemaParts.pop(); // Ignore the last element (current error)
-        schemaParts.forEach((part, index) => {
-            if (ofErrorKeywords.includes(part)) {
-                schemaOfs.push(schemaParts.slice(0, index + 1).join('/'));
-            }
-        });
+    const ret: AnyError[] = [];
 
-        let ref = ret;
+    // Loop through non OF errors
+    const nonOfErrors = errors.filter((err) => !isOfError(err));
+    for (const error of nonOfErrors) {
+        const schemaOfs = getSchemaOfs(error);
+
+        let ref: AnyError[] | SparseArray<AnyError[]> = ret;
+
         for (const schemaPath of schemaOfs) {
             // already stored
-            const refError = ref.flat().find(item => item.schemaPath === schemaPath);
-            if (refError) {
+            const storedErrors = ref.flat() as AnyError[];
+            const refError = storedErrors.find(item => item?.schemaPath === schemaPath);
+            if (refError && isOfError(refError)) {
+                // TODO: bug: refError may not be an OF (which means it may not have choices)
+                //  maybe I thought that non-OF-errors with the same schemaPath could not co-exist?
                 ref = refError.choices;
                 continue;
             }
@@ -101,8 +137,9 @@ function getOfHierarchy(errors) {
                     ref.push(ofError);
                 } else {
                     const choiceIndex = getOfChoiceIndex(ref, ofError.schemaPath);
-                    ref[choiceIndex] = ref[choiceIndex] ?? [];
-                    ref[choiceIndex].push(ofError);
+                    const choice = (ref[choiceIndex] ?? []) as AnyError[];
+                    choice.push(ofError);
+                    ref[choiceIndex] = choice;
                 }
 
                 ref = ofError.choices;
@@ -113,37 +150,52 @@ function getOfHierarchy(errors) {
             break;
         }
 
-        if (ofErrorKeywords.includes(error.keyword)) {
-            error.choices = [];
-        }
-
+        // TODO: verify that this comment is correct (and maybe improve it)
+        // Add current error to the return stack
         if (ref === ret) {
             ref.push(error);
         } else {
             const choiceIndex = getOfChoiceIndex(ref, error.schemaPath);
-            ref[choiceIndex] = ref[choiceIndex] ?? [];
-            ref[choiceIndex].push(error);
+            const choice = (ref[choiceIndex] ?? []) as AnyError[];
+            choice.push(error);
+            ref[choiceIndex] = choice;
         }
     }
 
     return ret;
 }
 
-function replaceSchemaRefs(errors) {
+function getSchemaOfs(error: VerboseErrorObject) {
+    // get the list of OF schema paths for this error
+    const schemaOfs: string[] = [];
+    const schemaParts = error.schemaPath.split('/');
+    schemaParts.pop(); // Ignore the last element (current error)
+    schemaParts.forEach((part, index) => {
+        if (ofErrorKeywords.includes(part)) {
+            schemaOfs.push(schemaParts.slice(0, index + 1).join('/'));
+        }
+    });
+
+    return schemaOfs;
+}
+
+function replaceSchemaRefs(errors: VerboseErrorObject[]) {
     errors.forEach(error => {
         if (!Array.isArray(error.schema)) {
             return;
         }
-        error.schema.forEach((item, index) => {
+        const schema = error.schema;
+        schema.forEach((item, index) => {
             const schemaPathReplacement = `${error.schemaPath}/${index}`;
 
-            if (getType(item) === 'object' && item.hasOwnProperty('$ref')) {
+            if (getType(item) === 'object' && item.hasOwnProperty('$ref') && item.$ref != undefined) {
+                const ref = item.$ref;
                 errors.forEach(otherError => {
                     if (otherError.instancePath === error.instancePath) {
-                        otherError.schemaPath = otherError.schemaPath.replace(item.$ref, schemaPathReplacement);
+                        otherError.schemaPath = otherError.schemaPath.replace(ref, schemaPathReplacement);
 
                         if (otherError.schemaPath.slice(schemaPathReplacement.length + 1).includes('/')) {
-                            error.schema[index] = otherError.parentSchema;
+                            schema[index] = otherError.parentSchema as Schema;
                         }
                     }
                 });
@@ -152,11 +204,11 @@ function replaceSchemaRefs(errors) {
     });
 }
 
-function filterByChosenPath(ofHierarchy) {
-    const ret = [];
+function filterByChosenPath(ofHierarchy: AnyError[]) {
+    const ret: AnyError[] = [];
 
     for (const error of ofHierarchy) {
-        if (ofErrorKeywords.includes(error.keyword)) {
+        if (isOfError(error)) {
             const chosenPaths = getChosenPaths(error);
             const {
                 choices,
@@ -164,11 +216,11 @@ function filterByChosenPath(ofHierarchy) {
             } = error;
 
             if (chosenPaths.length === 1) {
-                ret.push(...filterByChosenPath(choices[chosenPaths[0]]));
+                ret.push(...filterByChosenPath(choices[chosenPaths[0]] ?? []));
                 continue;
             }
             if (chosenPaths.length > 1) {
-                const ofPaths = chosenPaths.map(pathIndex => filterByChosenPath(choices[pathIndex]));
+                const ofPaths = chosenPaths.map(pathIndex => filterByChosenPath(choices[pathIndex] ?? []));
                 const distinctErrors = getDistinctAcrossOfErrors({
                     ...ofError,
                     ofPaths
@@ -184,8 +236,8 @@ function filterByChosenPath(ofHierarchy) {
     return lowestErrors;
 }
 
-function findLowestErrors(errors) {
-    const tracker = new Map();
+function findLowestErrors(errors: AnyError[]) {
+    const tracker = new Map<string, AnyError[]>();
 
     errors.forEach(error => {
         const existing = tracker.get(error.instancePath);
@@ -263,14 +315,14 @@ function findLowestErrors(errors) {
     return lowestErrors;
 }
 
-function getChosenPaths(error) {
+function getChosenPaths(error: OfErrorObject) {
     const {
         choices,
         data,
         schema
     } = error;
 
-    const choiceIndices = choices.reduce((ret, item, index) => {
+    const choiceIndices = choices.reduce<number[]>((ret, item, index) => {
         if (item !== undefined) {
             ret.push(index);
         }
@@ -294,7 +346,7 @@ function getChosenPaths(error) {
         return allIndices;
     }
 
-    const indicesTypeMatch = choiceIndices.reduce((ret, index) => {
+    const indicesTypeMatch = choiceIndices.reduce<number[]>((ret, index) => {
         const entry = schema[index];
         if (entry.hasOwnProperty('enum')) {
             const score = getValueMatchScore(data, entry.enum);
@@ -329,16 +381,16 @@ function getChosenPaths(error) {
     }
 
     if (typeofData === 'object') {
-        return getChosenPathsWhenObject(error, indicesTypeMatch);
+        return getChosenPathsWhenObject(error as OfErrorObjectForObject, indicesTypeMatch);
     }
     if (typeofData === 'array') {
-        return getChosenPathsWhenArray(error, indicesTypeMatch);
+        return getChosenPathsWhenArray(error as OfErrorObjectForArray, indicesTypeMatch);
     }
 
     return indicesTypeMatch;
 }
 
-function getChosenPathsWhenObject(error, indices) {
+function getChosenPathsWhenObject(error: OfErrorObjectForObject, indices: number[]) {
     if (!indices || indices.length === 0) {
         return indices;
     }
@@ -366,7 +418,7 @@ function getChosenPathsWhenObject(error, indices) {
         .map(entry => entry[0]);
 }
 
-function getChosenPathsWhenArray(error, indices) {
+function getChosenPathsWhenArray(error: OfErrorObjectForArray, indices: number[]) {
     if (!indices || indices.length === 0) {
         return indices;
     }
@@ -378,7 +430,7 @@ function getChosenPathsWhenArray(error, indices) {
 
     // minItems and maxItems matches data item count
     const dataItemCount = data.length;
-    const indicesfromArray = indices.reduce((ret, index) => {
+    const indicesfromArray = indices.reduce<number[]>((ret, index) => {
         const entry = schema[index];
         const minItems = entry.minItems ?? 0;
         const maxItems = entry.maxItems ?? Number.MAX_SAFE_INTEGER;
@@ -398,36 +450,43 @@ function getChosenPathsWhenArray(error, indices) {
     }
 
     // more than one match found - check details of each schema part
-    const indicesfromDetails = indicesfromArray.reduce((ret, index) => {
+    const indicesfromDetails = indicesfromArray.reduce<number[]>((ret, index) => {
         const entry = schema[index];
         if (!entry.items) {
             return ret;
         }
 
+        if (entry.items === true) {
+            return ret;
+        }
+
         let items = entry.items;
         let isTuple = true;
-        if (getType(items) === 'object') {
+
+        if (!Array.isArray(items)) {
             isTuple = false;
 
-            if (items.hasOwnProperty('anyOf')) {
+            if (items.hasOwnProperty('anyOf') && items.anyOf !== undefined) {
                 items = items.anyOf;
-            } else if (items.hasOwnProperty('oneOf')) {
+            } else if (items.hasOwnProperty('oneOf') && items.oneOf !== undefined) {
                 items = items.oneOf;
             } else {
                 items = [items];
             }
         }
 
+        const itemsArray = items as SchemaArray;
+
         data.forEach((dataItem, dataIndex) => {
             // if it is a tuple, then the length must match
             // allowing less than for in progress scenarios
-            if (isTuple && data.length > items.length) {
+            if (isTuple && data.length > itemsArray.length) {
                 return;
             }
 
             const dataItemType = getType(dataItem);
 
-            const itemsForThisIndex = isTuple ? [items[dataIndex]] : items;
+            const itemsForThisIndex = isTuple ? [itemsArray[dataIndex]] : itemsArray;
             const anyMatch = itemsForThisIndex.some(item => {
                 const itemTypes = getSchemaType(item);
 
@@ -436,19 +495,28 @@ function getChosenPathsWhenArray(error, indices) {
                 }
 
                 // if it matches any of the enum values, return true
-                if (item.hasOwnProperty('enum')) {
+                if (item.hasOwnProperty('enum') && item.enum !== undefined) {
                     if (item.enum.includes(dataItem)) {
+                        return true;
+                    }
+                }
+
+                // if it matches the const value, return true
+                if (item.hasOwnProperty('const') && item.const !== undefined) {
+                    if (item.const === dataItem) {
                         return true;
                     }
                 }
 
                 if (dataItemType === 'object') {
                     // TODO: static score is less meaningful - need to compare with others
-                    const matchScore = getPropertyMatchScore(dataItem, item);
+                    const matchScore = getPropertyMatchScore(dataItem as JSONSchemaObject, item);
                     if (matchScore > 0.5) {
                         return true;
                     }
                 }
+
+                return false;
             });
             if (anyMatch) {
                 ret.push(index);
@@ -469,8 +537,8 @@ function getChosenPathsWhenArray(error, indices) {
     return indicesfromDetails;
 }
 
-function getDistinctAcrossOfErrors(ofError) {
-    const ret = [];
+function getDistinctAcrossOfErrors(ofError: OfErrorObjectWithPath) {
+    const ret: AnyError[][] = [];
     for (let i = 0; i < ofError.ofPaths.length - 1; i++) {
         const path = ofError.ofPaths[i];
         const pathErrors = path.filter(error => {
@@ -495,11 +563,11 @@ function getDistinctAcrossOfErrors(ofError) {
     }];
 }
 
-function getMessageForError(error, omitBe = false) {
+function getMessageForError(error: VerboseErrorObject, omitBe = false) {
     switch (error.keyword) {
         case 'anyOf':
-        case 'oneOf': 
-            return getMessageForOf(error);
+        case 'oneOf':
+            return getMessageForOf(error as OfErrorObjectWithPath);
         case 'maxItems':
         case 'additionalItems':
         case 'unevaluatedItems':
@@ -540,7 +608,7 @@ function getMessageForError(error, omitBe = false) {
         }
         case 'enum': {
             const allowedList = error.params.allowedValues
-                .map(value => (typeof value === 'string' || value instanceof String) ? `'${value}'` : value)
+                .map((value: any) => (typeof value === 'string' || value instanceof String) ? `'${value}'` : value)
                 .join(', ');
             const beWhat = error.params.allowedValues.length === 1 ? allowedList : `one of the following: ${allowedList}`;
             return `${omitBe ? '' : 'be '}${beWhat}`;
@@ -573,15 +641,16 @@ function getMessageForError(error, omitBe = false) {
     }
 }
 
-function getMessageForOf(ofError) {
+function getMessageForOf(ofError: OfErrorObjectWithPath) {
     try {
-        const messageParts = [];
+        const messageParts: string[] = [];
 
         // TODO: handle differing instancePath's
 
         let seenBe = false;
+        // TODO: why am I checking ofPaths is undefined?
         ofError.ofPaths?.forEach(path => {
-            const pathMessageParts = [];
+            const pathMessageParts: string[] = [];
             path.forEach(error => {
                 const subMessage = getMessageForError(error, seenBe);
                 if (subMessage.startsWith('be')) {
@@ -596,4 +665,8 @@ function getMessageForOf(ofError) {
     } catch(err) {
         return 'match one of the schema options';
     }
+}
+
+function isOfError(error: AnyError): error is OfErrorObject {
+    return ofErrorKeywords.includes(error.keyword);
 }

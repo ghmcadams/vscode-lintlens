@@ -1,4 +1,6 @@
-import levenshtein from 'damerau-levenshtein';
+import type { VerboseErrorObject, Schema, JSONSchemaObject } from './types';
+
+import * as levenshtein from 'damerau-levenshtein';
 
 
 export const ofErrorKeywords = ['anyOf', 'oneOf'];
@@ -21,7 +23,7 @@ export const parentKeywordsOk = [
     'dependentRequired',
 ];
 
-export function getDataReferencePath(rootVar, path) {
+export function getDataReferencePath(rootVar: string, path: string): string {
     const pointer = `${rootVar}${path}`;
     return pointer
         // Array items
@@ -30,8 +32,8 @@ export function getDataReferencePath(rootVar, path) {
         .replace(/\/(\w+)/g, '.$1');
 }
 
-export function getOfChoiceIndex(parent, schemaPath) {
-    let choiceIndex = parent.length;
+export function getOfChoiceIndex(parent: unknown[], schemaPath: string) {
+    let choiceIndex: number = parent.length;
     const thisSchemaParts = schemaPath.split('/');
     for (let i = thisSchemaParts.length - 2; i > 0; i--) {
         if (ofErrorKeywords.includes(thisSchemaParts[i])) {
@@ -43,7 +45,7 @@ export function getOfChoiceIndex(parent, schemaPath) {
     return choiceIndex;
 }
 
-export function getValueMatchScore(data, valuesToCheck) {
+export function getValueMatchScore(data: unknown, valuesToCheck: unknown) {
     const valuesArray = Array.isArray(valuesToCheck) ? valuesToCheck : [valuesToCheck];
     return Math.max(...valuesArray.map(value => {
         if (data === value) {
@@ -53,12 +55,12 @@ export function getValueMatchScore(data, valuesToCheck) {
             return 0;
         }
 
-        const lev = levenshtein(data, value);
+        const lev = levenshtein(data as string, value as string);
         return lev.similarity;
     }));
 }
 
-export function getPropertyMatchScore(data, schema) {
+export function getPropertyMatchScore(data: JSONSchemaObject, schema: Schema) {
     const schemaTypes = getSchemaType(schema);
     if (!schemaTypes.includes('object')) {
         return 0;
@@ -68,9 +70,9 @@ export function getPropertyMatchScore(data, schema) {
 
     const matchScore = dataProperties.reduce((ret, dataKey) => {
         const dataType = getType(data[dataKey]);
-        const schemaPropertyNames = Object.keys(schema.properties);
+        const schemaPropertyNames = schema.properties !== undefined ? Object.keys(schema.properties) : [];
         if (schemaPropertyNames.includes(dataKey)) {
-            const schemaPropertyTypes = getSchemaType(schema.properties[dataKey]);
+            const schemaPropertyTypes = schema.properties !== undefined ? getSchemaType(schema.properties[dataKey]) : [];
             ret += schemaPropertyTypes.includes(dataType) ? 1 : 0;
         } else {
             // Get the score for the schema property that most closely matches the data property
@@ -88,7 +90,7 @@ export function getPropertyMatchScore(data, schema) {
     return matchScore / dataProperties.length;
 }
 
-export function areErrorsEqual(error1, error2) {
+export function areErrorsEqual(error1: VerboseErrorObject, error2: VerboseErrorObject) {
     return (
         error1.instancePath === error2.instancePath &&
         error1.keyword === error2.keyword &&
@@ -96,33 +98,45 @@ export function areErrorsEqual(error1, error2) {
     );
 }
 
-export function getType(variable) {
+export function getType(variable: unknown) {
     return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
 }
+export function isArray<T>(variable: unknown): variable is Array<T> {
+    return getType(variable) === 'array';
+}
 
-export function getSchemaType(entry = {}) {
-    if (entry.hasOwnProperty('enum')) {
+export function getSchemaType(entry: Schema | boolean) {
+    if (typeof entry === 'boolean') {
+        return ['boolean'];
+    }
+
+    if (entry.hasOwnProperty('enum') && entry.enum !== undefined) {
         return entry.enum.map(getType);
     }
-    if (entry.hasOwnProperty('const')) {
+    if (entry.hasOwnProperty('const') && entry.const !== undefined) {
         return [getType(entry.const)];
     }
 
-    if (!entry.hasOwnProperty('type')) {
+    if (!entry.hasOwnProperty('type') || entry.type === undefined) {
         // INVALID schema: determine type based on other properties
         if (entry.hasOwnProperty('items')) {
             return ['array'];
         }
     }
 
-    return [schemaTypeMap[entry.type] ?? entry.type];
+    if (typeof entry.type === 'string') {
+        const theType = schemaTypeMap[entry.type] ?? entry.type;
+        return [theType];
+    }
+
+    return ['null'];
 }
 
-const schemaTypeMap = {
+const schemaTypeMap: Record<string, string> = {
     integer: 'number'
 };
 
-export function getCommonPrefix(string1, string2) {
+export function getCommonPrefix(string1: string, string2: string) {
     let sharedPrefix = '';
     for (let i = 0; i < string1.length && i < string2.length; i++) {
         if (string1[i] === string2[i]) {

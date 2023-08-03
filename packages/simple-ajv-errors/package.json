@@ -2,32 +2,49 @@
     "name": "simple-ajv-errors",
     "version": "1.0.0",
     "description": "Parses AJV errors and determines the best message",
-    "main": "./index.js",
-    "types": "typings.d.ts",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.mjs",
+    "types": "./dist/cjs/types/index.d.ts",
     "exports": {
         ".": {
-            "types": "./typings.d.ts",
-            "default": "./index.js"
+            "import": {
+                "types": "./dist/esm/types/index.d.ts",
+                "default": "./dist/esm/index.mjs"
+            },
+            "require": {
+                "types": "./dist/cjs/types/index.d.ts",
+                "default": "./dist/cjs/index.js"
+            }
         },
         "./package.json": "./package.json"
     },
     "files": [
-        "index.js",
-        "util.js",
-        "typings.d.ts",
+        "dist",
         "package.json",
         "README.md",
         "LICENSE.md",
         ".runkit_example.js"
     ],
     "runkitExampleFilename": ".runkit_example.js",
+    "scripts": {
+        "clean": "rm -rf ./dist",
+        "build": "npm run clean && npm run build:esm && npm run build:cjs",
+        "build:esm": "tsc -p ./tsconfig.esm.json && mv dist/esm/index.js dist/esm/index.mjs",
+        "build:cjs": "tsc -p ./tsconfig.cjs.json",
+        "prepack": "npm run build"
+    },
     "dependencies": {
         "clone": "^2.1.2",
         "damerau-levenshtein": "^1.0.8",
         "pluralize": "^8.0.0"
     },
     "devDependencies": {
-        "ajv": "8.12.0"
+        "@types/clone": "^2.1.1",
+        "@types/damerau-levenshtein": "^1.0.0",
+        "@types/json-schema": "^7.0.12",
+        "@types/pluralize": "^0.0.30",
+        "ajv": "8.12.0",
+        "typescript": "^5.1.6"
     },
     "peerDependencies": {
         "ajv": ">=4"
