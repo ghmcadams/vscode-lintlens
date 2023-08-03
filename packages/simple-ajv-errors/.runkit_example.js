@@ -1,5 +1,5 @@
 const Ajv = require("ajv");
-const { getSimpleErrors } = require("simple-ajv-errors");
+const { getSimpleErrorText } = require("simple-ajv-errors");
 
 const ajv = new Ajv({allErrors: true, verbose: true});
 
@@ -32,7 +32,7 @@ function test(data) {
   console.log("\n");
 
   console.log("simple-ajv-errors:");
-  console.log(getSimpleErrors(validate.errors).map(err => err.message).join('\n'));
+  console.log(getSimpleErrorText(validate.errors, { separator: "\n", dataVar: "data" }));
 
   console.log("\n");
   console.log("---------------------------");

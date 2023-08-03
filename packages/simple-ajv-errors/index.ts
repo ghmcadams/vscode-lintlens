@@ -32,6 +32,10 @@ type Options = {
     rootVar?: string;
 };
 
+type TextOptions = Options & {
+    separator?: string
+};
+
 type SimpleError = {
     message: string;
     instancePath: string;
@@ -42,13 +46,26 @@ type SimpleError = {
 };
 
 
-// TODO: change the options type to include an option to return a single string for all errors, with a separator
-//      OR - 
-//      add another function, which just calls func().map(message).join(separator)
+/**
+ * Get usable, human readable, simple error messages from ajv errors.
+ * @param {VerboseErrorObject[]} errors - The errors created as a result of calling ajv.validate().
+ * @param {object=} options - Configuration options to help give the best result.
+ * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
+ * @param {string} [options.separator=', '] - The text to use for the separator between errors.
+ * @return {string} All errors, delimited by the specified separator
+ */
+export function getSimpleErrorText(errors: VerboseErrorObject[] | null, options: TextOptions = {}): string {
+    const {
+        separator = ', ',
+    } = options;
+
+    return getSimpleErrors(errors, options).map(({ message }) => message).join(separator);
+}
+
 
 /**
  * Get usable, human readable, simple error messages from ajv errors.
- * @param {ErrorObject[]} errors - The errors created as a result of calling ajv.validate().
+ * @param {VerboseErrorObject[]} errors - The errors created as a result of calling ajv.validate().
  * @param {object=} options - Configuration options to help give the best result.
  * @param {string} [options.rootVar='data'] - The text to use for the root of the data variable.
  * @return {SimpleError[]} An array of simple errors.
