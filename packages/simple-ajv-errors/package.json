@@ -3,13 +3,13 @@
     "version": "1.0.0",
     "description": "Parses AJV errors and determines the best message",
     "main": "./dist/cjs/index.js",
-    "module": "./dist/esm/index.mjs",
+    "module": "./dist/esm/index.js",
     "types": "./dist/cjs/types/index.d.ts",
     "exports": {
         ".": {
             "import": {
                 "types": "./dist/esm/types/index.d.ts",
-                "default": "./dist/esm/index.mjs"
+                "default": "./dist/esm/index.js"
             },
             "require": {
                 "types": "./dist/cjs/types/index.d.ts",
@@ -19,8 +19,11 @@
         "./package.json": "./package.json"
     },
     "files": [
-        "dist",
-        "package.json",
+        "dist/cjs/index.js",
+        "dist/cjs/types/index.d.ts",
+        "dist/esm/index.js",
+        "dist/esm/types/index.d.ts",
+        "**/package.json",
         "README.md",
         "LICENSE.md",
         ".runkit_example.js"
@@ -29,8 +32,8 @@
     "scripts": {
         "clean": "rm -rf ./dist",
         "build": "npm run clean && npm run build:esm && npm run build:cjs",
-        "build:esm": "tsc -p ./tsconfig.esm.json && mv dist/esm/index.js dist/esm/index.mjs",
-        "build:cjs": "tsc -p ./tsconfig.cjs.json",
+        "build:esm": "tsc -p ./tsconfig.esm.json && echo '{\"type\": \"module\"}' > dist/esm/package.json",
+        "build:cjs": "tsc -p ./tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > dist/cjs/package.json",
         "prepack": "npm run build"
     },
     "dependencies": {
