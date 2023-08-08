@@ -19,16 +19,25 @@
         "./package.json": "./package.json"
     },
     "files": [
-        "dist/cjs/index.js",
-        "dist/cjs/types/index.d.ts",
-        "dist/esm/index.js",
-        "dist/esm/types/index.d.ts",
+        "dist",
         "**/package.json",
         "README.md",
         "LICENSE.md",
         ".runkit_example.js"
     ],
     "runkitExampleFilename": ".runkit_example.js",
+    "keywords": [
+        "ajv",
+        "errors",
+        "ajv-errors",
+        "json",
+        "schema",
+        "jsonschema",
+        "json-schema",
+        "human",
+        "validation",
+        "validate"
+    ],
     "scripts": {
         "clean": "rm -rf ./dist",
         "build": "npm run clean && npm run build:esm && npm run build:cjs",
@@ -52,18 +61,6 @@
     "peerDependencies": {
         "ajv": ">=4"
     },
-    "keywords": [
-        "ajv",
-        "errors",
-        "ajv-errors",
-        "json",
-        "schema",
-        "jsonschema",
-        "json-schema",
-        "human",
-        "validation",
-        "validate"
-    ],
     "author": {
         "name": "Gabriel McAdams",
         "email": "ghmcadams@yahoo.com"
