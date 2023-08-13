@@ -1,5 +1,5 @@
 declare module 'jsonschema-doc' {
-    type State = { [key: string]: unknown };
+    type State = Record<string, unknown>;
 
     /**
      * A function to be called by formatter functions for any subschemas

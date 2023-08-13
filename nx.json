@@ -18,6 +18,14 @@
       "outputs": [
         "{projectRoot}/dist"
       ]
+    },
+    "dev": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
     }
   }
 }

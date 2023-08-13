@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "target": "ES2019",
+        "incremental": true,
+        "strict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "baseUrl": "./src",
+        "rootDir": "./src",
+        "lib": ["ES2019", "DOM"],
+        "declaration": true,
+        "declarationMap": true,
+        "inlineSources": false,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "alwaysStrict": true,
+        "useUnknownInCatchVariables": true
+    },
+    "include": [
+        "src/**/*"
+    ]
+}

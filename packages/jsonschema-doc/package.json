@@ -2,21 +2,25 @@
     "name": "jsonschema-doc",
     "version": "1.0.0",
     "description": "A documentation generator for JSON schemas",
-    "main": "./index.js",
-    "types": "typings.d.ts",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "types": "./dist/cjs/types/index.d.ts",
     "exports": {
         ".": {
-            "types": "./typings.d.ts",
-            "default": "./index.js"
+            "import": {
+                "types": "./dist/esm/types/index.d.ts",
+                "default": "./dist/esm/index.js"
+            },
+            "require": {
+                "types": "./dist/cjs/types/index.d.ts",
+                "default": "./dist/cjs/index.js"
+            }
         },
         "./package.json": "./package.json"
     },
     "files": [
-        "index.js",
-        "jsonishFormatter.js",
-        "schemaParser.js",
-        "typings.d.ts",
-        "package.json",
+        "dist",
+        "**/package.json",
         "README.md",
         "LICENSE.md",
         ".runkit_example.js"
@@ -34,6 +38,17 @@
         "generate",
         "generator"
     ],
+    "scripts": {
+        "clean": "rm -rf ./dist",
+        "build": "npm run clean && npm run build:esm && npm run build:cjs",
+        "build:esm": "tsc -p ./tsconfig.esm.json && echo '{\"type\": \"module\"}' > dist/esm/package.json",
+        "build:cjs": "tsc -p ./tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > dist/cjs/package.json",
+        "prepack": "npm run build"
+    },
+    "devDependencies": {
+        "@types/json-schema": "^7.0.12",
+        "typescript": "^5.1.6"
+    },
     "author": {
         "name": "Gabriel McAdams",
         "email": "ghmcadams@yahoo.com"

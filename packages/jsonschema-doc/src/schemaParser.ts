@@ -1,32 +1,52 @@
+import {
+    Schema,
+    Annotations,
+    SchemaDoc,
+    EmptySchemaDoc,
+    ObjectSchemaDoc,
+    AnySchemaDoc,
+    NullvalueSchemaDoc,
+    MultiTypeSchemaDoc,
+    EnumerationSchemaDoc,
+    ConstantSchemaDoc,
+    ArraySchemaDoc,
+    StringSchemaDoc,
+    NumericSchemaDoc,
+    BooleanSchemaDoc,
+    OneOfSchemaDoc,
+    AllOfSchemaDoc,
+    NotSchemaDoc,
+    IfThenElseSchemaDoc,
+    InvalidSchemaDoc,
+    TupleSchemaDoc,
+    Requirements,
+    SchemaTypes,
+    BaseSchemaDoc,
+    FormatProvider,
+    AnyOfSchemaDoc,
+    ExternalRefSchemaDoc,
+} from './types';
+
 import * as jsonishFormatter from './jsonishFormatter';
+import { JSONSchema7 } from 'json-schema';
 
 
-const schemaTypes = {
-    any: 'any',
-    not: 'not',
-    nullvalue: 'nullvalue',
-    object: 'object',
-    array: 'array',
-    tuple: 'tuple',
-    enumeration: 'enumeration',
-    constant: 'constant',
-    string: 'string',
-    numeric: 'numeric',
-    boolean: 'boolean',
-    anyOf: 'anyOf',
-    oneOf: 'oneOf',
-    allOf: 'allOf',
-    ifThenElse: 'ifThenElse',
-    multiType: 'multiType',
-    invalid: 'invalid',
-    empty: 'empty',
-    ref: 'ref',
-    externalRef: 'externalRef',
+type DefinedSchema = Exclude<Schema, 'undefined'>;
+
+type DocParams = {
+    schema: DefinedSchema;
+    root?: DefinedSchema;
 };
 
 
-export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
-    let doc;
+// TODO: as is, the return type is `any` - should be string ( | ???? )
+export function getSchemaDocumentation(schema: Schema, formatter: FormatProvider = jsonishFormatter) {
+    if (schema === undefined) {
+        // TODO: what should I return here?
+        return null;
+    }
+
+    let doc: SchemaDoc;
 
     try {
         doc = getSchemaDoc({ schema });
@@ -38,10 +58,11 @@ export function getSchemaDocumentation(schema, formatter = jsonishFormatter) {
         return formatDoc(formatter, doc);
     }
 
+    // TODO: do I still want to return doc if there is no formatter?
     return doc;
 }
 
-function getSchemaDoc({ schema, root = schema }) {
+function getSchemaDoc({ schema, root = schema }: DocParams): SchemaDoc {
     if (!schema) {
         return getEmptyDoc({ schema, root });
     }
@@ -49,60 +70,60 @@ function getSchemaDoc({ schema, root = schema }) {
     const schemaType = getSchemaType(schema);
 
     const annotations = getAnnotations(schema);
-    let doc;
+    let doc: SchemaDoc;
 
     switch (schemaType) {
-        case schemaTypes.object:
+        case SchemaTypes.object:
             doc = getObjectDoc({ schema, root });
             break;
-        case schemaTypes.array:
+        case SchemaTypes.array:
             doc = getArrayDoc({ schema, root });
             break;
-        case schemaTypes.anyOf:
-        case schemaTypes.oneOf:
+        case SchemaTypes.anyOf:
+        case SchemaTypes.oneOf:
             doc = getOneOfDoc({ schema, root });
             break;
-        case schemaTypes.allOf:
+        case SchemaTypes.allOf:
             doc = getAllOfDoc({ schema, root });
             break;
-        case schemaTypes.multiType:
+        case SchemaTypes.multiType:
             doc = getMultiTypeDoc({ schema, root });
             break;
-        case schemaTypes.enumeration:
+        case SchemaTypes.enumeration:
             doc = getEnumDoc({ schema, root });
             break;
-        case schemaTypes.string:
+        case SchemaTypes.string:
             doc = getStringDoc({ schema, root });
             break;
-        case schemaTypes.numeric:
+        case SchemaTypes.numeric:
             doc = getNumericDoc({ schema, root });
             break;
-        case schemaTypes.boolean:
+        case SchemaTypes.boolean:
             doc = getBooleanDoc({ schema, root });
             break;
-        case schemaTypes.constant:
+        case SchemaTypes.constant:
             doc = getConstDoc({ schema, root });
             break;
-        case schemaTypes.any:
+        case SchemaTypes.any:
             doc = getAnyDoc({ schema, root });
             break;
-        case schemaTypes.not:
+        case SchemaTypes.not:
             doc = getNotDoc({ schema, root });
             break;
-        case schemaTypes.nullvalue:
+        case SchemaTypes.nullvalue:
             doc = getNullDoc({ schema, root });
             break;
-        case schemaTypes.ifThenElse:
-            doc = getIfThenElseDoc({ schema, root });
+        case SchemaTypes.ifThenElse:
+            doc = getIfThenElseDoc({ schema: schema as JSONSchema7, root });
             break;
-        case schemaTypes.empty:
+        case SchemaTypes.empty:
             doc = getEmptyDoc({ schema, root });
             break;
-        case schemaTypes.ref:
-        case schemaTypes.externalRef:
+        case SchemaTypes.ref:
+        case SchemaTypes.externalRef:
             doc = getRefDoc({ schema, root });
             break;
-        case schemaTypes.invalid:
+        case SchemaTypes.invalid:
         default:
             doc = getInvalidDoc({ schema, root });
             break;
@@ -115,12 +136,16 @@ function getSchemaDoc({ schema, root = schema }) {
 }
 
 
-function getRefDoc({ schema, root }) {
+function getRefDoc({ schema, root }: DocParams): SchemaDoc {
     // https://json-schema.org/understanding-json-schema/structuring.html#ref
+
+    if (!schema.hasOwnProperty('$ref') || schema.$ref === undefined || root === undefined) {
+        return getInvalidDoc({ schema, root: schema });
+    }
 
     if (schema.$ref[0] !== '#') {
         return {
-            schemaType: schemaTypes.externalRef,
+            schemaType: SchemaTypes.externalRef,
             baseUri: root.$id,
             reference: schema.$ref,
         };
@@ -131,61 +156,73 @@ function getRefDoc({ schema, root }) {
     return getSchemaDoc({ schema: ref, root });
 }
 
-function getEmptyDoc({ schema, root }) {
+function getEmptyDoc({ schema }: DocParams): EmptySchemaDoc {
     return {
-        schemaType: schemaTypes.empty,
-        // TODO: should this be typed as unknown/JSONSchema?
+        schemaType: SchemaTypes.empty,
         schema,
     };
 }
 
-function getAnyDoc({ schema, root }) {
+function getAnyDoc({}: DocParams): AnySchemaDoc {
     return {
-        schemaType: schemaTypes.any,
+        schemaType: SchemaTypes.any,
     };
 }
 
-function getNullDoc({ schema }) {
+function getNullDoc({}: DocParams): NullvalueSchemaDoc {
     return {
-        schemaType: schemaTypes.nullvalue,
+        schemaType: SchemaTypes.nullvalue,
     };
 }
 
-function getMultiTypeDoc({ schema, root }) {
+function getMultiTypeDoc({ schema, root }: DocParams): MultiTypeSchemaDoc | SchemaDoc {
+    if (!schema.hasOwnProperty('type') || !Array.isArray(schema.type)) {
+        return getInvalidDoc({ schema, root });
+    }
+
     // Allows requirements on other type
     if (schema.type.length === 2 && schema.type.includes('null')) {
+        const otherSchema = {
+            ...schema,
+            type: schema.type.find(i => i !== 'null')
+        };
         return getSchemaDoc({ schema: {
             oneOf: [
-                {
-                    ...schema,
-                    type: schema.type.find(i => i !== 'null')
-                },
+                otherSchema as any, // TODO: TS breaks when this is not any (expects to satisfy ALL union types instead of any of them)
                 { type: "null" }
             ]
         }, root })
     }
 
     return {
-        schemaType: schemaTypes.multiType,
+        schemaType: SchemaTypes.multiType,
         types: schema.type,
     };
 }
 
-function getEnumDoc({ schema }) {
+function getEnumDoc({ schema, root }: DocParams): EnumerationSchemaDoc | InvalidSchemaDoc {
+    if (schema.enum === undefined) {
+        return getInvalidDoc({ schema, root});
+    }
+
     return {
-        schemaType: schemaTypes.enumeration,
+        schemaType: SchemaTypes.enumeration,
         values: schema.enum,
     };
 }
 
-function getConstDoc({ schema }) {
+function getConstDoc({ schema, root }: DocParams): ConstantSchemaDoc | InvalidSchemaDoc {
+    if (schema.const === undefined) {
+        return getInvalidDoc({ schema, root});
+    }
+
     return {
-        schemaType: schemaTypes.constant,
+        schemaType: SchemaTypes.constant,
         value: schema.const,
     };
 }
 
-function getObjectDoc({ schema, root }) {
+function getObjectDoc({ schema, root }: DocParams): ObjectSchemaDoc {
     // https://json-schema.org/understanding-json-schema/reference/object.html
 
     //TODO: dependencies
@@ -197,17 +234,19 @@ function getObjectDoc({ schema, root }) {
     // TODO: does if/then/else apply only to objects?
     //       https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else
 
-    const ret = {
-        schemaType: schemaTypes.object,
+    const ret: ObjectSchemaDoc = {
+        schemaType: SchemaTypes.object,
         properties: [],
     };
 
-    if (schema.hasOwnProperty('properties')) {
-        const requiredKeys = schema.required || [];
+    if (schema.hasOwnProperty('properties') && schema.properties !== undefined) {
+        const requiredKeys = schema.required ?? [];
         const properties = Object.entries(schema.properties).map(([key, value]) => {
+            const required = requiredKeys === true || (Array.isArray(requiredKeys) && requiredKeys.includes(key));
+
             return {
                 key,
-                required: requiredKeys.includes(key),
+                required,
                 value: getSchemaDoc({ schema: value, root }),
             };
         });
@@ -218,7 +257,7 @@ function getObjectDoc({ schema, root }) {
     if (schema.hasOwnProperty('patternProperties') || schema.hasOwnProperty('additionalProperties')) {
         ret.indexProperties = [];
 
-        if (schema.hasOwnProperty('patternProperties')) {
+        if (schema.hasOwnProperty('patternProperties') && schema.patternProperties !== undefined) {
             const patternProperties = Object.entries(schema.patternProperties).map(([key, value]) => {
                 return {
                     key: `[/${key}/]`,
@@ -243,7 +282,7 @@ function getObjectDoc({ schema, root }) {
                 ret.indexProperties.push({
                     key: '[string]',
                     required: false,
-                    value: getSchemaDoc({ schema: additionalProperties, root }),
+                    value: getSchemaDoc({ schema: additionalProperties as DefinedSchema, root }),
                 });
             }
         } else {
@@ -255,9 +294,11 @@ function getObjectDoc({ schema, root }) {
         }
     }
 
-    const requirements = {};
+    const requirements: Requirements = {};
 
-    if (schema.hasOwnProperty('minProperties') || schema.hasOwnProperty('maxProperties')) {
+    if ((schema.hasOwnProperty('minProperties') || schema.hasOwnProperty('maxProperties')) &&
+        (schema.minProperties !== undefined || schema.maxProperties !== undefined)
+    ) {
         requirements.size = {
             minProperties: schema.minProperties,
             maxProperties: schema.maxProperties,
@@ -265,16 +306,16 @@ function getObjectDoc({ schema, root }) {
         };
 
         if (schema.hasOwnProperty('minProperties') && schema.hasOwnProperty('maxProperties') &&
-            schema.minProperties > 0 && schema.maxProperties > 0
+            (schema.minProperties ?? 0) > 0 && (schema.maxProperties ?? 0) > 0
         ) {
             if (schema.minProperties === schema.maxProperties) {
                 requirements.size.message = `required: ${schema.minProperties} ${schema.minProperties === 1 ? 'property' : 'properties'}`;
             } else {
                 requirements.size.message = `required: ${schema.minProperties} to ${schema.maxProperties} properties`;
             }
-        } else if (schema.hasOwnProperty('minProperties') && schema.minProperties > 0) {
+        } else if (schema.hasOwnProperty('minProperties') && (schema.minProperties ?? 0) > 0) {
             requirements.size.message = `min properties: ${schema.minProperties}`;
-        } else if (schema.hasOwnProperty('maxProperties') && schema.maxProperties > 0) {
+        } else if (schema.hasOwnProperty('maxProperties') && (schema.maxProperties ?? 0) > 0) {
             requirements.size.message = `max properties: ${schema.maxProperties}`;
         }
     }
@@ -285,7 +326,7 @@ function getObjectDoc({ schema, root }) {
             message: '',
         };
 
-        const messageParts = [];
+        const messageParts: string[] = [];
         if (schema.propertyNames.hasOwnProperty('minLength') || schema.propertyNames.hasOwnProperty('maxLength')) {
             if (!schema.propertyNames.hasOwnProperty('minLength')) {
                 messageParts.push(`length: ≤ ${schema.propertyNames.maxLength}`);
@@ -314,17 +355,18 @@ function getObjectDoc({ schema, root }) {
     return ret;
 }
 
-function getArrayDoc({ schema, root }) {
+function getArrayDoc({ schema, root }: DocParams): ArraySchemaDoc | TupleSchemaDoc {
     // https://json-schema.org/understanding-json-schema/reference/array.html
 
     if (Object.keys(schema).length == 1 && schema.hasOwnProperty('type')) {
         return {
-            schemaType: schemaTypes.array,
+            schemaType: SchemaTypes.array,
             schema: getSchemaDoc({ schema: {}, root }),
         };
     }
 
-    const ret = {};
+    // TODO: define return values separately when identified?
+    const ret = {} as ArraySchemaDoc & TupleSchemaDoc;
 
     // In Draft 4 - 2019-09, tuple validation was handled by an alternate form of the items keyword
     //       When items was an array of schemas instead of a single schema, it behaved the way prefixItems behaves.
@@ -337,11 +379,11 @@ function getArrayDoc({ schema, root }) {
             Array.isArray(schema.items)
         )
     ) {
-        ret.schemaType = schemaTypes.tuple;
+        ret.schemaType = SchemaTypes.tuple;
 
-        const tupleItems = Array.isArray(schema)
+        const tupleItems = (Array.isArray(schema)
             ? schema
-            : schema.prefixItems ?? schema.items;
+            : schema.prefixItems ?? schema.items) as DefinedSchema[];
         const additionalItems = schema.hasOwnProperty('prefixItems')
             ? schema.additionalItems ?? schema.items
             : schema.additionalItems;
@@ -349,7 +391,7 @@ function getArrayDoc({ schema, root }) {
         ret.items = tupleItems.map(item => getSchemaDoc({ schema: item, root }));
 
         if (additionalItems !== undefined) {
-            if (getType(additionalItems) === 'boolean') {
+            if (typeof additionalItems === 'boolean') {
                 if (additionalItems === true) {
                     ret.additionalItems = getSchemaDoc({ schema: {}, root });
                 }
@@ -359,9 +401,9 @@ function getArrayDoc({ schema, root }) {
         }
     } else {
         // TODO: do I need to do this for other things (like object, numeric, etc.)?
-        const arrayItems = schema.items ?? schema.anyOf ?? schema.oneOf ?? schema.allOf;
+        const arrayItems = (schema.items ?? schema.anyOf ?? schema.oneOf ?? schema.allOf) as DefinedSchema;
 
-        ret.schemaType = schemaTypes.array;
+        ret.schemaType = SchemaTypes.array;
         ret.schema = getSchemaDoc({ schema: arrayItems, root });
     }
 
@@ -371,10 +413,10 @@ function getArrayDoc({ schema, root }) {
     // idea: treat contains like additionalItems: any (contains, then that)
 
 
-    const requirements = {};
+    const requirements: Requirements = {};
 
     if ((schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) &&
-        (schema.minItems > 0 || schema.maxItems > 0)
+        ((schema.minItems ?? 0) > 0 || (schema.maxItems ?? 0) > 0)
     ) {
         requirements.length = {
             minItems: schema.minItems,
@@ -383,16 +425,16 @@ function getArrayDoc({ schema, root }) {
         };
 
         if (schema.hasOwnProperty('minItems') && schema.hasOwnProperty('maxItems') &&
-            schema.minItems > 0 && schema.maxItems > 0
+        (schema.minItems ?? 0) > 0 && (schema.maxItems ?? 0) > 0
         ) {
             if (schema.minItems === schema.maxItems) {
                 requirements.length.message = `required: ${schema.minItems} ${schema.minItems === 1 ? 'item' : 'items'}`;
             } else {
                 requirements.length.message = `required: ${schema.minItems} to ${schema.maxItems} items`;
             }
-        } else if (schema.hasOwnProperty('minItems') && schema.minItems > 0) {
+        } else if (schema.hasOwnProperty('minItems') && (schema.minItems ?? 0) > 0) {
             requirements.length.message = `min items: ${schema.minItems}`;
-        } else if (schema.hasOwnProperty('maxItems') && schema.maxItems > 0) {
+        } else if (schema.hasOwnProperty('maxItems') && (schema.maxItems ?? 0) > 0) {
             requirements.length.message = `max items: ${schema.maxItems}`;
         }
     }
@@ -411,12 +453,12 @@ function getArrayDoc({ schema, root }) {
     return ret;
 }
 
-function getStringDoc({ schema }) {
-    const ret = {
-        schemaType: schemaTypes.string,
+function getStringDoc({ schema }: DocParams): StringSchemaDoc {
+    const ret: StringSchemaDoc = {
+        schemaType: SchemaTypes.string,
     };
 
-    const requirements = {};
+    const requirements: Requirements = {};
 
     if (schema.hasOwnProperty('minLength') || schema.hasOwnProperty('maxLength')) {
         requirements.length = {
@@ -455,24 +497,24 @@ function getStringDoc({ schema }) {
     return ret;
 }
 
-function getNumericDoc({ schema }) {
-    const ret = {
-        schemaType: schemaTypes.numeric,
-        numericType: schema.type, // may be integer, number
+function getNumericDoc({ schema }: DocParams): NumericSchemaDoc {
+    const ret: NumericSchemaDoc = {
+        schemaType: SchemaTypes.numeric,
+        numericType: schema.type as "number" | "integer",
     };
 
-    const requirements = {};
+    const requirements: Requirements = {};
 
     if (schema.hasOwnProperty('minimum') || schema.hasOwnProperty('exclusiveMinimum') || schema.hasOwnProperty('maximum') || schema.hasOwnProperty('exclusiveMaximum')) {
         requirements.range = {
             minimum: schema.minimum,
-            maximum: schema.maximumn,
+            maximum: schema.maximum,
             exclusiveMinimum: schema.exclusiveMinimum,
             exclusiveMaximum: schema.exclusiveMaximum,
             message: '',
         };
 
-        const messages = [];
+        const messages: string[] = [];
 
         if (schema.hasOwnProperty('minimum')) {
             messages.push(`x ≥ ${schema.minimum}`);
@@ -503,59 +545,80 @@ function getNumericDoc({ schema }) {
     return ret;
 }
 
-function getBooleanDoc({ schema }) {
+function getBooleanDoc({}: DocParams): BooleanSchemaDoc {
     return {
-        schemaType: schemaTypes.boolean,
+        schemaType: SchemaTypes.boolean,
     };
 }
 
-function getOneOfDoc({ schema, root }) {
+function getOneOfDoc({ schema, root }: DocParams): OneOfSchemaDoc | InvalidSchemaDoc {
     // https://json-schema.org/understanding-json-schema/reference/combining.html
 
     const { anyOf, oneOf, ...rest } = schema;
     const anyOrOneOf = anyOf ?? oneOf;
-    const schemaType = anyOf ? schemaTypes.anyOf : schemaTypes.oneOf;
+
+    if (anyOrOneOf === undefined) {
+        return getInvalidDoc({ schema, root });
+    }
+
+    // TODO: can both anyOf and oneOf exist? (if so, combine them here [...anyOf, ...oneOf])
+    // TODO: what is the type if both exist?
+    const schemaType = anyOf ? SchemaTypes.anyOf : SchemaTypes.oneOf;
 
     return {
         schemaType,
         items: anyOrOneOf.map((item) => {
+            if (typeof item === 'boolean') {
+                return getInvalidDoc({ schema, root });
+            }
             const combinedItem = {
                 ...rest,
                 ...item
             };
-            return getSchemaDoc({ schema: combinedItem, root });
+            return getSchemaDoc({ schema: combinedItem as DefinedSchema, root });
         }),
     };
 }
 
-function getAllOfDoc({ schema, root }) {
+function getAllOfDoc({ schema, root }: DocParams): AllOfSchemaDoc | InvalidSchemaDoc {
     const { allOf, ...rest } = schema;
 
+    if (allOf === undefined) {
+        return getInvalidDoc({ schema, root });
+    }
+
     return {
-        schemaType: schemaTypes.allOf,
+        schemaType: SchemaTypes.allOf,
         items: allOf.map((item) => {
+            if (typeof item === 'boolean') {
+                return getInvalidDoc({ schema, root });
+            }
             const combinedItem = {
                 ...rest,
                 ...item
             };
-            return getSchemaDoc({ schema: combinedItem, root });
+            return getSchemaDoc({ schema: combinedItem as DefinedSchema, root });
         }),
     };
 }
 
-function getNotDoc({ schema, root }) {
+function getNotDoc({ schema, root }: DocParams): NotSchemaDoc {
     // TODO: handle NOTs (might exist inside of something else)
     const { not, ...rest } = schema;
-    const adjustedSchema = { ...rest, ...not };
+    const adjustedSchema = { ...rest, ...not as Schema } as DefinedSchema;
 
     return {
-        schemaType: schemaTypes.not,
+        schemaType: SchemaTypes.not,
         schema: getSchemaDoc({ schema: adjustedSchema, root }),
     };
 }
 
-function getIfThenElseDoc({ schema, root }) {
-    if (!schema.hasOwnProperty('if')) {
+type JSONSchema7DocParams = {
+    schema: JSONSchema7;
+    root: DefinedSchema;
+};
+function getIfThenElseDoc({ schema, root }: JSONSchema7DocParams): IfThenElseSchemaDoc | InvalidSchemaDoc | AnySchemaDoc {
+    if (!schema.hasOwnProperty('if') || schema.if === undefined || typeof schema.if === 'boolean') {
         return getInvalidDoc({ schema, root });
     }
 
@@ -563,75 +626,66 @@ function getIfThenElseDoc({ schema, root }) {
         return getAnyDoc({ schema, root });
     }
 
-    const ret = {
-        schemaType: schemaTypes.ifThenElse,
+    return {
+        schemaType: SchemaTypes.ifThenElse,
         if: getSchemaDoc({ schema: schema.if, root }),
+        then: schema.then !== undefined && typeof schema.then !== 'boolean'
+            ? getSchemaDoc({ schema: schema.then, root })
+            : getAnyDoc({ schema, root }),
+            else: schema.else !== undefined && typeof schema.else !== 'boolean'
+            ? getSchemaDoc({ schema: schema.else, root })
+            : getAnyDoc({ schema, root }),
     };
-
-    if (schema.hasOwnProperty('then')) {
-        ret.then = getSchemaDoc({ schema: schema.then, root });
-    } else {
-        ret.then = getAnyDoc({ schema, root });
-    }
-
-    if (schema.hasOwnProperty('else')) {
-        ret.else = getSchemaDoc({ schema: schema.else, root });
-    } else {
-        ret.else = getAnyDoc({ schema, root });
-    }
-
-    return ret;
 }
 
-function getInvalidDoc({ schema, root }) {
+function getInvalidDoc({ schema }: DocParams): InvalidSchemaDoc {
     return {
-        schemaType: schemaTypes.invalid,
-        // TODO: should this be typed as unknown/JSONSchema?
+        schemaType: SchemaTypes.invalid,
         schema,
     };
 }
 
 
-function getType(variable) {
+function getType(variable: unknown): string {
     return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
 }
 
-function getSchemaType(schema = {}) {
+function getSchemaType(schema: Schema = {}): SchemaTypes {
     if (schema.hasOwnProperty('$ref')) {
-        return schemaTypes.ref;
+        return SchemaTypes.ref;
     }
 
     const varType = getType(schema);
 
     if (!['object', 'array'].includes(varType)) {
-        return schemaTypes.invalid;
+        return SchemaTypes.invalid;
     }
 
-    if (varType === 'array') {
+    if (Array.isArray(schema)) {
         if (schema.length === 0) {
-            return schemaTypes.empty;
+            return SchemaTypes.empty;
         }
-        return schemaTypes.array;
+        return SchemaTypes.array;
     }
 
     if (Object.keys(schema).length === 0) {
-        return schemaTypes.any;
+        return SchemaTypes.any;
     }
 
     if (schema.hasOwnProperty('const')) {
-        return schemaTypes.constant;
+        return SchemaTypes.constant;
     }
 
     if (Array.isArray(schema.type)) {
-        return schemaTypes.multiType;
+        return SchemaTypes.multiType;
     }
 
     if (schema.hasOwnProperty('type') && schema.type === "null") {
-        return schemaTypes.nullvalue;
+        return SchemaTypes.nullvalue;
     }
 
     if (schema.hasOwnProperty('type') && schema.type === "object") {
-        return schemaTypes.object;
+        return SchemaTypes.object;
     }
     const objectProperties = [
         'properties',
@@ -642,11 +696,11 @@ function getSchemaType(schema = {}) {
         'additionalProperties',
     ];
     if (!schema.hasOwnProperty('type') && objectProperties.some(prop => schema.hasOwnProperty(prop))) {
-        return schemaTypes.object;
+        return SchemaTypes.object;
     }
 
     if (schema.hasOwnProperty('type') && schema.type === "array") {
-        return schemaTypes.array;
+        return SchemaTypes.array;
     }
     const arrayProperties = [
         'prefixItems',
@@ -655,20 +709,20 @@ function getSchemaType(schema = {}) {
         'additionalItems',
     ];
     if (!schema.hasOwnProperty('type') && arrayProperties.some(prop => schema.hasOwnProperty(prop))) {
-        return schemaTypes.array;
+        return SchemaTypes.array;
     }
 
     if (schema.hasOwnProperty('enum')) {
-        return schemaTypes.enumeration;
+        return SchemaTypes.enumeration;
     }
     if (schema.hasOwnProperty('type') && schema.type === "string") {
-        return schemaTypes.string;
+        return SchemaTypes.string;
     }
-    if (schema.hasOwnProperty('type') && ['integer', 'number'].includes(schema.type)) {
-        return schemaTypes.numeric;
+    if (schema.hasOwnProperty('type') && schema.type !== undefined && ['integer', 'number'].includes(schema.type)) {
+        return SchemaTypes.numeric;
     }
     if (schema.hasOwnProperty('type') && schema.type === "boolean") {
-        return schemaTypes.boolean;
+        return SchemaTypes.boolean;
     }
 
     // All of the below schema types can exist along with any of the above, but can also exist by themselves
@@ -676,27 +730,27 @@ function getSchemaType(schema = {}) {
     // TODO: oneOf, anyOf, allOf, if/then/else, and not - could exist alone, together, or as part of another schema
 
     if (schema.hasOwnProperty('if')) {
-        return schemaTypes.ifThenElse;
+        return SchemaTypes.ifThenElse;
     }
 
     if (schema.hasOwnProperty('anyOf')) {
-        return schemaTypes.anyOf;
+        return SchemaTypes.anyOf;
     }
     if (schema.hasOwnProperty('oneOf')) {
-        return schemaTypes.oneOf;
+        return SchemaTypes.oneOf;
     }
     if (schema.hasOwnProperty('allOf')) {
-        return schemaTypes.allOf;
+        return SchemaTypes.allOf;
     }
 
     if (schema.hasOwnProperty('not')) {
-        return schemaTypes.not;
+        return SchemaTypes.not;
     }
 
-    return schemaTypes.invalid;
+    return SchemaTypes.invalid;
 }
 
-function getRef(schemaRoot, refName, history = []) {
+function getRef(schemaRoot: DefinedSchema, refName: string, history: string[] = []): DefinedSchema {
     // https://json-schema.org/understanding-json-schema/structuring.html#ref
     //   paths are relative to the root and are that simple
     //    EX: #/definitions/someSchema
@@ -712,10 +766,10 @@ function getRef(schemaRoot, refName, history = []) {
 
         let current = schemaRoot;
         for (let i = 0; i < path.length; i++) {
-            current = current[path[i]];
+            current = current[path[i] as keyof DefinedSchema];
         }
 
-        if (current.hasOwnProperty('$ref')) {
+        if (current.hasOwnProperty('$ref') && current.$ref !== undefined) {
             if (history.includes(refName)) {
                 throw new Error(`Infinite reference loop: ${history[0]}`);
             }
@@ -732,9 +786,9 @@ function getRef(schemaRoot, refName, history = []) {
     }
 }
 
-function getAnnotations(schema) {
-    const annotations = {};
-    const ret = {};
+function getAnnotations(schema: Schema) {
+    const annotations = {} as Annotations;
+    const ret = {} as BaseSchemaDoc;
 
     //   default (boolean)
     if (schema.hasOwnProperty('default')) {
@@ -779,25 +833,73 @@ function getAnnotations(schema) {
 }
 
 
-function formatDoc(formatter, schemaDoc) {
+function formatDoc(formatter: FormatProvider, schemaDoc: SchemaDoc) {
     const state = getFormatterInitialState(formatter);
 
-    function format(doc) {
+    function format(doc: SchemaDoc) {
         if (!formatter.hasOwnProperty(doc.schemaType)) {
             throw new Error(`Missing formatter function: ${doc.schemaType}`);
         }
 
         try {
-            return formatter[doc.schemaType](doc, format, state);
+            // TODO: TS complained when I tried formatter[doc.schemaType as FormatFunctionName]
+            // const fn = formatter[doc.schemaType as FormatFunctionName];
+            // return fn(doc, format, state);
+
+            // switch case allows me to use type assertion correctly
+            switch (doc.schemaType) {
+                case SchemaTypes.any:
+                    return formatter.any(doc as AnySchemaDoc, format, state);
+                case SchemaTypes.not:
+                    return formatter.not(doc as NotSchemaDoc, format, state);
+                case SchemaTypes.nullvalue:
+                    return formatter.nullvalue(doc as NullvalueSchemaDoc, format, state);
+                case SchemaTypes.object:
+                    return formatter.object(doc as ObjectSchemaDoc, format, state);
+                case SchemaTypes.array:
+                    return formatter.array(doc as ArraySchemaDoc, format, state);
+                case SchemaTypes.tuple:
+                    return formatter.tuple(doc as TupleSchemaDoc, format, state);
+                case SchemaTypes.enumeration:
+                    return formatter.enumeration(doc as EnumerationSchemaDoc, format, state);
+                case SchemaTypes.constant:
+                    return formatter.constant(doc as ConstantSchemaDoc, format, state);
+                case SchemaTypes.string:
+                    return formatter.string(doc as StringSchemaDoc, format, state);
+                case SchemaTypes.numeric:
+                    return formatter.numeric(doc as NumericSchemaDoc, format, state);
+                case SchemaTypes.boolean:
+                    return formatter.boolean(doc as BooleanSchemaDoc, format, state);
+                case SchemaTypes.anyOf:
+                    return formatter.anyOf(doc as AnyOfSchemaDoc, format, state);
+                case SchemaTypes.oneOf:
+                    return formatter.oneOf(doc as OneOfSchemaDoc, format, state);
+                case SchemaTypes.allOf:
+                    return formatter.allOf(doc as AllOfSchemaDoc, format, state);
+                case SchemaTypes.ifThenElse:
+                    return formatter.ifThenElse(doc as IfThenElseSchemaDoc, format, state);
+                case SchemaTypes.multiType:
+                    return formatter.multiType(doc as MultiTypeSchemaDoc, format, state);
+                case SchemaTypes.externalRef:
+                    return formatter.externalRef(doc as ExternalRefSchemaDoc, format, state);
+                case SchemaTypes.empty:
+                    return formatter.empty(doc as EmptySchemaDoc, format, state);
+                case SchemaTypes.invalid:
+                    return formatter.invalid(doc as InvalidSchemaDoc, format, state);
+                default:
+                    return formatter.invalid(doc as InvalidSchemaDoc, format, state);
+            }
         } catch(err) {
-            throw new Error(`Error formatting ${doc.schemaType} schema: ${err.message ?? err}`);
+            let message = err;
+            if (err instanceof Error) message = err.message;
+            throw new Error(`Error formatting ${doc.schemaType} schema: ${message}`);
         }
     }
 
     return format(schemaDoc);
 }
 
-function getFormatterInitialState(formatter) {
+function getFormatterInitialState(formatter: FormatProvider) {
     if (formatter.hasOwnProperty('getInitialState')) {
         return formatter.getInitialState();
     }
