@@ -39,11 +39,9 @@ type DocParams = {
 };
 
 
-// TODO: as is, the return type is `any` - should be string ( | ???? )
 export function getSchemaDocumentation(schema: Schema, formatter: FormatProvider = jsonishFormatter) {
     if (schema === undefined) {
-        // TODO: what should I return here?
-        return null;
+        throw new Error('Schema required');
     }
 
     let doc: SchemaDoc;
@@ -54,12 +52,7 @@ export function getSchemaDocumentation(schema: Schema, formatter: FormatProvider
         doc = getInvalidDoc({ schema, root: schema });
     }
 
-    if (formatter !== null) {
-        return formatDoc(formatter, doc);
-    }
-
-    // TODO: do I still want to return doc if there is no formatter?
-    return doc;
+    return formatDoc(formatter, doc);
 }
 
 function getSchemaDoc({ schema, root = schema }: DocParams): SchemaDoc {
@@ -365,7 +358,6 @@ function getArrayDoc({ schema, root }: DocParams): ArraySchemaDoc | TupleSchemaD
         };
     }
 
-    // TODO: define return values separately when identified?
     const ret = {} as ArraySchemaDoc & TupleSchemaDoc;
 
     // In Draft 4 - 2019-09, tuple validation was handled by an alternate form of the items keyword
