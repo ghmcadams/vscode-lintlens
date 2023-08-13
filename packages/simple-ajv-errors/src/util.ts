@@ -98,7 +98,7 @@ export function areErrorsEqual(error1: VerboseErrorObject, error2: VerboseErrorO
     );
 }
 
-export function getType(variable: unknown) {
+export function getType(variable: unknown): string {
     return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
 }
 export function isArray<T>(variable: unknown): variable is Array<T> {
