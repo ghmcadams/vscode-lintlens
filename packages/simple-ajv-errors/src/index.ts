@@ -11,8 +11,8 @@ import type {
     Schema,
 } from './types';
 
-import * as clone from 'clone';
-import * as pluralize from 'pluralize';
+import clone from 'clone';
+import pluralize from 'pluralize';
 
 import {
     ofErrorKeywords,
@@ -233,7 +233,7 @@ function filterByChosenPath(ofHierarchy: AnyError[]) {
             } = error;
 
             if (chosenPaths.length === 1) {
-                ret.push(...filterByChosenPath(choices[chosenPaths[0]] ?? []));
+                ret.push(...filterByChosenPath(choices[chosenPaths[0] as number] ?? []));
                 continue;
             }
             if (chosenPaths.length > 1) {
@@ -364,7 +364,7 @@ function getChosenPaths(error: OfErrorObject) {
     }
 
     const indicesTypeMatch = choiceIndices.reduce<number[]>((ret, index) => {
-        const entry = schema[index];
+        const entry = schema[index] ?? {};
         if (entry.hasOwnProperty('enum')) {
             const score = getValueMatchScore(data, entry.enum);
             if (score > 0.7) {
@@ -422,17 +422,21 @@ function getChosenPathsWhenObject(error: OfErrorObjectForObject, indices: number
         const matchScore = getPropertyMatchScore(data, entry);
         return [index, matchScore];
     });
-    indicesWithScore.sort(([,a], [,b]) => b - a);
+    indicesWithScore.sort(([,a], [,b]) => (b ?? 0) - (a ?? 0));
+
+    const firstWithScore = indicesWithScore[0] ?? [];
 
     // none have matches
-    if (indicesWithScore[0][1] === 0) {
+    if (firstWithScore === undefined || firstWithScore[1] === 0) {
         return indices;
     }
 
     // return an array with all that have the most
-    return indicesWithScore
-        .filter(entry => entry[1] === indicesWithScore[0][1])
+    const ret = indicesWithScore
+        .filter(entry => entry[1] === firstWithScore[1])
         .map(entry => entry[0]);
+
+    return ret as number[];
 }
 
 function getChosenPathsWhenArray(error: OfErrorObjectForArray, indices: number[]) {
@@ -449,8 +453,8 @@ function getChosenPathsWhenArray(error: OfErrorObjectForArray, indices: number[]
     const dataItemCount = data.length;
     const indicesfromArray = indices.reduce<number[]>((ret, index) => {
         const entry = schema[index];
-        const minItems = entry.minItems ?? 0;
-        const maxItems = entry.maxItems ?? Number.MAX_SAFE_INTEGER;
+        const minItems = entry?.minItems ?? 0;
+        const maxItems = entry?.maxItems ?? Number.MAX_SAFE_INTEGER;
         if (dataItemCount >= minItems && dataItemCount <= maxItems) {
             ret.push(index);
         }
@@ -468,11 +472,12 @@ function getChosenPathsWhenArray(error: OfErrorObjectForArray, indices: number[]
 
     // more than one match found - check details of each schema part
     const indicesfromDetails = indicesfromArray.reduce<number[]>((ret, index) => {
-        const entry = schema[index];
+        const entry = schema[index] ?? {};
         if (!entry.items) {
             return ret;
         }
 
+        // TODO: look more into items: boolean (what does it mean for items = true)
         if (entry.items === true) {
             return ret;
         }
@@ -503,7 +508,7 @@ function getChosenPathsWhenArray(error: OfErrorObjectForArray, indices: number[]
 
             const dataItemType = getType(dataItem);
 
-            const itemsForThisIndex = isTuple ? [itemsArray[dataIndex]] : itemsArray;
+            const itemsForThisIndex = (isTuple ? [itemsArray[dataIndex]] : itemsArray) as SchemaArray;
             const anyMatch = itemsForThisIndex.some(item => {
                 const itemTypes = getSchemaType(item);
 
@@ -558,17 +563,19 @@ function getDistinctAcrossOfErrors(ofError: OfErrorObjectWithPath) {
     const ret: AnyError[][] = [];
     for (let i = 0; i < ofError.ofPaths.length - 1; i++) {
         const path = ofError.ofPaths[i];
-        const pathErrors = path.filter(error => {
-            const hasMatch = ofError.ofPaths.slice(i + 1).some(errors => {
-                return errors.some(otherError => areErrorsEqual(error, otherError));
+        if (path !== undefined) {
+            const pathErrors = path.filter(error => {
+                const hasMatch = ofError.ofPaths.slice(i + 1).some(errors => {
+                    return errors.some(otherError => areErrorsEqual(error, otherError));
+                });
+                return !hasMatch;
             });
-            return !hasMatch;
-        });
-        if (pathErrors.length > 0) {
-            ret.push(pathErrors);
+            if (pathErrors.length > 0) {
+                ret.push(pathErrors);
+            }
         }
     }
-    ret.push(ofError.ofPaths[ofError.ofPaths.length - 1]);
+    ret.push(ofError.ofPaths[ofError.ofPaths.length - 1] as AnyError[]);
 
     if (ret.length < 2) {
         return ret.flat();

@@ -1,10 +1,8 @@
 {
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "lib": ["ES2019", "DOM"],
-        "target": "ES2019",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
+        "target": "ES2015",
+        "module": "commonjs",
         "outDir": "./dist/cjs",
         "declarationDir": "./dist/cjs/types"
     }

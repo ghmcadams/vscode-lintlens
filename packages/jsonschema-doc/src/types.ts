@@ -80,6 +80,58 @@ export type Requirements = {
     };
 };
 
+type Requirement = {
+    message: string;
+};
+
+export type ObjectRequirements = {
+    size?: Requirement & {
+        minProperties?: number;
+        maxProperties?: number;
+    };
+    propertyNames?: Requirement & {
+        minLength?: number;
+        maxLength?: number;
+        pattern?: string;
+        format?: string;
+    };
+};
+
+export type ArrayRequirements = {
+    length?: Requirement & {
+        minItems?: number;
+        maxItems?: number;
+    };
+    uniqueItems?: Requirement & {
+        value: true;
+    };
+};
+
+export type StringRequirements = {
+    length?: Requirement & {
+        minLength?: number;
+        maxLength?: number;
+    };
+    pattern?: Requirement & {
+        value: string;
+    };
+    format?: Requirement & {
+        value: string;
+    };
+};
+
+export type NumericRequirements = {
+    range?: Requirement & {
+        minimum?: number;
+        maximum?: number;
+        exclusiveMinimum?: number | boolean;
+        exclusiveMaximum?: number | boolean;
+    };
+    multipleOf?: Requirement & {
+        value: number;
+    };
+};
+
 type BareSchemaDoc = {
     schemaType: SchemaTypes;
 };
@@ -108,16 +160,16 @@ export type NullvalueSchemaDoc = BaseSchemaDoc & {};
 export type ObjectSchemaDoc = BaseSchemaDoc & {
     properties: Property[];
     indexProperties?: Property[];
-    requirements?: Requirements;
+    requirements?: ObjectRequirements;
 };
 export type TupleSchemaDoc = BaseSchemaDoc & {
     items: SchemaDoc[];
     additionalItems?: SchemaDoc;
-    requirements?: Requirements;
+    requirements?: ArrayRequirements;
 };
 export type ArraySchemaDoc = BaseSchemaDoc & {
     schema: SchemaDoc;
-    requirements?: Requirements;
+    requirements?: ArrayRequirements;
 };
 export type EnumerationSchemaDoc = BaseSchemaDoc & {
     values: Value[];
@@ -126,11 +178,11 @@ export type ConstantSchemaDoc = BaseSchemaDoc & {
     value: Value;
 };
 export type StringSchemaDoc = BaseSchemaDoc & {
-    requirements?: Requirements;
+    requirements?: StringRequirements;
 };
 export type NumericSchemaDoc = BaseSchemaDoc & {
     numericType: string;
-    requirements?: Requirements;
+    requirements?: NumericRequirements;
 };
 export type BooleanSchemaDoc = BaseSchemaDoc & {};
 export type OneOfSchemaDoc = BaseSchemaDoc & {

@@ -1,25 +1,24 @@
 {
+    "extends": ["@tsconfig/node18/tsconfig"],
     "compilerOptions": {
-        "module": "esnext",
-        "target": "ES2019",
-        "incremental": true,
-        "strict": true,
         "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
         "noImplicitReturns": true,
+        "noUncheckedIndexedAccess": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "moduleResolution": "node",
+        "useUnknownInCatchVariables": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+
+        "incremental": true,
         "sourceMap": true,
-        "baseUrl": "./src",
-        "rootDir": "./src",
-        "lib": ["ES2019", "DOM"],
         "declaration": true,
         "declarationMap": true,
         "inlineSources": false,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "alwaysStrict": true,
-        "useUnknownInCatchVariables": true
+
+        "forceConsistentCasingInFileNames": true,
+        "removeComments": true
     },
     "include": [
         "src/**/*"

@@ -1,6 +1,6 @@
 import type { VerboseErrorObject, Schema, JSONSchemaObject } from './types';
 
-import * as levenshtein from 'damerau-levenshtein';
+import levenshtein from 'damerau-levenshtein';
 
 
 export const ofErrorKeywords = ['anyOf', 'oneOf'];
@@ -36,8 +36,8 @@ export function getOfChoiceIndex(parent: unknown[], schemaPath: string) {
     let choiceIndex: number = parent.length;
     const thisSchemaParts = schemaPath.split('/');
     for (let i = thisSchemaParts.length - 2; i > 0; i--) {
-        if (ofErrorKeywords.includes(thisSchemaParts[i])) {
-            choiceIndex = parseInt(thisSchemaParts[i + 1], 10);
+        if (ofErrorKeywords.includes(thisSchemaParts[i] as string)) {
+            choiceIndex = parseInt(thisSchemaParts[i + 1] as string, 10);
             break;
         }
     }
@@ -60,7 +60,11 @@ export function getValueMatchScore(data: unknown, valuesToCheck: unknown) {
     }));
 }
 
-export function getPropertyMatchScore(data: JSONSchemaObject, schema: Schema) {
+export function getPropertyMatchScore(data: JSONSchemaObject, schema?: Schema) {
+    if (schema === undefined) {
+        return 0;
+    }
+
     const schemaTypes = getSchemaType(schema);
     if (!schemaTypes.includes('object')) {
         return 0;
@@ -105,7 +109,11 @@ export function isArray<T>(variable: unknown): variable is Array<T> {
     return getType(variable) === 'array';
 }
 
-export function getSchemaType(entry: Schema | boolean) {
+export function getSchemaType(entry?: Schema | boolean) {
+    if (entry === undefined) {
+        return ['null'];
+    }
+
     if (typeof entry === 'boolean') {
         return ['boolean'];
     }

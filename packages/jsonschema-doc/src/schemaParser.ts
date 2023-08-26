@@ -19,12 +19,15 @@ import {
     IfThenElseSchemaDoc,
     InvalidSchemaDoc,
     TupleSchemaDoc,
-    Requirements,
     SchemaTypes,
     BaseSchemaDoc,
     FormatProvider,
     AnyOfSchemaDoc,
     ExternalRefSchemaDoc,
+    ObjectRequirements,
+    ArrayRequirements,
+    StringRequirements,
+    NumericRequirements,
 } from './types';
 
 import * as jsonishFormatter from './jsonishFormatter';
@@ -287,7 +290,7 @@ function getObjectDoc({ schema, root }: DocParams): ObjectSchemaDoc {
         }
     }
 
-    const requirements: Requirements = {};
+    const requirements: ObjectRequirements = {};
 
     if ((schema.hasOwnProperty('minProperties') || schema.hasOwnProperty('maxProperties')) &&
         (schema.minProperties !== undefined || schema.maxProperties !== undefined)
@@ -314,11 +317,6 @@ function getObjectDoc({ schema, root }: DocParams): ObjectSchemaDoc {
     }
 
     if (schema.hasOwnProperty('propertyNames')) {
-        requirements.propertyNames = {
-            ...schema.propertyNames,
-            message: '',
-        };
-
         const messageParts: string[] = [];
         if (schema.propertyNames.hasOwnProperty('minLength') || schema.propertyNames.hasOwnProperty('maxLength')) {
             if (!schema.propertyNames.hasOwnProperty('minLength')) {
@@ -338,7 +336,10 @@ function getObjectDoc({ schema, root }: DocParams): ObjectSchemaDoc {
             messageParts.push(`format: ${schema.propertyNames.format}`);
         }
 
-        requirements.propertyNames.message = `Property names: ${messageParts.join(', ')}`;
+        requirements.propertyNames = {
+            ...schema.propertyNames,
+            message: `Property names: ${messageParts.join(', ')}`,
+        };
     }
 
     if (Object.keys(requirements).length > 0) {
@@ -405,7 +406,7 @@ function getArrayDoc({ schema, root }: DocParams): ArraySchemaDoc | TupleSchemaD
     // idea: treat contains like additionalItems: any (contains, then that)
 
 
-    const requirements: Requirements = {};
+    const requirements: ArrayRequirements = {};
 
     if ((schema.hasOwnProperty('minItems') || schema.hasOwnProperty('maxItems')) &&
         ((schema.minItems ?? 0) > 0 || (schema.maxItems ?? 0) > 0)
@@ -450,7 +451,7 @@ function getStringDoc({ schema }: DocParams): StringSchemaDoc {
         schemaType: SchemaTypes.string,
     };
 
-    const requirements: Requirements = {};
+    const requirements: StringRequirements = {};
 
     if (schema.hasOwnProperty('minLength') || schema.hasOwnProperty('maxLength')) {
         requirements.length = {
@@ -468,14 +469,14 @@ function getStringDoc({ schema }: DocParams): StringSchemaDoc {
         }
     }
 
-    if (schema.hasOwnProperty('pattern')) {
+    if (schema.hasOwnProperty('pattern') && schema.pattern !== undefined) {
         requirements.pattern = {
             value: schema.pattern,
             message: `regex: /${schema.pattern}/`,
         };
     }
 
-    if (schema.hasOwnProperty('format')) {
+    if (schema.hasOwnProperty('format') && schema.format !== undefined) {
         requirements.format = {
             value: schema.format,
             message: `format: ${schema.format}`,
@@ -495,7 +496,7 @@ function getNumericDoc({ schema }: DocParams): NumericSchemaDoc {
         numericType: schema.type as "number" | "integer",
     };
 
-    const requirements: Requirements = {};
+    const requirements: NumericRequirements = {};
 
     if (schema.hasOwnProperty('minimum') || schema.hasOwnProperty('exclusiveMinimum') || schema.hasOwnProperty('maximum') || schema.hasOwnProperty('exclusiveMaximum')) {
         requirements.range = {
@@ -508,12 +509,14 @@ function getNumericDoc({ schema }: DocParams): NumericSchemaDoc {
 
         const messages: string[] = [];
 
+        // TODO: handle when exclusive one is boolean
         if (schema.hasOwnProperty('minimum')) {
             messages.push(`x ≥ ${schema.minimum}`);
         } else if (schema.hasOwnProperty('exclusiveMinimum')) {
             messages.push(`x > ${schema.exclusiveMinimum}`);
         }
 
+        // TODO: handle when exclusive one is boolean
         if (schema.hasOwnProperty('maximum')) {
             messages.push(`x ≤ ${schema.maximum}`);
         } else if (schema.hasOwnProperty('exclusiveMaximum')) {
@@ -523,7 +526,7 @@ function getNumericDoc({ schema }: DocParams): NumericSchemaDoc {
         requirements.range.message = messages.join(', ');
     }
 
-    if (schema.hasOwnProperty('multipleOf')) {
+    if (schema.hasOwnProperty('multipleOf') && schema.multipleOf !== undefined) {
         requirements.multipleOf = {
             value: schema.multipleOf,
             message: `multiple of: ${schema.multipleOf}`,
