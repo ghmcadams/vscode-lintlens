@@ -1,3 +1,30 @@
 {
-    "extends": "./tsconfig.base.json",
+    "extends": ["@tsconfig/node18/tsconfig"],
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2020"],
+
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "useUnknownInCatchVariables": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+
+        "incremental": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "inlineSources": false,
+
+        "forceConsistentCasingInFileNames": true,
+        "removeComments": true
+    },
+    "include": [
+        "src/**/*"
+    ]
 }
