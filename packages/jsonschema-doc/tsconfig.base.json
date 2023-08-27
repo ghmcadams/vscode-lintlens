@@ -1,6 +1,10 @@
 {
     "extends": ["@tsconfig/node18/tsconfig"],
     "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2020"],
+
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
         "noImplicitReturns": true,

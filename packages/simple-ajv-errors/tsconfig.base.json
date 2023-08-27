@@ -1,6 +1,10 @@
 {
     "extends": ["@tsconfig/node18/tsconfig"],
     "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2020"],
+
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
         "noImplicitReturns": true,
@@ -13,12 +17,12 @@
 
         "incremental": true,
         "sourceMap": true,
-        "rootDir": "./src",
         "declaration": true,
         "declarationMap": true,
         "inlineSources": false,
 
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "removeComments": true
     },
     "include": [
         "src/**/*"
