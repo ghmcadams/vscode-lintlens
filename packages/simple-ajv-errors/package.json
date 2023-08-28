@@ -20,9 +20,8 @@
     },
     "files": [
         "dist",
+        "src",
         "**/package.json",
-        "README.md",
-        "LICENSE.md",
         ".runkit_example.js"
     ],
     "runkitExampleFilename": ".runkit_example.js",
