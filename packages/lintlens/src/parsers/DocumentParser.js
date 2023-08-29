@@ -5,7 +5,8 @@ import YAMLParser from './YAMLParser';
 
 const fileNameBlockList = [
     'stylelint',
-    'putout'
+    'putout',
+    'commitlint',
 ];
 
 export function getParser(document) {
