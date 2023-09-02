@@ -1,6 +1,6 @@
 {
     "name": "jsonschema-docgengen",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A documentation generator for JSON schemas",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
