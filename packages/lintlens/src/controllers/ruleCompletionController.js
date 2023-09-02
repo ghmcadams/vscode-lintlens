@@ -14,7 +14,7 @@ export function initialize(context) {
     ];
 
     documentSelectors.forEach(selector => {
-        context.subscriptions.push(languages.registerCompletionItemProvider(selector, ruleIdProvider, "'", "`", "\""));
+        context.subscriptions.push(languages.registerCompletionItemProvider(selector, ruleIdProvider, "'", "\""));
         context.subscriptions.push(languages.registerInlineCompletionItemProvider(selector, ruleValueProvider));
     });
 }
@@ -69,7 +69,7 @@ const ruleIdProvider = {
             const item = new CompletionItem(rule, CompletionItemKind.Property);
             item.filterText = `${openQuote}${rule}`;
             // item.insertText = new SnippetString(`"${rule}": \${1|"error","warn","off"|},$0`);
-            item.insertText = `"${rule}": `;
+            item.insertText = `${openQuote}${rule}${openQuote}: `;
             item.range = range;
 
             // TODO: get rule description (from meta), defaulting to something standard (ESLint Rule ${rule} ??)
@@ -116,15 +116,27 @@ const ruleValueProvider = {
             before = matches.groups.b;
         }
 
-        console.log('Text: ', areaText);
-        const range = new Range(positionRange.start.line, entryRange.start.character, position.line, Number.MAX_SAFE_INTEGER);
+        const range = new Range(entryRange.start.line, entryRange.start.character, position.line, Number.MAX_SAFE_INTEGER);
+
+        // try to get the type of quote used in rule id
+        const preRange = new Range(entryRange.start.line, 1, entryRange.start.line, entryRange.start.character);
+        const preText = document.getText(preRange);
+        let quote = '"';
+        if (preText.includes(':')) {
+            const parts = preText.split(':');
+            const ruleId = parts[0].trimEnd();
+            const maybeQuote = ruleId.slice(-1);
+            if (['"', "'"].includes(maybeQuote)) {
+                quote = maybeQuote;
+            }
+        }
 
         // TODO: add variables that have been used in this document (to the beginning)
         //      could the parser return variables used?
         const allSeverities = [
-            "\"error\"",
-            "\"warn\"",
-            "\"off\"",
+            `${quote}error${quote}`,
+            `${quote}warn${quote}`,
+            `${quote}off${quote}`,
             "2",
             "1",
             "0"
