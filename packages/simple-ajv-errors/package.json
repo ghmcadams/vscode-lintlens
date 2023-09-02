@@ -1,6 +1,6 @@
 {
     "name": "simple-ajv-errors",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Parses AJV errors and determines the best message",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
