@@ -1,4 +1,4 @@
-const { getSchemaDocumentation } = require('jsonschema-doc');
+const { getSchemaDocumentation } = require('jsonschema-docgen');
 
 
 const schema = {

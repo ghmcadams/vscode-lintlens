@@ -54,7 +54,7 @@
         "astring": "^1.8.4",
         "deep-clone": "^3.0.3",
         "fuse.js": "^3.2.1",
-        "jsonschema-doc": "*",
+        "jsonschema-docgen": "*",
         "open": "^6.4.0",
         "request-light": "^0.6.0",
         "simple-ajv-errors": "*",
