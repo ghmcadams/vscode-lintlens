@@ -1,5 +1,5 @@
 {
-    "name": "jsonschema-docgengen",
+    "name": "jsonschema-docgen",
     "version": "1.0.2",
     "description": "A documentation generator for JSON schemas",
     "main": "./dist/cjs/index.js",
