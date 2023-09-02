@@ -1,4 +1,4 @@
-# JSON Schema Visualizer
+# JSON Schema Documentation Generator
 
 [![NPM](https://img.shields.io/npm/v/jsonschema-docgen?label=npm%20install&color=red)](https://www.npmjs.com/package/jsonschema-docgen)
 [![SIZE](https://img.shields.io/bundlephobia/min/jsonschema-docgen?label=size&color=blue)](https://www.npmjs.com/package/jsonschema-docgen)
