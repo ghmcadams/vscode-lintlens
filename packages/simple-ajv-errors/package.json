@@ -81,5 +81,6 @@
         "url": "https://github.com/ghmcadams/vscode-lintlens.git",
         "directory": "packages/simple-ajv-errors"
     },
-    "license": "MIT"
+    "license": "MIT",
+    "gitHead": "2a7f2f11fc82ed9604fceb36ac13daa31dce007d"
 }
