@@ -39,12 +39,12 @@ Hover for more information on each rule:
 
 <p align="center">
   <br />
-  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-hover.gif" alt="LintLens Preview Hover" width="600px" />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-screenshot-hover.png" alt="LintLens Preview Hover" width="600px" />
   <br />
 </p>
 
 
-Auto-updates as you type:
+Autocomplete rules as you type:
 
 <p align="center">
   <br />
@@ -59,7 +59,6 @@ In an effort to support all possible plugins and to keep size small, this extens
 
 ## Known Issues
 
-- Does not support globally installed eslint or plugin packages (must be installed in the currently open workspace)
 - ESLint v4.15.0 added an official location for rules to store a URL to their documentation in the rule metadata in [eslint/eslint#9788](https://github.com/eslint/eslint/pull/9788). This adds the URL to all the existing rules so anything consuming them can know where their documentation is without having to resort to external packages to guess.  If your plugin hasn't included this metadata, its possible you have an older version that needs to be updated.
 - Parsing js configs (flat and legacy) is somewhat limited, but should work in almost all cases.
   - Simple exporting of a config works
@@ -70,4 +69,4 @@ In an effort to support all possible plugins and to keep size small, this extens
   - Additionally, the language mode must match `javascript` or `javascriptreact`.
 - Intellisense does not work for YAML config files
 - Rule option validation does not work for YAML config files
-- Can mistakenly activate for config files for other tools like `stylelint` and `putout`, which have similar config structures
+- Can sometimes mistakenly activate for config files for other tools like `stylelint` and `putout`, which have similar config structures

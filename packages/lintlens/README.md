@@ -39,12 +39,12 @@ Hover for more information on each rule:
 
 <p align="center">
   <br />
-  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-preview-hover.gif" alt="LintLens Preview Hover" width="600px" />
+  <img src="https://raw.githubusercontent.com/ghmcadams/vscode-lintlens/master/images/lintlens-screenshot-hover.png" alt="LintLens Preview Hover" width="600px" />
   <br />
 </p>
 
 
-Auto-updates as you type:
+Autocomplete rules as you type:
 
 <p align="center">
   <br />
@@ -69,4 +69,4 @@ In an effort to support all possible plugins and to keep size small, this extens
   - Additionally, the language mode must match `javascript` or `javascriptreact`.
 - Intellisense does not work for YAML config files
 - Rule option validation does not work for YAML config files
-- Can mistakenly activate for config files for other tools like `stylelint` and `putout`, which have similar config structures
+- Can sometimes mistakenly activate for config files for other tools like `stylelint` and `putout`, which have similar config structures
