@@ -50,38 +50,37 @@ function getSchemaDocumentation(schema: JSONSchema, formatter?: FormatProvider):
     <summary>Click to expand</summary>
 
 ```ts
-type FormatProvider<TState = State> = {
+type FormatProvider = {
     // A function to initialize a mutable object, which is passed to every formatter function below
-    getInitialState: () => TState;
+    getInitialState: () => any;
 
     // A function for each type found in a JSON schema
     // Example:  object(doc, baseFunc, state) { ... }
 
-    any: FormatterFunction<AnySchema, TState>;
-    not: FormatterFunction<NotSchema, TState>;
-    nullvalue: FormatterFunction<NullvalueSchema, TState>;
-    object: FormatterFunction<ObjectSchema, TState>;
-    tuple: FormatterFunction<TupleSchema, TState>;
-    array: FormatterFunction<ArraySchema, TState>;
-    enumeration: FormatterFunction<EnumerationSchema, TState>;
-    constant: FormatterFunction<ConstantSchema, TState>;
-    string: FormatterFunction<StringSchema, TState>;
-    numeric: FormatterFunction<NumericSchema, TState>;
-    boolean: FormatterFunction<BooleanSchema, TState>;
-    anyOf: FormatterFunction<AnyOfSchema, TState>;
-    oneOf: FormatterFunction<OneOfSchema, TState>;
-    allOf: FormatterFunction<AllOfSchema, TState>;
-    ifThenElse: FormatterFunction<IfThenElseSchema, TState>;
-    multiType: FormatterFunction<MultiTypeSchema, TState>;
-    externalRef: FormatterFunction<ExternalRefSchema, TState>;
-    empty: FormatterFunction<EmptySchema, TState>;
-    invalid: FormatterFunction<InvalidSchema, TState>;
+    any: FormatterFunction<AnySchemaDoc>;
+    not: FormatterFunction<NotSchemaDoc>;
+    nullvalue: FormatterFunction<NullvalueSchemaDoc>;
+    object: FormatterFunction<ObjectSchemaDoc>;
+    tuple: FormatterFunction<TupleSchemaDoc>;
+    array: FormatterFunction<ArraySchemaDoc>;
+    enumeration: FormatterFunction<EnumerationSchemaDoc>;
+    constant: FormatterFunction<ConstantSchemaDoc>;
+    string: FormatterFunction<StringSchemaDoc>;
+    numeric: FormatterFunction<NumericSchemaDoc>;
+    boolean: FormatterFunction<BooleanSchemaDoc>;
+    anyOf: FormatterFunction<AnyOfSchemaDoc>;
+    oneOf: FormatterFunction<OneOfSchemaDoc>;
+    allOf: FormatterFunction<AllOfSchemaDoc>;
+    ifThenElse: FormatterFunction<IfThenElseSchemaDoc>;
+    multiType: FormatterFunction<MultiTypeSchemaDoc>;
+    externalRef: FormatterFunction<ExternalRefSchemaDoc>;
+    empty: FormatterFunction<EmptySchemaDoc>;
+    invalid: FormatterFunction<InvalidSchemaDoc>;
 };
 
-type FormatterFunction<TSchemaDoc, TState = State> = (doc: TSchemaDoc, formatFunc: BaseFormatFunction, state: TState) => string;
+type FormatterFunction<TSchemaDoc extends SchemaDoc> = (doc: TSchemaDoc, formatFunc: BaseFormatFunction, state: any) => string;
 
-type BaseFormatFunction = (doc: Schema) => string;
-type State = { [key: string]: unknown };
+type BaseFormatFunction = (doc: SchemaDoc) => string;
 ```
 </details>
 <br>
@@ -100,6 +99,8 @@ const documentation = getSchemaDocumentation(schema);
 // myFormatProvider.js
 
 export function getInitialState() { /* ... */ }
+export function externalRef(doc, formatFunc, state) { /* ... */ }
+export function empty(doc, formatFunc, state) { /* ... */ }
 export function any(doc, formatFunc, state) { /* ... */ }
 export function not(doc, formatFunc, state) { /* ... */ }
 export function nullvalue(doc, formatFunc, state) { /* ... */ }
@@ -116,8 +117,6 @@ export function oneOf(doc, formatFunc, state) { /* ... */ }
 export function allOf(doc, formatFunc, state) { /* ... */ }
 export function ifThenElse(doc, formatFunc, state) { /* ... */ }
 export function multiType(doc, formatFunc, state) { /* ... */ }
-export function externalRef(doc, formatFunc, state) { /* ... */ }
-export function empty(doc, formatFunc, state) { /* ... */ }
 export function invalid(doc, formatFunc, state) { /* ... */ }
 ```
 
@@ -165,101 +164,147 @@ A format provider is a JS object containing a function for each schema type.  As
 
 ```ts
 // TSchema is specific to the type represented by this function
-(doc: TSchema, formatFunc: (doc: Schema) => string, state: {}) => string;
+(doc: TSchemaDoc, formatFunc: (doc: SchemaDoc) => string, state: any) => string;
 ```
 
 ### Schema document types
 
 ```ts
-type Schema = ExternalRefSchema | EmptySchema | AnySchema | NotSchema | NullvalueSchema | ObjectSchema | TupleSchema | ArraySchema | EnumerationSchema | ConstantSchema | StringSchema | NumericSchema | BooleanSchema | AnyOfSchema | OneOfSchema | AllOfSchema | IfThenElseSchema | MultiTypeSchema | InvalidSchema;
+type SchemaDoc = ExternalRefSchemaDoc | EmptySchemaDoc | AnySchemaDoc | NotSchemaDoc | NullvalueSchemaDoc | ObjectSchemaDoc | TupleSchemaDoc | ArraySchemaDoc | EnumerationSchemaDoc | ConstantSchemaDoc | StringSchemaDoc | NumericSchemaDoc | BooleanSchemaDoc | AnyOfSchemaDoc | OneOfSchemaDoc | AllOfSchemaDoc | IfThenElseSchemaDoc | MultiTypeSchemaDoc | InvalidSchemaDoc;
 
-type BaseSchema = {
-    default?: unknown;
+type BareSchemaDoc = {
+    schemaType: SchemaTypes;
+};
+type BaseSchemaDoc = BareSchemaDoc & {
+    default?: Value;
     deprecated?: boolean;
     annotations?: Annotations;
 };
 
-type ExternalRefSchema = {
-    baseUri: string | undefined;
+type ExternalRefSchemaDoc = BareSchemaDoc & {
+    baseUri: string;
     reference: string;
 };
-type EmptySchema = {
+type EmptySchemaDoc = BareSchemaDoc & {
     schema: Schema;
 };
-type AnySchema = BaseSchema & {};
-type NotSchema = BaseSchema & {
+type InvalidSchemaDoc = BareSchemaDoc & {
     schema: Schema;
 };
-type NullvalueSchema = BaseSchema & {};
-type ObjectSchema = BaseSchema & {
+type AnySchemaDoc = BaseSchemaDoc & {};
+type NotSchemaDoc = BaseSchemaDoc & {
+    schema: SchemaDoc;
+};
+type NullvalueSchemaDoc = BaseSchemaDoc & {};
+type ObjectSchemaDoc = BaseSchemaDoc & {
     properties: Property[];
     indexProperties?: Property[];
-    requirements?: Requirement[];
+    requirements?: ObjectRequirements;
 };
-type TupleSchema = BaseSchema & {
-    items: Schema[];
-    additionalItems?: Schema;
+type TupleSchemaDoc = BaseSchemaDoc & {
+    items: SchemaDoc[];
+    additionalItems?: SchemaDoc;
+    requirements?: ArrayRequirements;
 };
-type ArraySchema = BaseSchema & {
-    schema: Schema;
+type ArraySchemaDoc = BaseSchemaDoc & {
+    schema: SchemaDoc;
+    requirements?: ArrayRequirements;
 };
-type EnumerationSchema = BaseSchema & {
-    values: unknown[];
+type EnumerationSchemaDoc = BaseSchemaDoc & {
+    values: Value[];
 };
-type ConstantSchema = BaseSchema & {
-    value: unknown;
+type ConstantSchemaDoc = BaseSchemaDoc & {
+    value: Value;
 };
-type StringSchema = BaseSchema & {
-    requirements?: Requirement[];
+type gSchemaDoc = BaseSchemaDoc & {
+    requirements?: StringRequirements;
 };
-type NumericSchema = BaseSchema & {
+type NumericSchemaDoc = BaseSchemaDoc & {
     numericType: string;
-    requirements?: Requirement[];
+    requirements?: NumericRequirements;
 };
-type BooleanSchema = BaseSchema & {};
-type OneOfSchema = BaseSchema & {
-    items: Schema[];
+type BooleanSchemaDoc = BaseSchemaDoc & {};
+type OneOfSchemaDoc = BaseSchemaDoc & {
+    items: SchemaDoc[];
 };
-type AnyOfSchema = BaseSchema & {
-    items: Schema[];
+type AnyOfSchemaDoc = BaseSchemaDoc & {
+    items: SchemaDoc[];
 };
-type AllOfSchema = BaseSchema & {
-    items: Schema[];
+type AllOfSchemaDoc = BaseSchemaDoc & {
+    items: SchemaDoc[];
 };
-type IfThenElseSchema = BaseSchema & {
-    if: Schema;
-    then: Schema;
-    else: Schema;
+type IfThenElseSchemaDoc = BaseSchemaDoc & {
+    if: SchemaDoc;
+    then: SchemaDoc;
+    else: SchemaDoc;
 };
-type MultiTypeSchema = BaseSchema & {
-    types: string[];
+type MultiTypeSchemaDoc = BaseSchemaDoc & {
+    types: SchemaTypeName[];
 };
-type InvalidSchema = {
-    schema: Schema;
-};
-
-type Scalar = string | number | boolean;
 
 type Property = {
     key: string;
-    value: Schema;
+    value: SchemaDoc;
     required: boolean;
 };
 
 type Annotations = {
-    title: string;
-    description: string;
-    examples: unknown[];
-    readOnly: boolean;
-    writeOnly: boolean;
+    title?: string;
+    description?: string;
+    examples?: Value[];
+    readOnly?: boolean;
+    writeOnly?: boolean;
 };
 
 type Requirement = {
-    [string]: {
-        [string]: Scalar;
-        message: string;
+    message: string;
+};
+type ObjectRequirements = {
+    size?: Requirement & {
+        minProperties?: number;
+        maxProperties?: number;
+    };
+    propertyNames?: Requirement & {
+        minLength?: number;
+        maxLength?: number;
+        pattern?: string;
+        format?: string;
     };
 };
+type ArrayRequirements = {
+    length?: Requirement & {
+        minItems?: number;
+        maxItems?: number;
+    };
+    uniqueItems?: Requirement & {
+        value: true;
+    };
+};
+type StringRequirements = {
+    length?: Requirement & {
+        minLength?: number;
+        maxLength?: number;
+    };
+    pattern?: Requirement & {
+        value: string;
+    };
+    format?: Requirement & {
+        value: string;
+    };
+};
+type NumericRequirements = {
+    range?: Requirement & {
+        minimum?: number;
+        maximum?: number;
+        exclusiveMinimum?: number | boolean;
+        exclusiveMaximum?: number | boolean;
+    };
+    multipleOf?: Requirement & {
+        value: number;
+    };
+};
+
+
 ```
 
 
