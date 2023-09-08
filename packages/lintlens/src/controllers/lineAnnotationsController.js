@@ -73,7 +73,7 @@ function addAnnotations(editor, context) {
                         ruleInfo.validationErrors.push(...severity.errors);
 
                         diagnostics.push(...severity.errors.map(error => ({
-                            source: 'LintLens',
+                            source: extensionName,
                             range: rule.configuration.severityRange,
                             severity: DiagnosticSeverity.Error,
                             message: error,
@@ -95,14 +95,14 @@ function addAnnotations(editor, context) {
                 // add diagnostics as needed
                 if (ruleInfo.isPluginMissing) {
                     diagnostics.push({
-                        source: 'LintLens',
+                        source: extensionName,
                         range: rule.key.range,
                         severity: DiagnosticSeverity.Error,
                         message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
                     });
                 } else if (!ruleInfo.isRuleFound) {
                     diagnostics.push({
-                        source: 'LintLens',
+                        source: extensionName,
                         range: rule.key.range,
                         severity: DiagnosticSeverity.Error,
                         message: `Rule "${rule.name}" not found`,
@@ -110,7 +110,7 @@ function addAnnotations(editor, context) {
                 }
                 if (rule.duplicate) {
                     diagnostics.push({
-                        source: 'LintLens',
+                        source: extensionName,
                         range: rule.key.range,
                         severity: DiagnosticSeverity.Warning,
                         message: messages.duplicateRule,
@@ -118,7 +118,7 @@ function addAnnotations(editor, context) {
                 }
                 if (ruleInfo.isDeprecated) {
                     diagnostics.push({
-                        source: 'LintLens',
+                        source: extensionName,
                         range: rule.key.range,
                         severity: DiagnosticSeverity.Warning,
                         message: `Rule "${rule.name}" is deprecated`,
