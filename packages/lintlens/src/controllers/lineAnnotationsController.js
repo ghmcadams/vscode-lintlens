@@ -1,4 +1,4 @@
-import { window, workspace, languages, Range, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
+import { window, workspace, languages, Range, Position, MarkdownString, DecorationRangeBehavior, ThemeColor, DiagnosticSeverity } from 'vscode';
 import { getParser } from '../parsers/DocumentParser';
 import { getRuleDetails } from '../rules';
 import { glyphs, extensionName, commands, messages } from '../constants';
@@ -83,12 +83,25 @@ function addAnnotations(editor, context) {
                         const errorMessages = options.errors.map(error => error.message);
                         ruleInfo.validationErrors.push(...errorMessages);
 
-                        diagnostics.push(...errorMessages.map(error => ({
-                            source: 'LintLens',
-                            range: rule.configuration.optionsRange,
-                            severity: DiagnosticSeverity.Error,
-                            message: error,
-                        })));
+                        diagnostics.push(...options.errors.map(error => {
+                            const errorLocation = rule.configuration?.optionsLocations?.[error.instancePath];
+                            let range = rule.configuration?.optionsRange ?? rule.configuration?.range ?? rule.range;
+                            if (errorLocation !== undefined) {
+                                try {
+                                    const startPosition = new Position(errorLocation.start.line - 1, errorLocation.start.column);
+                                    const endPosition = new Position(errorLocation.end.line - 1, errorLocation.end.column);
+                                    range = new Range(startPosition, endPosition);
+                                } catch (err) {
+                                }
+                            }
+
+                            return {
+                                source: extensionName,
+                                range,
+                                severity: DiagnosticSeverity.Error,
+                                message: error.message,
+                            };
+                        }));
                     }
                 }
 

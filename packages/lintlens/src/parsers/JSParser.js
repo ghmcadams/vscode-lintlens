@@ -517,14 +517,16 @@ function getRuleDetails(rule) {
 
     // configuration
     const configurationRange = getRange(rule.value);
-    let severityRange, optionsRange;
+    let severityRange, optionsRange, optionsAst;
     if (rule.value.type === 'ArrayExpression') {
         severityRange = getRange(rule.value.elements[0]);
-        optionsRange = getRange(rule.value.elements.slice(1));
+        optionsAst = rule.value.elements.slice(1);
+        optionsRange = getRange(optionsAst);
     } else if (rule.value.type === 'Literal' || rule.value.type === 'TemplateLiteral' || rule.value.type === 'Identifier') {
         severityRange = getRange(rule.value);
     }
     const optionsConfig = readRuleValue(rule.value);
+    const optionsLocations = getAstLocations(optionsAst);
 
     return {
         type: EntryType.Rule,
@@ -537,9 +539,41 @@ function getRuleDetails(rule) {
             range: configurationRange,
             severityRange,
             optionsRange,
+            optionsLocations,
             value: optionsConfig
         }
     };
+}
+
+function getAstLocations(ast) {
+    return ast === undefined ? undefined : ast.reduce((ret, curr, index) => {
+        walk.fullAncestor(curr, (node, state, ancestors, type) => {
+            if (type === 'Property') {
+                return;
+            }
+
+            let key = `/${index}`;
+            // last element = node, skip it
+            ancestors.slice(0, -1).forEach((ancestorNode, idx) => {
+                switch (ancestorNode.type) {
+                    case 'ObjectExpression':
+                        key += '/';
+                        break;
+                    case 'ArrayExpression':
+                        const nextElement = ancestors[idx + 1];
+                        key += `/${ancestorNode.elements.findIndex(element => element === nextElement)}`;
+                        break;
+                    case 'Property':
+                        key += ancestorNode.key.type === 'Identifier' ? ancestorNode.key.name : ancestorNode.key.value;
+                        break;
+                }
+            });
+
+            ret[key] = node.loc;
+        });
+
+        return ret;
+    }, {});
 }
 
 export const ESLintConfigType = {
