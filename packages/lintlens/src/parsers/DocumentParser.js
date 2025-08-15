@@ -31,7 +31,7 @@ export function getParser(document) {
     }
 
     if (['javascript', 'javascriptreact', 'json', 'jsonc'].includes(languageId)) {
-        if (fileName === 'eslint.config.js') {
+        if (['eslint.config.js', 'eslint.config.mjs', 'eslint.config.cjs', 'eslint.config.ts', 'eslint.config.mts', 'eslint.config.cts'].includes(fileName)) {
             return new JSParser(document, { configType: ESLintConfigType.Flat });
         }
 
