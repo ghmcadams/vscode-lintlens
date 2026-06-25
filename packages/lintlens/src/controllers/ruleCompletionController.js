@@ -9,6 +9,7 @@ export function initialize(context) {
     const documentSelectors = [
         { language: 'javascript', scheme: 'file' },
         { language: 'javascriptreact', scheme: 'file' },
+        { language: 'typescript', scheme: 'file' },
         { language: 'json', scheme: 'file' },
         { language: 'jsonc', scheme: 'file' }
     ];

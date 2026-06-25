@@ -9,6 +9,8 @@ const fileNameBlockList = [
     'commitlint',
 ];
 
+const FLAT_CONFIG_FILE_PATTERN = /^eslint\.config\.(js|mjs|cjs|ts|mts|cts)$/;
+
 export function getParser(document) {
     if (document.uri.scheme !== 'file') {
         return;
@@ -30,8 +32,8 @@ export function getParser(document) {
         return new YAMLParser(document);
     }
 
-    if (['javascript', 'javascriptreact', 'json', 'jsonc'].includes(languageId)) {
-        if (['eslint.config.js', 'eslint.config.mjs', 'eslint.config.cjs', 'eslint.config.ts', 'eslint.config.mts', 'eslint.config.cts'].includes(fileName)) {
+    if (['javascript', 'javascriptreact', 'json', 'jsonc', 'typescript'].includes(languageId)) {
+        if (FLAT_CONFIG_FILE_PATTERN.test(fileName)) {
             return new JSParser(document, { configType: ESLintConfigType.Flat });
         }
 

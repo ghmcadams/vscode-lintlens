@@ -1,0 +1,7 @@
+{
+    "name": "lintlens-fixture-eslint8-legacy",
+    "private": true,
+    "devDependencies": {
+        "eslint": "^8.0.0"
+    }
+}

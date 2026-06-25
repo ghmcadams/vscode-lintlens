@@ -30,6 +30,7 @@
         "dev": "npm run clean && webpack --mode development --watch",
         "clean": "rimraf ./dist",
         "build": "npm run clean && webpack --mode development",
+        "verify:eslint": "node scripts/verify-eslint-rules.mjs",
         "release": "vsce publish --no-dependencies",
         "vscode:prepublish": "npm run clean && webpack --mode production",
         "postinstall": "node ../../node_modules/vscode/bin/install"
@@ -54,6 +55,7 @@
         "astring": "^1.8.4",
         "deep-clone": "^3.0.3",
         "fuse.js": "^3.2.1",
+        "sucrase": "^3.35.0",
         "jsonschema-docgen": "*",
         "open": "^6.4.0",
         "request-light": "^0.6.0",
@@ -78,6 +80,11 @@
     "activationEvents": [
         "workspaceContains:**/.eslintrc*",
         "workspaceContains:**/eslint.config.js",
+        "workspaceContains:**/eslint.config.mjs",
+        "workspaceContains:**/eslint.config.cjs",
+        "workspaceContains:**/eslint.config.ts",
+        "workspaceContains:**/eslint.config.mts",
+        "workspaceContains:**/eslint.config.cts",
         "workspaceContains:**/package.json",
         "workspaceContains:**/*"
     ],

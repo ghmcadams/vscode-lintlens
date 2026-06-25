@@ -1,0 +1,8 @@
+{
+    "name": "lintlens-fixture-eslint10-flat-ts",
+    "private": true,
+    "type": "module",
+    "devDependencies": {
+        "eslint": "^10.0.0"
+    }
+}

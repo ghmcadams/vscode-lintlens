@@ -1,0 +1,7 @@
+{
+    "name": "lintlens-fixture-eslint9-legacy",
+    "private": true,
+    "devDependencies": {
+        "eslint": "^9.0.0"
+    }
+}

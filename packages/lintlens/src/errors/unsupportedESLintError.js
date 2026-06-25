@@ -4,6 +4,6 @@ export default class UnsupportedESLintError extends LintLensError {
     constructor(...rest) {
       super(...rest);
       this.name = "UnsupportedESLintError";
-      this.message = "Please update to latest version of ESLint to use this extension!"
+      this.message = "Unable to load ESLint rule definitions from this workspace's ESLint installation."
   }
 }

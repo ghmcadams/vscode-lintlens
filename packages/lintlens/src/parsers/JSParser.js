@@ -3,6 +3,7 @@ import { basename } from 'path';
 import { parse } from 'acorn';
 import { parse as parseLoose, isDummy } from 'acorn-loose';
 import * as walk from 'acorn-walk';
+import { transform } from 'sucrase';
 import { generate } from 'astring';
 import deepClone from 'deep-clone';
 import Parser, { EntryType } from './Parser';
@@ -90,9 +91,26 @@ function isCorrectProperty(prop, name) {
     );
 }
 
+function unwrapCallExpression(value) {
+    if (value.type !== 'CallExpression' || !value.arguments?.length) {
+        return null;
+    }
+
+    for (const arg of value.arguments) {
+        const realArg = getRealValue(arg);
+        if (realArg?.type === 'ArrayExpression' || realArg?.type === 'ObjectExpression') {
+            return realArg;
+        }
+    }
+
+    return null;
+}
+
 function getRealValue(value) {
     if (value.type === 'Identifier') {
         return getVariableValueFromBody(value.body, value.name);
+    } else if (value.type === 'CallExpression') {
+        return unwrapCallExpression(value) ?? value;
     } else if (value.type === 'SpreadElement') {
         switch (value.argument.type) {
             case 'Identifier':
@@ -188,6 +206,16 @@ function getASTBody(text, languageId, optionsOverrides = {}) {
 
     if (languageId === 'json' || languageId === 'jsonc') {
         documentText = `export default ${documentText}`;
+    }
+
+    if (languageId === 'typescript') {
+        try {
+            documentText = transform(documentText, {
+                transforms: ['typescript'],
+            }).code;
+        } catch (err) {
+            return null;
+        }
     }
 
     const options = {

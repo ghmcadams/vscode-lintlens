@@ -24,14 +24,14 @@ Adds intellisense (autocomplete) for rule IDs and for simple rule values (comple
 
 Adds rule value validation
 
-Supports all configuration file formats currently [supported by ESLint](https://eslint.org/docs/latest/use/configure/configuration-files#configuration-file-formats)
+Supports ESLint flat config (required by ESLint 10) and legacy configuration formats for editing and migration.
 
-- Flat Config - use `eslint.config.js` at the root and export an array containing your configurations.
-- JavaScript - use `.eslintrc.js` or `.eslintrc.cjs` (or any other javascript file in your workspace) and export an object containing your configuration.
-- YAML - use `.eslintrc.yaml` or `.eslintrc.yml` (or any other yaml file in your workspace) to define the configuration structure.
-- JSON - use `.eslintrc.json` (or any other JSON file in your workspace) to define the configuration structure. ESLint’s JSON files also allow JavaScript-style comments.
-- **Deprecated** - use `.eslintrc`, which can be either JSON or YAML.
-- package.json - create an `eslintConfig` property in your `package.json` file and define your configuration there.
+- **Flat Config (ESLint 8+ / required for ESLint 10)** — use `eslint.config.js`, `eslint.config.mjs`, `eslint.config.cjs`, `eslint.config.ts`, `eslint.config.mts`, or `eslint.config.cts` and export an array containing your configurations. Supports `defineConfig()` wrappers.
+- **Legacy JavaScript** — use `.eslintrc.js` or `.eslintrc.cjs` (or any other javascript file in your workspace) and export an object containing your configuration. ESLint 10 no longer reads these files, but LintLens can still annotate them while you migrate.
+- **YAML** — use `.eslintrc.yaml` or `.eslintrc.yml` (or any other yaml file in your workspace) to define the configuration structure. Not supported by ESLint 10.
+- **JSON** — use `.eslintrc.json` (or any other JSON file in your workspace) to define the configuration structure. ESLint's JSON files also allow JavaScript-style comments. Not supported by ESLint 10.
+- **Deprecated** — use `.eslintrc`, which can be either JSON or YAML.
+- **package.json** — create an `eslintConfig` property in your `package.json` file and define your configuration there. Not supported by ESLint 10.
 
 If you are new to ESLint check the [documentation](http://eslint.org/).  
 
@@ -60,13 +60,15 @@ In an effort to support all possible plugins and to keep size small, this extens
 ## Known Issues
 
 - ESLint v4.15.0 added an official location for rules to store a URL to their documentation in the rule metadata in [eslint/eslint#9788](https://github.com/eslint/eslint/pull/9788). This adds the URL to all the existing rules so anything consuming them can know where their documentation is without having to resort to external packages to guess.  If your plugin hasn't included this metadata, its possible you have an older version that needs to be updated.
-- Parsing js configs (flat and legacy) is somewhat limited, but should work in almost all cases.
+- Parsing JS/TS configs (flat and legacy) is somewhat limited, but should work in almost all cases.
   - Simple exporting of a config works
   - Exporting from a variable works
+  - `defineConfig()` and similar call wrappers work
   - Finding rules through rest spread works
   - rule option validation does not work when variables are used
   - Beyond that, parsing could be improved
-  - Additionally, the language mode must match `javascript` or `javascriptreact`.
+  - TypeScript configs with dynamic runtime features (top-level await, conditional imports) may fail to parse
+  - Additionally, the language mode must match `javascript`, `javascriptreact`, or `typescript` for flat config files
 - Intellisense does not work for YAML config files
 - Rule option validation does not work for YAML config files
 - Can sometimes mistakenly activate for config files for other tools like `stylelint` and `putout`, which have similar config structures
