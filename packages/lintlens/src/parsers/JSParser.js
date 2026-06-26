@@ -31,16 +31,54 @@ function getVariableValueFromBody(body, name) {
     for (const statement of body) {
         if (statement.type === 'VariableDeclaration') {
             for (const declaration of statement.declarations) {
-                if (declaration.type === 'VariableDeclarator' && declaration.id.name === name) {
-                    // TODO: what other types could there be? (spread?)
+                if (declaration.type !== 'VariableDeclarator' || declaration.init == null) {
+                    continue;
+                }
+
+                if (declaration.id.type === 'Identifier' && declaration.id.name === name) {
                     if (declaration.init.type === 'Identifier') {
                         return getVariableValueFromBody(body, declaration.init.name);
                     }
                     if (['CallExpression', 'MemberExpression'].includes(declaration.init.type)) {
-                        // TODO: support MemberExpression, CallExpression
-                        return null;
+                        return getRealValue(declaration.init);
                     }
                     return declaration.init;
+                }
+
+                if (declaration.id.type === 'ObjectPattern') {
+                    const targetObject = getRealValue(declaration.init);
+                    if (targetObject?.type !== 'ObjectExpression') {
+                        continue;
+                    }
+
+                    for (const property of declaration.id.properties) {
+                        if (property.type !== 'Property') {
+                            continue;
+                        }
+
+                        let localName = null;
+                        if (property.value.type === 'Identifier') {
+                            localName = property.value.name;
+                        } else if (property.value.type === 'AssignmentPattern' && property.value.left.type === 'Identifier') {
+                            localName = property.value.left.name;
+                        }
+
+                        if (localName !== name) {
+                            continue;
+                        }
+
+                        const propertyName = property.key.type === 'Identifier'
+                            ? property.key.name
+                            : property.key.type === 'Literal'
+                                ? property.key.value
+                                : null;
+
+                        if (propertyName === null) {
+                            continue;
+                        }
+
+                        return getPropertyByName(targetObject, propertyName);
+                    }
                 }
             }
         }
@@ -111,6 +149,39 @@ function getRealValue(value) {
         return getVariableValueFromBody(value.body, value.name);
     } else if (value.type === 'CallExpression') {
         return unwrapCallExpression(value) ?? value;
+    } else if (value.type === 'MemberExpression') {
+        const objectValue = getRealValue(value.object);
+        if (!objectValue) {
+            return null;
+        }
+
+        let propertyName;
+        if (value.computed) {
+            if (value.property.type !== 'Literal') {
+                return null;
+            }
+            propertyName = value.property.value;
+        } else {
+            if (value.property.type === 'Identifier') {
+                propertyName = value.property.name;
+            } else if (value.property.type === 'Literal') {
+                propertyName = value.property.value;
+            }
+        }
+
+        if (propertyName === undefined || propertyName === null) {
+            return null;
+        }
+
+        if (objectValue.type === 'ObjectExpression') {
+            return getPropertyByName(objectValue, propertyName);
+        }
+
+        if (objectValue.type === 'ArrayExpression' && Number.isInteger(propertyName)) {
+            return objectValue.elements[propertyName];
+        }
+
+        return null;
     } else if (value.type === 'SpreadElement') {
         switch (value.argument.type) {
             case 'Identifier':
@@ -145,7 +216,7 @@ function getRealProperties(properties) {
         const realProp = getRealValue(prop);
         if (realProp?.type === 'ObjectExpression') {
             realProperties.push(...getRealProperties(realProp.properties));
-        } else if (realProp.type === 'Property') {
+        } else if (realProp?.type === 'Property') {
             realProperties.push(realProp);
         }
     }
@@ -393,6 +464,7 @@ function readRuleValue(ruleValueAST) {
 
         if (ruleValueAST.type === 'ArrayExpression') {
             const ruleValueCopy = deepClone(ruleValueAST);
+            ruleValueCopy.elements = getRealElements(ruleValueCopy.elements);
             return unparseJSON(ruleValueCopy);
         }
 
