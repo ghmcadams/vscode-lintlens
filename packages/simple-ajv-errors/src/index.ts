@@ -9,7 +9,7 @@ import type {
     OfErrorObjectWithPath,
     JSONSchemaObject,
     Schema,
-} from './types';
+} from './types.ts';
 
 import clone from 'clone';
 import pluralize from 'pluralize';
@@ -25,7 +25,7 @@ import {
     getSchemaType,
     getType,
     getValueMatchScore,
-} from './util';
+} from './util.js';
 
 
 type Options = {

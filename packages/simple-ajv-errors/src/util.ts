@@ -1,4 +1,4 @@
-import type { VerboseErrorObject, Schema, JSONSchemaObject } from './types';
+import type { VerboseErrorObject, Schema, JSONSchemaObject } from './types.ts';
 
 import levenshtein from 'damerau-levenshtein';
 
