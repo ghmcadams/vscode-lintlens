@@ -137,7 +137,7 @@ function getOfHierarchy(errors: VerboseErrorObject[]): AnyError[] {
         for (const schemaPath of schemaOfs) {
             // already stored
             const storedErrors = ref.flat() as AnyError[];
-            const refError = storedErrors.find(item => item?.schemaPath === schemaPath);
+            const refError = storedErrors.find(item => item?.schemaPath === schemaPath && item.instancePath === error.instancePath);
             if (refError && isOfError(refError)) {
                 // TODO: bug: refError may not be an OF (which means it may not have choices)
                 //  maybe I thought that non-OF-errors with the same schemaPath could not co-exist?
@@ -146,7 +146,7 @@ function getOfHierarchy(errors: VerboseErrorObject[]): AnyError[] {
             }
 
             // not yet stored, add it
-            const ofError = ofs.find(item => item.schemaPath === schemaPath);
+            const ofError = ofs.find(item => item.schemaPath === schemaPath && item.instancePath === error.instancePath);
             if (ofError) {
                 ofError.choices = [];
 
