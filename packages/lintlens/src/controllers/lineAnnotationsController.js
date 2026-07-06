@@ -68,52 +68,62 @@ function addAnnotations(editor, context) {
                 // validate rule config options
                 ruleInfo.validationErrors = [];
                 if (rule.configuration?.value !== null && rule.configuration?.value !== undefined) {
+                    const showInvalidConfig = workspace.getConfiguration('lintlens').get('diagnostics.invalidConfiguration');
                     const { severity, options } = validateConfigFromSchema(ruleInfo.schema, rule.configuration.value);
                     if (!severity.valid) {
                         ruleInfo.validationErrors.push(...severity.errors);
 
-                        diagnostics.push(...severity.errors.map(error => ({
-                            source: extensionName,
-                            range: rule.configuration.severityRange,
-                            severity: DiagnosticSeverity.Error,
-                            message: error,
-                        })));
+                        if (showInvalidConfig) {
+                            diagnostics.push(...severity.errors.map(error => ({
+                                source: extensionName,
+                                range: rule.configuration.severityRange,
+                                severity: DiagnosticSeverity.Error,
+                                message: error,
+                            })));
+                        }
                     }
                     if (!options.valid) {
                         const errorMessages = options.errors.map(error => error.message);
                         ruleInfo.validationErrors.push(...errorMessages);
 
-                        diagnostics.push(...options.errors.map(error => {
-                            const errorLocation = rule.configuration?.optionsLocations?.[error.instancePath];
-                            let range = rule.configuration?.optionsRange ?? rule.configuration?.range ?? rule.range;
-                            if (errorLocation !== undefined) {
-                                try {
-                                    const startPosition = new Position(errorLocation.start.line - 1, errorLocation.start.column);
-                                    const endPosition = new Position(errorLocation.end.line - 1, errorLocation.end.column);
-                                    range = new Range(startPosition, endPosition);
-                                } catch (err) {
+                        if (showInvalidConfig) {
+                            diagnostics.push(...options.errors.map(error => {
+                                const errorLocation = rule.configuration?.optionsLocations?.[error.instancePath];
+                                let range = rule.configuration?.optionsRange ?? rule.configuration?.range ?? rule.range;
+                                if (errorLocation !== undefined) {
+                                    try {
+                                        const startPosition = new Position(errorLocation.start.line - 1, errorLocation.start.column);
+                                        const endPosition = new Position(errorLocation.end.line - 1, errorLocation.end.column);
+                                        range = new Range(startPosition, endPosition);
+                                    } catch (err) {
+                                    }
                                 }
-                            }
 
-                            return {
-                                source: extensionName,
-                                range,
-                                severity: DiagnosticSeverity.Error,
-                                message: error.message,
-                            };
-                        }));
+                                return {
+                                    source: extensionName,
+                                    range,
+                                    severity: DiagnosticSeverity.Error,
+                                    message: error.message,
+                                };
+                            }));
+                        }
                     }
                 }
 
+                const showNotFound = workspace.getConfiguration('lintlens').get('diagnostics.ruleNotFound');
+                const showDeprecated = workspace.getConfiguration('lintlens').get('diagnostics.deprecatedRule');
+                const showPluginMissing = workspace.getConfiguration('lintlens').get('diagnostics.pluginMissing');
+                const showDuplicate = workspace.getConfiguration('lintlens').get('diagnostics.duplicateRule');
+
                 // add diagnostics as needed
-                if (ruleInfo.isPluginMissing) {
+                if (ruleInfo.isPluginMissing && showPluginMissing) {
                     diagnostics.push({
                         source: extensionName,
                         range: rule.key.range,
                         severity: DiagnosticSeverity.Error,
                         message: `Plugin missing "${ruleInfo.pluginPackageName}"`,
                     });
-                } else if (!ruleInfo.isRuleFound) {
+                } else if (!ruleInfo.isRuleFound && showNotFound) {
                     diagnostics.push({
                         source: extensionName,
                         range: rule.key.range,
@@ -121,7 +131,7 @@ function addAnnotations(editor, context) {
                         message: `Rule "${rule.name}" not found`,
                     });
                 }
-                if (rule.duplicate) {
+                if (rule.duplicate && showDuplicate) {
                     diagnostics.push({
                         source: extensionName,
                         range: rule.key.range,
@@ -129,7 +139,7 @@ function addAnnotations(editor, context) {
                         message: messages.duplicateRule,
                     });
                 }
-                if (ruleInfo.isDeprecated) {
+                if (ruleInfo.isDeprecated && showDeprecated) {
                     diagnostics.push({
                         source: extensionName,
                         range: rule.key.range,
