@@ -89,6 +89,36 @@
         "workspaceContains:**/*"
     ],
     "contributes": {
+        "configuration": {
+            "title": "LintLens",
+            "properties": {
+                "lintlens.diagnostics.invalidConfiguration": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show an error diagnostic when an ESLint rule configuration is invalid."
+                },
+                "lintlens.diagnostics.pluginMissing": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show an error diagnostic when an ESLint plugin is missing."
+                },
+                "lintlens.diagnostics.ruleNotFound": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show an error diagnostic when an ESLint rule is not found."
+                },
+                "lintlens.diagnostics.deprecatedRule": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show a warning diagnostic when an ESLint rule is deprecated."
+                },
+                "lintlens.diagnostics.duplicateRule": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show a warning diagnostic when an ESLint rule is duplicated."
+                }
+            }
+        },
         "colors": [
             {
                 "id": "lintlens.annotationColor",
